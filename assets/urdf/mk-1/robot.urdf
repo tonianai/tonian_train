@@ -151,6 +151,7 @@
         <child link="foot" />
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-0.523599" upper="0.523599"/>
+        <dynamics damping="10.0"/>
         <joint_properties friction="0.0"/>
     </joint>
 
@@ -161,6 +162,7 @@
         <child link="lower_leg" />
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-1.91986" upper="0"/>
+        <dynamics damping="10.0"/>
         <joint_properties friction="0.0"/>
     </joint>
 
@@ -172,6 +174,7 @@
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-1.74533" upper="0"/>
         <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
     </joint>
 
     <link name="lower_torso">
@@ -347,6 +350,7 @@
         <child link="foot_2" />
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-0.523599" upper="0.523599"/>
+        <dynamics damping="10.0"/>
         <joint_properties friction="0.0"/>
     </joint>
 
@@ -358,6 +362,7 @@
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="0" upper="1.5708"/>
         <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
     </joint>
 
     <!--Joint 5 right hip b-->
@@ -368,6 +373,7 @@
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-1.74533" upper="0"/>
         <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
     </joint>
 
     <!--Joint 6 right hip a -->
@@ -377,6 +383,8 @@
         <child link="torso_leg_connector_2" />
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-0.523599" upper="0.523599"/>
+
+       <dynamics damping="10.0"/>
         <joint_properties friction="0.0"/>
     </joint>
 
@@ -553,6 +561,7 @@
         <child link="forearm" />
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-1.74533" upper="0"/>
+        <dynamics damping="10.0"/>
         <joint_properties friction="0.0"/>
     </joint>
 
@@ -564,6 +573,7 @@
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-1.5708" upper="1.5708"/>
         <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
     </joint>
 
     <!--Joint 9 left shoulder b-->
@@ -573,6 +583,7 @@
         <child link="shoulder" />
         <axis xyz="0 0 1"/>
         <limit effort="1" velocity="20" lower="-0.698132" upper="1.5708"/>
+      <dynamics damping="10.0"/>
         <joint_properties friction="0.0"/>
     </joint>
 

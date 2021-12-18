@@ -53,18 +53,30 @@ gym = gymapi.acquire_gym()
 # configure sim
 sim_params = gymapi.SimParams()
 sim_params.dt = dt = 1.0 / 60.0
+
+
+
 if args.physics_engine == gymapi.SIM_FLEX:
-    pass
+    sim_params.flex.shape_collision_margin = 0.25
+    sim_params.flex.num_outer_iterations = 4
+    sim_params.flex.num_inner_iterations = 10
 elif args.physics_engine == gymapi.SIM_PHYSX:
+    sim_params.substeps = 1
     sim_params.physx.solver_type = 1
-    sim_params.physx.num_position_iterations = 6
-    sim_params.physx.num_velocity_iterations = 0
+    sim_params.physx.num_position_iterations = 4
+    sim_params.physx.num_velocity_iterations = 1
     sim_params.physx.num_threads = args.num_threads
     sim_params.physx.use_gpu = args.use_gpu
-    
+
+sim_params.use_gpu_pipeline = False
+if args.use_gpu_pipeline:
+    print("WARNING: Forcing CPU pipeline.")
     
     
 sim_params.use_gpu_pipeline = False
+
+#sim_params.gravity = gymapi.Vec3(0.0, -9.8, 0.0)
+
 if args.use_gpu_pipeline:
     print("WARNING: Forcing CPU pipeline.")
 
@@ -88,13 +100,9 @@ if viewer is None:
 asset_root = "./../assets"
 asset_file = asset_descriptors[args.asset_id].file_name
 
-asset_options = gymapi.AssetOptions()
-asset_options.fix_base_link = True
-asset_options.flip_visual_attachments = asset_descriptors[args.asset_id].flip_visual_attachments
-asset_options.use_mesh_materials = True
 
 asset_options = gymapi.AssetOptions()
-asset_options.fix_base_link = True
+asset_options.fix_base_link = False
 asset_options.flip_visual_attachments = asset_descriptors[args.asset_id].flip_visual_attachments
 asset_options.use_mesh_materials = True
 
@@ -175,7 +183,7 @@ for i in range(num_dofs):
         print("    Upper   %f" % upper_limits[i])
 
 # set up the env grid
-num_envs = 3600
+num_envs = 36
 num_per_row = math.floor(num_envs ** (1/2))
 spacing = 2.5
 env_lower = gymapi.Vec3(-spacing, 0.0, -spacing)
@@ -229,7 +237,8 @@ while not gym.query_viewer_has_closed(viewer):
     
     
     speed = speeds[current_dof]
-
+    
+    
     # animate the dofs
     if anim_state == ANIM_SEEK_LOWER:
         dof_positions[current_dof] -= speed * dt
@@ -251,7 +260,7 @@ while not gym.query_viewer_has_closed(viewer):
         current_dof = (current_dof + 1) % num_dofs
         anim_state = ANIM_SEEK_LOWER
         print("Animating DOF %d ('%s')" % (current_dof, dof_names[current_dof]))
-
+    
     
 
     # clone actor state in all of the environments
