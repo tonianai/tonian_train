@@ -62,7 +62,7 @@ if viewer is None:
 
 # load ball asset
 asset_root = "./../assets"
-asset_file = "urdf/mk-1/robot.urdf"
+asset_file = "samples/nv_humanoid.xml"
 asset = gym.load_asset(sim, asset_root, asset_file, gymapi.AssetOptions())
 
 # set up the env grid
