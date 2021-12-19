@@ -157,6 +157,36 @@ class VecTask(Env, ABC):
             msg = f"Invalid physics engine backend: {self.config['physics_engine']}"
             raise ValueError(msg)
         
+        # optimization flags for pytorch JIT
+        # torch._C._jit_set_profiling_mode(False)
+        # torch._C._jit_set_profiling_executor(False)
+        
+        self.gym = gymapi.acquire_gym()
+        
+        self.sim_initialized = False
+        self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
+        
+    def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
+        """Create an Isaac Gym sim object.
+
+        Args:
+            compute_device: ID of compute device to use.
+            graphics_device: ID of graphics device to use.
+            physics_engine: physics engine to use (`gymapi.SIM_PHYSX` or `gymapi.SIM_FLEX`)
+            sim_params: sim params to use.
+        Returns:
+            the Isaac Gym sim object.
+        """
+        sim = self.gym.create_sim(compute_device, graphics_device, physics_engine, sim_params)
+        if sim is None:
+            print("*** Failed to create sim")
+            quit()
+
+        return sim
+    
+    @abstractmethod
+    def _create_envs(self, num_envs)->None:
+        pass
 
     def __parse_sim_params(self, physics_engine: str, config_sim: Dict[str, Any]) -> gymapi.SimParams:
         """Parse the config dictionary for physics stepping settings.
