@@ -14,6 +14,6 @@ spaces = MultiSpace(
     {'linear': spaces.Box(low=-1.0, high=1.0, shape=(num_obs, )),
      'visual': spaces.Box(low=-1.0, high=1.0, shape=visual_size)})
 
-print(spaces)
 
-walking_task = WalkingTask()
+
+walking_task = WalkingTask(config_path="./envs/walking/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)

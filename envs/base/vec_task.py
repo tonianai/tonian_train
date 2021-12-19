@@ -79,8 +79,6 @@ class Env(ABC):
 
         self.control_freq_inv = config["env"].get("controlFrequencyInv", 1)
 
-        self.act_space = spaces.Box(np.ones(self.num_actions) * -1., np.ones(self.num_actions) * 1.)
-
         self.clip_obs = config["env"].get("clipObservations", np.Inf)
         self.clip_actions = config["env"].get("clipActions", np.Inf)
         
@@ -158,6 +156,7 @@ class VecTask(Env, ABC):
         else:
             msg = f"Invalid physics engine backend: {self.config['physics_engine']}"
             raise ValueError(msg)
+        
 
     def __parse_sim_params(self, physics_engine: str, config_sim: Dict[str, Any]) -> gymapi.SimParams:
         """Parse the config dictionary for physics stepping settings.
