@@ -93,9 +93,9 @@ class WalkingEnv(VecTask):
     def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:
         super().step(actions)
     
-    def _create_envs(self, num_envs: int, spacing: float, num_per_row: int) -> None:
+    def _create_envs(self, spacing: float, num_per_row: int) -> None:
         
-        print(f"Create envs num_envs={num_envs} spacing = {spacing}, num_per_row={num_per_row}")
+        print(f"Create envs num_envs={self.num_envs} spacing = {spacing}, num_per_row={num_per_row}")
         
         lower = gymapi.Vec3(-spacing, -spacing, 0.0)
         upper = gymapi.Vec3(spacing, spacing, spacing)
@@ -114,14 +114,26 @@ class WalkingEnv(VecTask):
         # Note - DOF mode is set in the MJCF file and loaded by Isaac Gym
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         asset_options.angular_damping = 0.0
+        
+        start_pose = gymapi.Transform()    
+        start_pose.p = gymapi.Vec3(0.0, 1.32, 0.0)
+        start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
-        ant_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
-        self.num_dof = self.gym.get_asset_dof_count(ant_asset)
-        self.num_bodies = self.gym.get_asset_rigid_body_count(ant_asset)
+        robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
+        self.num_dof = self.gym.get_asset_dof_count(robot_asset)
+        self.num_bodies = self.gym.get_asset_rigid_body_count(robot_asset)
         
+        self.envs = []
         
+        for i in range(self.num_envs):
+            # create an env instance
+            env_pointer = self.gym.create_env(self.sim, lower, upper, num_per_row)
+            
+            handle = self.gym.create_actor(env_pointer, robot_asset, start_pose, "robot", i, 0,0)
+            
+            self.envs.append(env_pointer)
+            
         
-        return super()._create_envs(num_envs, spacing, num_per_row)
         
         
         

@@ -172,8 +172,10 @@ class VecTask(Env, ABC):
         self.sim_initialized = False
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
         
+        # create the environments 
         print(f'num envs {self.num_envs} env spacing {self.config["env"]["envSpacing"]}')
-        self._create_envs(self.num_envs, self.config["env"]["envSpacing"], int(np.sqrt(self.num_envs)))
+        self._create_envs( self.config["env"]["envSpacing"], int(np.sqrt(self.num_envs)))
+        
         
         self.gym.prepare_sim(self.sim)
         self.sim_initialized = True
