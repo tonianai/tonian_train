@@ -17,11 +17,11 @@ print("============ output space ==================")
 print(env.action_space)
 
 print("=========== critic input spaces ==============")
-print(env.critic_input_spaces)
+print(env.critic_observation_spaces)
 
 
 print("=========== actor input spaces ================")
-print(env.actor_input_spaces)
+print(env.actor_observation_spaces)
 
 for i in range(10000): 
     

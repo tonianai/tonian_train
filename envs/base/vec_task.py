@@ -68,8 +68,8 @@ class Env(ABC):
         
         # This implementation used Asymetic Actor Critics
         # https://arxiv.org/abs/1710.06542
-        self.critic_input_spaces = self._get_critic_input_spaces()
-        self.actor_input_spaces = self._get_actor_input_spaces()
+        self.critic_observation_spaces = self._get_critic_observation_spaces()
+        self.actor_observation_spaces = self._get_actor_observation_spaces()
         self.action_space = self._get_action_space()
         
         
@@ -102,9 +102,9 @@ class Env(ABC):
         return self.num_environments
     
     @abstractmethod
-    def _get_actor_input_spaces(self) -> MultiSpace:
+    def _get_actor_observation_spaces(self) -> MultiSpace:
         """Define the different inputs the actor of the agent
-         (this includes linear observations, viusal observations, commands)
+         (this includes linear observations, viusal observations)
         
         This is an asymmetric actor critic implementation  -> The actor observations differ from the critic observations
         and unlike the critic inputs the actor inputs have to be things that a real life robot could also observe in inference
@@ -115,7 +115,7 @@ class Env(ABC):
     
     
     @abstractmethod        
-    def _get_critic_input_spaces(self) -> MultiSpace:
+    def _get_critic_observation_spaces(self) -> MultiSpace:
         """Define the different inputs for the critic of the agent
         
         This is an asymmetric actor critic implementation  -> The critic observations differ from the actor observations
