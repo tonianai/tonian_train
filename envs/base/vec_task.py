@@ -60,6 +60,7 @@ class Env(ABC):
         self.num_environments = config["env"]["numEnvs"]
         self.num_agents = config["env"].get("numAgents", 1)  # used for multi-agent environments
 
+        # The Frequency with which the actions are polled relative to physics step
         self.control_freq_inv = config["env"].get("controlFrequencyInv", 1)
 
         self.clip_obs = config["env"].get("clipObservations", np.Inf)
@@ -85,6 +86,9 @@ class Env(ABC):
             Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]: 
             Observations(names in the dict correspond to those given in the multispace), rewards, resets, info
         """
+        
+        
+        
         pass
     
     @abstractmethod
@@ -259,6 +263,40 @@ class VecTask(Env, ABC):
     @abstractmethod
     def _create_envs(self, num_envs: int, spacing: float, num_per_row: int)->None:
         pass
+    
+    
+    @abstractmethod
+    def pre_physics_step(self, actions: torch.Tensor):
+        """Apply the actions to the environment (eg by setting torques, position targets).
+
+        Args:
+            actions: the actions to apply
+        """
+
+    @abstractmethod
+    def post_physics_step(self):
+        """Compute reward and observations, reset any environments that require it."""
+
+    
+    def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:    
+        """Step the physics sim of the environment and apply the given actions
+
+        Args:
+            actions (torch.Tensor): [description]
+
+        Returns:
+            Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]: 
+            Observations(names in the dict correspond to those given in the multispace), rewards, resets, info
+        """
+        
+        self.pre_physics_step(actions)
+        
+        for i in range(self.control_freq_inv):
+            self.render()
+            self.gym.simulate(self.sim)
+    
+        self.post_physics_step()
+    
     
     def _create_ground_plane(self, sim = None):
         print(sim)
