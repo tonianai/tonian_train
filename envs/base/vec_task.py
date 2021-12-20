@@ -12,34 +12,17 @@ import numpy as np
 import torch 
 import torch.nn as nn
 
+import sys
+
+from common.spaces import MultiSpace
 
 
-class MultiSpace():
-    """
-    Defines the combination of multiple spaces to one multispace
-    
-    For expample an agent might require linear observations, visual observations and command input
-    or an agent might output communication to other agents as well as actions
-    These spaces can be summarized within multispace
-    """
-    def __init__(self, spaces: Dict[str, gym.Space] ) -> None:
-        
-        self.spaces = spaces
-        self.space_names = spaces.keys()
-        self.num_spaces = len(spaces)
-        self.shape = tuple([self.spaces[i].shape for i in self.spaces])
-        
-    
-    def __len__(self):
-        return self.num_spaces         
 
-    def __str__(self):
-        return f"Multispace: \n Shape: {str(self.shape)} \n Contains: {str(self.spaces)}"
         
 class Env(ABC):
     
     def __init__(self,config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
-        """[summary]
+        """An asymmetric actor critic base environment class based on isaac gym 
 
         Args:
             config (Dict[str, Any]): the config dictionary
@@ -83,10 +66,11 @@ class Env(ABC):
         self.clip_actions = config["env"].get("clipActions", np.Inf)
         
         
-        # Input spaces is the multi Space pardon to the 
-        self.input_spaces = self._get_input_spaces()
-        
-        self.output_spaces = self._get_output_spaces()
+        # This implementation used Asymetic Actor Critics
+        # https://arxiv.org/abs/1710.06542
+        self.critic_input_spaces = self._get_critic_input_spaces()
+        self.actor_input_spaces = self._get_actor_input_spaces()
+        self.action_space = self._get_action_space()
         
         
         
@@ -110,16 +94,7 @@ class Env(ABC):
             Dict[str, torch.Tensor]: Output multispace (names in the dict correspond to those given in the multispace),
         """
         pass
-        
-    @property
-    def observation_space(self) -> gym.Space:
-        """Get the environment's observation space."""
-        return self.obs_space
 
-    @property
-    def action_space(self) -> gym.Space:
-        """Get the environment's action space."""
-        return self.act_space
 
     @property
     def num_envs(self) -> int:
@@ -127,12 +102,39 @@ class Env(ABC):
         return self.num_environments
     
     @abstractmethod
-    def _get_input_spaces(self) -> MultiSpace:
-        pass
+    def _get_actor_input_spaces(self) -> MultiSpace:
+        """Define the different inputs the actor of the agent
+         (this includes linear observations, viusal observations, commands)
+        
+        This is an asymmetric actor critic implementation  -> The actor observations differ from the critic observations
+        and unlike the critic inputs the actor inputs have to be things that a real life robot could also observe in inference
+        Returns:
+            MultiSpace: [description]
+        """
+        raise NotImplementedError()
+    
+    
+    @abstractmethod        
+    def _get_critic_input_spaces(self) -> MultiSpace:
+        """Define the different inputs for the critic of the agent
+        
+        This is an asymmetric actor critic implementation  -> The critic observations differ from the actor observations
+        and unlike the actor inputs the actor inputs don't have to be things that a real life robot could also observe in inference.
+        
+        Things like distance to target position, that can not be observed on site can be included in the critic input
+    
+        Returns:
+            MultiSpace: [description]
+        """
+        raise NotImplementedError()
     
     @abstractmethod
-    def _get_output_spaces(self) -> MultiSpace:
-        pass 
+    def _get_action_space(self) -> gym.Space:
+        """The action space is only a single gym space and most often a suspace of the multispace output_space 
+        Returns:
+            gym.Space: [description]
+        """
+        raise NotImplementedError()
 
 class VecTask(Env, ABC):
     
@@ -166,6 +168,14 @@ class VecTask(Env, ABC):
         self.sim_initialized = False
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
         
+        print(f'num envs {self.num_envs} env spacing {self.config["env"]["envSpacing"]}')
+        self._create_envs(self.num_envs, self.config["env"]["envSpacing"], int(np.sqrt(self.num_envs)))
+        
+        self.gym.prepare_sim(self.sim)
+        self.sim_initialized = True
+        
+        self.set_viewer()
+        
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
         """Create an Isaac Gym sim object.
 
@@ -181,12 +191,85 @@ class VecTask(Env, ABC):
         if sim is None:
             print("*** Failed to create sim")
             quit()
+            
+        self._create_ground_plane(sim)
+        
 
         return sim
     
+    def set_viewer(self):
+        """Create the Viewer        """
+        
+        # todo: read from config
+        self.enable_viewer_sync = True
+        self.viewer = None
+
+        # if running with a viewer, set up keyboard shortcuts and camera
+        if self.headless == False:
+            # subscribe to keyboard shortcuts
+            self.viewer = self.gym.create_viewer(
+                self.sim, gymapi.CameraProperties())
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_ESCAPE, "QUIT")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_V, "toggle_viewer_sync")
+
+            # set the camera position based on up axis
+            sim_params = self.gym.get_sim_params(self.sim)
+            if sim_params.up_axis == gymapi.UP_AXIS_Z:
+                cam_pos = gymapi.Vec3(20.0, 25.0, 3.0)
+                cam_target = gymapi.Vec3(10.0, 15.0, 0.0)
+            else:
+                cam_pos = gymapi.Vec3(20.0, 3.0, 25.0)
+                cam_target = gymapi.Vec3(10.0, 0.0, 15.0)
+
+            self.gym.viewer_camera_look_at(
+                self.viewer, None, cam_pos, cam_target)
+        
+    def render(self):
+        """Draw the frame to the viewer, and check for keyboard events."""
+        if self.viewer:
+            # check for window closed
+            if self.gym.query_viewer_has_closed(self.viewer):
+                sys.exit()
+
+            # check for keyboard events
+            for evt in self.gym.query_viewer_action_events(self.viewer):
+                if evt.action == "QUIT" and evt.value > 0:
+                    sys.exit()
+                elif evt.action == "toggle_viewer_sync" and evt.value > 0:
+                    self.enable_viewer_sync = not self.enable_viewer_sync
+
+            # fetch results
+            if self.device != 'cpu':
+                self.gym.fetch_results(self.sim, True)
+
+            # step graphics
+            if self.enable_viewer_sync:
+                self.gym.step_graphics(self.sim)
+                self.gym.draw_viewer(self.viewer, self.sim, True)
+
+                # Wait for dt to elapse in real time.
+                # This synchronizes the physics simulation with the rendering rate.
+                self.gym.sync_frame_time(self.sim)
+
+            else:
+                self.gym.poll_viewer_events(self.viewer)
+    
     @abstractmethod
-    def _create_envs(self, num_envs)->None:
+    def _create_envs(self, num_envs: int, spacing: float, num_per_row: int)->None:
         pass
+    
+    def _create_ground_plane(self, sim = None):
+        print(sim)
+        print(sim == None)
+        if sim == None:
+            sim = self.sim
+        plane_params = gymapi.PlaneParams()
+        plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0)
+        #plane_params.static_friction = self.plane_static_friction
+        #plane_params.dynamic_friction = self.plane_dynamic_friction
+        self.gym.add_ground(sim, plane_params)
 
     def __parse_sim_params(self, physics_engine: str, config_sim: Dict[str, Any]) -> gymapi.SimParams:
         """Parse the config dictionary for physics stepping settings.
