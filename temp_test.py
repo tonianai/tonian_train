@@ -10,6 +10,16 @@ from envs.walking.walking_env import WalkingEnv
 
 env = WalkingEnv(config_path="./envs/walking/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
+lol_space =  MultiSpace({
+            "shitz": spaces.Box(low=-1.0, high=1.0, shape=(10, 10)),
+            "giigles": spaces.Box(low=-1.0, high=1.0, shape=(100, ))
+        })
+ 
+ 
+lol_space.join_with(env.critic_observation_spaces)
+
+print(lol_space)
+
 
 env.reset()
 
@@ -28,7 +38,7 @@ for i in range(10000):
     
     action = env.action_space.sample()
     
-    print(action)
+    #print(action)
     
     
     #action = np.ones((num_agents, env.get_action_size()))
