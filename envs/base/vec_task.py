@@ -12,6 +12,8 @@ import numpy as np
 import torch 
 import torch.nn as nn
 
+import time
+
 import sys
 
 from common.spaces import MultiSpace
@@ -296,6 +298,7 @@ class VecTask(Env, ABC):
         for i in range(self.control_freq_inv):
             self.render()
             self.gym.simulate(self.sim)
+            
     
         self.post_physics_step()
     

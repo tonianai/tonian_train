@@ -32,7 +32,7 @@ class AssetDesc:
 
 
 asset_descriptors = [
-    AssetDesc("urdf/mk-1/robot.urdf", True)
+    AssetDesc("samples/nv_humanoid.xml", True)
 ]
 
 

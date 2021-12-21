@@ -15,6 +15,7 @@ from typing import Dict, Any, Tuple, Union
 from isaacgym import gymtorch, gymapi
 
 import yaml
+import time
 import os
 
 class WalkingEnv(VecTask):
@@ -113,10 +114,12 @@ class WalkingEnv(VecTask):
         asset_options = gymapi.AssetOptions()
         # Note - DOF mode is set in the MJCF file and loaded by Isaac Gym
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
-        asset_options.angular_damping = 0.0
+        asset_options.angular_damping = 0.01
+        asset_options.max_angular_velocity = 100.0
         
         start_pose = gymapi.Transform()    
-        start_pose.p = gymapi.Vec3(0.0, 1.32, 0.0)
+        start_pose.p = gymapi.Vec3(0.0,0.0, 1.35)
+    
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
