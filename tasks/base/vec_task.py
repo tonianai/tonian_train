@@ -273,8 +273,8 @@ class VecTask(Env, ABC):
     def pre_physics_step(self, actions: torch.Tensor):
         """Apply the actions to the environment (eg by setting torques, position targets).
 
-        Args:
-            actions: the actions to apply
+        Args: 
+            actions (torch.Tensor): Expected Shape (num_envs, ) + self._get_action_space.shape
         """
 
     @abstractmethod
@@ -285,8 +285,8 @@ class VecTask(Env, ABC):
     def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:    
         """Step the physics sim of the environment and apply the given actions
 
-        Args:
-            actions (torch.Tensor): [description]
+        Args: 
+            actions (torch.Tensor): Expected Shape (num_envs, ) + self._get_action_space.shape
 
         Returns:
             Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]: 

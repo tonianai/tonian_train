@@ -3,7 +3,7 @@ import torch
 from torch import nn 
 import torch.nn as nn
 import numpy as np
-from envs.base.vec_task import VecTask, Env
+from tasks.base.vec_task import VecTask, Env
 
 from common.spaces import MultiSpace
 
@@ -13,12 +13,13 @@ import gym
 from typing import Dict, Any, Tuple, Union
 
 from isaacgym import gymtorch, gymapi
+from isaacgym.torch_utils import to_torch
 
 import yaml
 import time
 import os
 
-class WalkingEnv(VecTask):
+class WalkingTask(VecTask):
     
     def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool) -> None:
          
@@ -30,6 +31,8 @@ class WalkingEnv(VecTask):
       
         #extract params from config 
         self.randomize = config["task"]["randomize"]
+        
+        self.power_scale = config["env"]["powerscale"]
         
         super().__init__(config, sim_device, graphics_device_id, headless)
         
@@ -51,8 +54,10 @@ class WalkingEnv(VecTask):
             MultiSpace: [description]
         """
         num_obs = 30
+        command_size = 10
         return MultiSpace({
-            "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_obs, ))
+            "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_obs, )),
+            "command": spaces.Box(low=-1.0, high = 1.0, shape=(command_size, ))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
@@ -76,7 +81,7 @@ class WalkingEnv(VecTask):
         Returns:
             gym.Space: [description]
         """
-        num_actions = 16
+        num_actions = 21
         return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
     
     
@@ -84,12 +89,43 @@ class WalkingEnv(VecTask):
         return super().reset()
     
     
-    def post_physics_step(self):
-        return super().post_physics_step()
+
     
     def pre_physics_step(self, actions: torch.Tensor):
+        """Appl the action given to all the envs
+        Args:
+            actions (torch.Tensor): Expected Shape (num_envs, ) + self._get_action_space.shape
+
+        Returns:
+            [type]: [description]
+        """
+        self.actions = actions.to(self.device).clone()
+        forces = self.actions * self.motor_efforts
+        force_tensor = gymtorch.unwrap_tensor(forces)
+        self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
+        
+        
+        
         return super().pre_physics_step(actions)
     
+    def post_physics_step(self):
+        
+        
+        return super().post_physics_step()
+
+    def compute_rewards(self):
+        
+        # reward for proper heading
+        
+        # reward for being upright
+        
+        # punish for having fallen
+        
+        # reward for correct running speed
+        
+        # reward for 
+                
+        pass
     
     def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:
         super().step(actions)
@@ -103,6 +139,7 @@ class WalkingEnv(VecTask):
         
         asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../assets')
         asset_file = "samples/nv_humanoid.xml"
+        #asset_file = "urdf/mk-1/robot.urdf"
         
         if "asset" in self.config["env"]:
             asset_file = self.config["env"]["asset"].get("assetFileName", asset_file)
@@ -125,6 +162,11 @@ class WalkingEnv(VecTask):
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(robot_asset)
         self.num_bodies = self.gym.get_asset_rigid_body_count(robot_asset)
+        
+        # Note - for this asset we are loading the actuator info from the MJCF
+        actuator_props = self.gym.get_asset_actuator_properties(robot_asset)
+        self.motor_efforts = to_torch([prop.motor_effort for prop in actuator_props])
+        
         
         self.envs = []
         
