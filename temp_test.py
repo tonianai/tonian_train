@@ -9,16 +9,20 @@ import torch
 
 from tasks.walking.walking_task import WalkingTask
 
-command = Command()
  
 env = WalkingTask(config_path="./tasks/walking/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.reset()
 
+
+command_space = Command()
+command = command_space.get_one_hot_command("walking")
+
 for i in range(10000): 
     
     
     action = torch.tensor([ env.action_space.sample() for _ in range(env.num_envs)])
+    
     
     #print(action)
     
