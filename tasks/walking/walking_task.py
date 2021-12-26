@@ -3,7 +3,11 @@ import torch
 from torch import nn 
 import torch.nn as nn
 import numpy as np
+from tasks.base.command import Command
 from tasks.base.vec_task import VecTask, Env
+
+
+from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
 from common.spaces import MultiSpace
 
@@ -41,6 +45,28 @@ class WalkingTask(VecTask):
             cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
     
+    
+         # get gym GPU state tensors
+        actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
+        dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
+        sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
+        
+        self.root_states = gymtorch.wrap_tensor(actor_root_state) # root states of the actors -> shape( numenvs, 13)
+        
+        
+        self.initial_root_states = self.root_states.clone()
+        
+        self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
+        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+        self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
+        self.initial_dof_pos = torch.zeros_like(self.dof_pos, device=self.device, dtype=torch.float)
+        
+        
+        self.targets = to_torch([1000, 0, 0], device=self.device).repeat((self.num_envs, 1))
+        self.target_dirs = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
+        self.dt = self.cfg["sim"]["dt"]
+        
+        
     def _get_actor_observation_spaces(self) -> MultiSpace:
         """Define the different observation the actor of the agent
          (this includes linear observations, viusal observations, commands)
@@ -54,10 +80,8 @@ class WalkingTask(VecTask):
             MultiSpace: [description]
         """
         num_obs = 30
-        command_size = 10
         return MultiSpace({
-            "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_obs, )),
-            "command": spaces.Box(low=-1.0, high = 1.0, shape=(command_size, ))
+            "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_obs, ))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
@@ -106,26 +130,50 @@ class WalkingTask(VecTask):
         
         
         
-        return super().pre_physics_step(actions)
-    
     def post_physics_step(self):
         
+        self.compute_observations()
         
-        return super().post_physics_step()
+        print(self.dof_pos.shape)
+    
+    def compute_observations(self):
+        self.gym.refresh_dof_state_tensor(self.sim) # refreseh 
+        self.gym.refresh_actor_root_state_tensor(self.sim) # refreshes the self.root_states tensor
+        self.gym.refresh_rigid_body_state_tensor(self.sim)  #THIS!
+        self.gym.refresh_force_sensor_tensor(self.sim)
+        self.gym.refresh_dof_force_tensor(self.sim) # 
+        
 
-    def compute_rewards(self):
+    def reset_actor(self, env_ids):
+        # Randomization can only happen at reset time, since it can reset actor positions on GPU
+        if self.randomize:
+            self.apply_randomizations()
         
-        # reward for proper heading
         
-        # reward for being upright
+        positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
+        velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
         
-        # punish for having fallen
         
-        # reward for correct running speed
+        self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
+        self.dof_vel[env_ids] = velocities
         
-        # reward for 
-                
+        env_ids_int32 = env_ids.to(dtype=torch.int32)
+        self.gym.set_actor_root_state_tensor_indexed(self.sim,
+                                                     gymtorch.unwrap_tensor(self.initial_root_states),
+                                                     gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+
+        self.gym.set_dof_state_tensor_indexed(self.sim,
+                                              gymtorch.unwrap_tensor(self.dof_state),
+                                              gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+        
+        
+        to_target = self.targets[env_ids] - self.initial_root_states[env_ids, 0:3]
+        to_target[:, self.up_axis_idx] = 0
+        
+        
+    def apply_randomizations(self):
         pass
+        
     
     def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:
         super().step(actions)
@@ -167,7 +215,22 @@ class WalkingTask(VecTask):
         actuator_props = self.gym.get_asset_actuator_properties(robot_asset)
         self.motor_efforts = to_torch([prop.motor_effort for prop in actuator_props])
         
+        # get ids used to attach force sensors at the feet
+        # TODO: chnage for the humanoid robot
         
+        
+        sensor_pose = gymapi.Transform()
+        # create force sensors at the feet
+        right_foot_idx = self.gym.find_asset_rigid_body_index(robot_asset, "right_foot")
+        left_foot_idx = self.gym.find_asset_rigid_body_index(robot_asset, "left_foot")
+        
+        self.gym.create_asset_force_sensor(robot_asset, right_foot_idx, sensor_pose)
+        self.gym.create_asset_force_sensor(robot_asset, left_foot_idx, sensor_pose)
+        
+        
+        
+        self.dof_limits_lower = []
+        self.dof_limits_upper = []
         self.envs = []
         
         for i in range(self.num_envs):
@@ -176,9 +239,46 @@ class WalkingTask(VecTask):
             
             handle = self.gym.create_actor(env_pointer, robot_asset, start_pose, "robot", i, 0,0)
             
+            self.gym.enable_actor_dof_force_sensors(env_pointer, handle)
+            
             self.envs.append(env_pointer)
             
         
+        dof_prop = self.gym.get_actor_dof_properties(env_pointer, handle)
+        for j in range(self.num_dof):
+            if dof_prop['lower'][j] > dof_prop['upper'][j]:
+                self.dof_limits_lower.append(dof_prop['upper'][j])
+                self.dof_limits_upper.append(dof_prop['lower'][j])
+            else:
+                self.dof_limits_lower.append(dof_prop['lower'][j])
+                self.dof_limits_upper.append(dof_prop['upper'][j])
+
+        self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
+        self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
+
+        self.extremities = to_torch([5, 8], device=self.device, dtype=torch.long)
         
         
+def compute_robot_rewards():
         
+        # reward for proper heading
+        
+        # reward for being upright
+        
+        # punish for having fallen
+        
+        # reward for power effinecy
+        
+        # reward for runnign speed 
+                
+        pass
+    
+def compute_critic_observations(root_states, sensor_statems, dof_vel, dof_pos ):
+    
+    
+    pass
+
+
+def compute_actor_observations(sensor_states, dof_vel, dof_pos):
+    
+    pass
