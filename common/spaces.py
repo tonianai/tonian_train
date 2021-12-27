@@ -53,4 +53,27 @@ class MultiSpace():
         self.update({**self.spaces , **new_space.spaces} )
         
         
+    def __iter__(self):
+        return MultiSpaceIterator(self)
+        
+        
+class MultiSpaceIterator:
+    """Iterator class for the Multispace"""
+    
+    def __init__(self, multispace: MultiSpace) -> None:
+        # Multispace reference
+        self._multispace = multispace
+        # member variable to keep track of current index
+        
+        self._index = 0
+        
+    def __next__(self):
+        
+        if self._index >= len(self._multispace.spaces):
+            raise StopIteration
+        
+        result_key =  list(self._multispace.spaces)[self._index]
+        result_space = list(self._multispace.spaces.values())[self._index]
+        self._index += 1
+        return (result_key, result_space)
         

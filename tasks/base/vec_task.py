@@ -59,14 +59,13 @@ class Env(ABC):
         if enable_camera_sensors == False and self.headless == True:   
             self.graphics_device_id = -1
         
-        self.num_environments = config["env"]["numEnvs"]
-        self.num_agents = config["env"].get("numAgents", 1)  # used for multi-agent environments
+        self.num_envs = config["env"]["num_envs"] 
 
         # The Frequency with which the actions are polled relative to physics step
         self.control_freq_inv = config["env"].get("controlFrequencyInv", 1)
 
-        self.clip_obs = config["env"].get("clipObservations", np.Inf)
-        self.clip_actions = config["env"].get("clipActions", np.Inf)
+        self.clip_obs = config["env"].get("clip_observations", np.Inf)
+        self.clip_actions = config["env"].get("clip_actions", np.Inf)
         
         
         # This implementation used Asymetic Actor Critics
@@ -74,6 +73,7 @@ class Env(ABC):
         self.critic_observation_spaces = self._get_critic_observation_spaces()
         self.actor_observation_spaces = self._get_actor_observation_spaces()
         self.action_space = self._get_action_space()
+
         
         
         
@@ -102,10 +102,7 @@ class Env(ABC):
         pass
 
 
-    @property
-    def num_envs(self) -> int:
-        """Get the number of environments."""
-        return self.num_environments
+
     
     @abstractmethod
     def _get_actor_observation_spaces(self) -> MultiSpace:
@@ -175,13 +172,17 @@ class VecTask(Env, ABC):
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
         
         # create the environments 
-        print(f'num envs {self.num_envs} env spacing {self.config["env"]["envSpacing"]}')
-        self._create_envs( self.config["env"]["envSpacing"], int(np.sqrt(self.num_envs)))
+        print(f'num envs {self.num_envs} env spacing {self.config["env"]["env_spacing"]}')
+        self._create_envs( self.config["env"]["env_spacing"], int(np.sqrt(self.num_envs)))
         
+        self.max_episode_length = self.config['env'].get('max_espisode_lenght', 10)
+        
+        print(f"The max ep length is {self.max_episode_length}")
         
         self.gym.prepare_sim(self.sim)
         self.sim_initialized = True
-        
+
+        self.allocate_buffers()
         self.set_viewer()
         
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
@@ -279,7 +280,16 @@ class VecTask(Env, ABC):
 
     @abstractmethod
     def post_physics_step(self):
-        """Compute reward and observations, reset any environments that require it."""
+        """Compute reward and observations, reset any environments that require it.
+        
+            It is expected, that the implementation of the enviromnment fills the folliwing tensors 
+                 - self.do_reset
+                 - self.num_steps_in_ep
+                 - self.actor_obs
+                 - self.critic_obs
+                 - self.do_randomize
+            
+        """
 
     
     def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:    
@@ -296,17 +306,41 @@ class VecTask(Env, ABC):
         self.pre_physics_step(actions)
         
         for i in range(self.control_freq_inv):
+            # simulation loop
             self.render()
             self.gym.simulate(self.sim)
-            
+        
+        
     
         self.post_physics_step()
-    
+        
+        
+    def allocate_buffers(self):
+        # initialize the tensors on the gpu
+        # it is important, that these tensors reside on the gpu, as to reduce the amount of data, that has to be transmitted between gpu and cpu
+        
+        # The reset buffer contains boolean values, that determine whether an environment of a given id should be reset in the next step
+        # shape: (num_envs)
+        self.do_reset = torch.zeros( (self.num_envs, ), device= self.device, dtype=torch.int8)
+        
+        # The num_steps_in_ep buffer declares the amount of steps a enviromnent as done since 
+        self.num_steps_in_ep = torch.zeros((self.num_envs, ) , device= self.device, dtype= torch.int32)
+        
+        # This is a list of tensors, that reside on device, a list is needed, because we are dealing with multispace observations
+        self.actor_obs = [  torch.zeros((self.num_envs, ) + space_shape, device= self.device, dtype= torch.float32) for  space_shape in self.actor_observation_spaces.shape]
+        
+        # Todo: Use the same reference if the implementation is not an asymemtric actor critic approach
+        self.critic_obs = [ torch.zeros((self.num_envs, ) + space_shape, device=self.device, dtype=torch.float32) for space_shape in self.critic_observation_spaces.shape]
+
+        # Randomize buffer determines whether a given env should randomize 
+        self.do_randomize = torch.zeros((self.num_envs, ), device=self.device, dtype= torch.int8 )
+        
+        # rewards tensor stores the rewards that were given at last
+        self.rewards = torch.zeros((self.num_envs, ) , device= self.device, dtype=torch.float32)
+
     
     def _create_ground_plane(self, sim = None):
-        print(sim)
-        print(sim == None)
-        if sim == None:
+        if not sim:
             sim = self.sim
         plane_params = gymapi.PlaneParams()
         plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0)

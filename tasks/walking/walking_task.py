@@ -64,7 +64,7 @@ class WalkingTask(VecTask):
         
         self.targets = to_torch([1000, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.target_dirs = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
-        self.dt = self.cfg["sim"]["dt"]
+        self.dt = self.config["sim"]["dt"]
         
         
     def _get_actor_observation_spaces(self) -> MultiSpace:
@@ -112,7 +112,6 @@ class WalkingTask(VecTask):
     def reset(self) -> Dict[str, torch.Tensor]:
         return super().reset()
     
-    
 
     
     def pre_physics_step(self, actions: torch.Tensor):
@@ -142,6 +141,9 @@ class WalkingTask(VecTask):
         self.gym.refresh_rigid_body_state_tensor(self.sim)  #THIS!
         self.gym.refresh_force_sensor_tensor(self.sim)
         self.gym.refresh_dof_force_tensor(self.sim) # 
+        
+        
+        
         
 
     def reset_actor(self, env_ids):
@@ -258,7 +260,8 @@ class WalkingTask(VecTask):
 
         self.extremities = to_torch([5, 8], device=self.device, dtype=torch.long)
         
-        
+
+
 def compute_robot_rewards():
         
         # reward for proper heading
