@@ -8,7 +8,7 @@ physics_engine: physx
 env: 
   num_envs: 100
   env_spacing: 5
-  max_episode_length: 1000 
+  max_episode_length: 100
   powerscale: 1.0
 
   averaged_episodes : 100 # refering to local episodes, global episodes do not exist

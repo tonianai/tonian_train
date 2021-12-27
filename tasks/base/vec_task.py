@@ -168,6 +168,8 @@ class VecTask(Env, ABC):
         
         self.gym = gymapi.acquire_gym()
         
+        
+        self.global_step = 0
         self.sim_initialized = False
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
         
@@ -175,7 +177,7 @@ class VecTask(Env, ABC):
         print(f'num envs {self.num_envs} env spacing {self.config["env"]["env_spacing"]}')
         self._create_envs( self.config["env"]["env_spacing"], int(np.sqrt(self.num_envs)))
         
-        self.max_episode_length = self.config['env'].get('max_espisode_lenght', 10)
+        self.max_episode_length = self.config['env'].get('max_episode_length', 10000)
         
         print(f"The max ep length is {self.max_episode_length}")
         
@@ -283,14 +285,23 @@ class VecTask(Env, ABC):
         """Compute reward and observations, reset any environments that require it.
         
             It is expected, that the implementation of the enviromnment fills the folliwing tensors 
-                 - self.do_reset
-                 - self.num_steps_in_ep
+                 - self.do_reset 
                  - self.actor_obs
                  - self.critic_obs
-                 - self.do_randomize
             
         """
 
+    @abstractmethod
+    def reset_envs(env_ids: torch.Tensor) -> None:
+        """
+        Reset the envs of the given env_ids
+
+        Args:
+            env_ids (torch.Tensor): A tensor on device, that contains all the ids of the envs that need a reset
+            example 
+            : tensor([ 0,  10,  22,  43,  51,  64,  81,  82, 99], device='cuda:0')
+        """
+        pass
     
     def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:    
         """Step the physics sim of the environment and apply the given actions
@@ -310,18 +321,47 @@ class VecTask(Env, ABC):
             self.render()
             self.gym.simulate(self.sim)
         
+        # increase the num_steps_in_ep tensor and reset environments if needed
+        self.num_steps_in_ep += 1  
+        # timeout buffer determines whether an episode exceedet its max_length of timesteps 
+        self.is_timeout = torch.where(self.num_steps_in_ep >= self.max_episode_length - 1, torch.ones_like(self.is_timeout), torch.zeros_like(self.is_timeout))
+        self.do_reset = self.is_timeout | self.do_reset
+
+        # check if there are enviromments, that need a reset
+        reset_env_ids = self.do_reset.nonzero(as_tuple=False).flatten()
+        
+        
+        if len(reset_env_ids) > 0:
+            self.reset_envs(reset_env_ids)
+            
+        # set the num steps in ep, the is_timeout and the do_reset tensors to 0
+        
+        self.num_steps_in_ep[reset_env_ids] = 0
+        self.do_reset[reset_env_ids] = 0
         
     
+
         self.post_physics_step()
+        
+        self.global_step += 1
         
         
     def allocate_buffers(self):
-        # initialize the tensors on the gpu
-        # it is important, that these tensors reside on the gpu, as to reduce the amount of data, that has to be transmitted between gpu and cpu
+        """initialize the tensors on the gpu
+          it is important, that these tensors reside on the gpu, as to reduce the amount of data, that has to be transmitted between gpu and cpu
+        """
+        
         
         # The reset buffer contains boolean values, that determine whether an environment of a given id should be reset in the next step
         # shape: (num_envs)
         self.do_reset = torch.zeros( (self.num_envs, ), device= self.device, dtype=torch.int8)
+        
+        
+        # The timeout buffer is similar to the reset buffer
+        # If the num_steps_in_ep exceeds the self.max_steps the value of the is_timeout is 1 at the position of that environment, and the env resets
+        self.is_timeout = torch.zeros( (self.num_envs, ), device= self.device, dtype= torch.int8)
+        
+        """Note: The logical or between is_timout and do_reset determines whether the episode will be reset"""
         
         # The num_steps_in_ep buffer declares the amount of steps a enviromnent as done since 
         self.num_steps_in_ep = torch.zeros((self.num_envs, ) , device= self.device, dtype= torch.int32)

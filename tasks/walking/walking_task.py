@@ -32,6 +32,7 @@ class WalkingTask(VecTask):
                 config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:    
                 raise FileNotFoundError( f"File {config_path} not found")
+            
       
         #extract params from config 
         self.randomize = config["task"]["randomize"]
@@ -51,10 +52,13 @@ class WalkingTask(VecTask):
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
         
+        
+        self.refresh_tensors()
+        
         self.root_states = gymtorch.wrap_tensor(actor_root_state) # root states of the actors -> shape( numenvs, 13)
-        
-        
         self.initial_root_states = self.root_states.clone()
+        self.initial_root_states[:, 7:13] = 0
+
         
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
@@ -130,28 +134,25 @@ class WalkingTask(VecTask):
         
         
     def post_physics_step(self):
-        
+        """Compute Observations and Calculate reward"""
         self.compute_observations()
-        
-        print(self.dof_pos.shape)
+         
     
     def compute_observations(self):
-        self.gym.refresh_dof_state_tensor(self.sim) # refreseh 
-        self.gym.refresh_actor_root_state_tensor(self.sim) # refreshes the self.root_states tensor
-        self.gym.refresh_rigid_body_state_tensor(self.sim)  #THIS!
-        self.gym.refresh_force_sensor_tensor(self.sim)
-        self.gym.refresh_dof_force_tensor(self.sim) # 
+        """Compute the observations necessary for learning from the most recent step"""
         
+        self.refresh_tensors()
         
+        """Todo add proper """
         
         
 
-    def reset_actor(self, env_ids):
+    def reset_envs(self, env_ids):
         # Randomization can only happen at reset time, since it can reset actor positions on GPU
         if self.randomize:
             self.apply_randomizations()
         
-        
+         
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
         
@@ -159,18 +160,16 @@ class WalkingTask(VecTask):
         self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
         self.dof_vel[env_ids] = velocities
         
+ 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.initial_root_states),
-                                                     gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+                                                   gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
         self.gym.set_dof_state_tensor_indexed(self.sim,
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
         
-        
-        to_target = self.targets[env_ids] - self.initial_root_states[env_ids, 0:3]
-        to_target[:, self.up_axis_idx] = 0
         
         
     def apply_randomizations(self):
@@ -259,6 +258,14 @@ class WalkingTask(VecTask):
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
 
         self.extremities = to_torch([5, 8], device=self.device, dtype=torch.long)
+        
+    def refresh_tensors(self):
+        """Refreshes tensors, that are on the GPU        """
+        self.gym.refresh_dof_state_tensor(self.sim) # refreseh 
+        self.gym.refresh_actor_root_state_tensor(self.sim) # refreshes the self.root_states tensor
+        self.gym.refresh_force_sensor_tensor(self.sim)
+        self.gym.refresh_dof_force_tensor(self.sim)
+        
         
 
 
