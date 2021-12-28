@@ -3,13 +3,13 @@ import torch
 from torch import nn 
 import torch.nn as nn
 import numpy as np
-from tasks.base.command import Command
-from tasks.base.vec_task import VecTask, Env, GenerationalVecTask
+from elysium.tasks.base.command import Command
+from elysium.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
-from common.utils.spaces import MultiSpace
+from elysium.common.utils.spaces import MultiSpace
 
 from gym import spaces
 import gym

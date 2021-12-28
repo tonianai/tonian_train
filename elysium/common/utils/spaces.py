@@ -1,5 +1,5 @@
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 import numpy as np
 from gym import spaces
 import gym
@@ -22,6 +22,7 @@ class MultiSpace():
         self.space_names = spaces.keys()
         self.num_spaces = len(spaces)
         self.shape = tuple([self.spaces[i].shape for i in self.spaces])
+        print(self.shape)
         
     def sample(self) -> Tuple[np.ndarray, ...]:
         return tuple([self.spaces[i].sample() for i in self.spaces])
@@ -77,3 +78,6 @@ class MultiSpaceIterator:
         self._index += 1
         return (result_key, result_space)
         
+
+# The Union of the standard gym Space and the Multispace 
+SingleOrMultiSpace = Union[gym.Space, MultiSpace]

@@ -16,12 +16,10 @@ import time
 
 import sys
 
-from common.utils.spaces import MultiSpace
+from elysium.common.utils.spaces import MultiSpace
 
 
-
-        
-class Env(ABC):
+class BaseEnv(ABC):
     
     def __init__(self,config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
         """An asymmetric actor critic base environment class based on isaac gym 

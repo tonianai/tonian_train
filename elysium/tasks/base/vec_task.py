@@ -6,7 +6,7 @@ from gym import spaces
 
 from isaacgym import gymtorch, gymapi
 from isaacgym.torch_utils import to_torch
-from tasks.base.env import Env
+from elysium.tasks.base.base_env import BaseEnv
 
 import numpy as np
 
@@ -17,9 +17,16 @@ import time
 
 import sys
 
-from common.utils.spaces import MultiSpace
+from elysium.common.utils.spaces import MultiSpace
 
-class VecTask(Env, ABC):
+class VecTask(BaseEnv, ABC):
+    """
+    Vectorized Environments are a method for stacking multiple independent environments into a single environment.
+    Instead of training an RL agent on 1 environment per step, it allows us to train it on n environments per step
+
+
+    """
+    
     
     def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
         """Initialise the `VecTask`.
