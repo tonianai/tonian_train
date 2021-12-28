@@ -6,6 +6,7 @@ from gym import spaces
 
 from isaacgym import gymtorch, gymapi
 from isaacgym.torch_utils import to_torch
+from tasks.base.env import Env
 
 import numpy as np
 
@@ -16,128 +17,7 @@ import time
 
 import sys
 
-from common.spaces import MultiSpace
-
-
-
-        
-class Env(ABC):
-    
-    def __init__(self,config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
-        """An asymmetric actor critic base environment class based on isaac gym 
-
-        Args:
-            config (Dict[str, Any]): the config dictionary
-            sim_device (str): ex: cuda:0, cuda or cpu
-            graphics_device_id (int): The device id to render with
-            headless (bool): determines whether the scene is rendered
-        """
-         
-                
-        self.config = config
-        self.headless = headless
-        
-        
-        split_device = sim_device.split(":")
-        self.device_type = split_device[0]
-        self.device_id = int(split_device[1]) if len(split_device) > 1 else 0
-
-        
-        self.device = "cpu"
-        if config["sim"]["use_gpu_pipeline"]:
-            if self.device_type.lower() == "cuda" or self.device_type.lower() == "gpu":
-                self.device = "cuda" + ":" + str(self.device_id)
-            else:
-                print("GPU Pipeline can only be used with GPU simulation. Forcing CPU Pipeline.")
-                config["sim"]["use_gpu_pipeline"] = False
-
-        self.rl_device = config.get("rl_device", "cuda:0")
-        
-        
-        enable_camera_sensors = config.get("enableCameraSensors", False)
-        self.graphics_device_id = graphics_device_id
-        if enable_camera_sensors == False and self.headless == True:   
-            self.graphics_device_id = -1
-        
-        self.num_envs = config["env"]["num_envs"] 
-
-        # The Frequency with which the actions are polled relative to physics step
-        self.control_freq_inv = config["env"].get("controlFrequencyInv", 1)
-
-        self.clip_obs = config["env"].get("clip_observations", np.Inf)
-        self.clip_actions = config["env"].get("clip_actions", np.Inf)
-        
-        
-        # This implementation used Asymetic Actor Critics
-        # https://arxiv.org/abs/1710.06542
-        self.critic_observation_spaces = self._get_critic_observation_spaces()
-        self.actor_observation_spaces = self._get_actor_observation_spaces()
-        self.action_space = self._get_action_space()
-
-        
-        
-        
-    @abstractmethod
-    def step(self, actions: torch.Tensor) -> Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]:
-        """Step the physics sim of the environment and apply the given actions
-
-        Args:
-            actions (torch.Tensor): [description]
-
-        Returns:
-            Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]: 
-            Observations(names in the dict correspond to those given in the multispace), rewards, resets, info
-        """
-        
-        
-        
-        pass
-    
-    @abstractmethod
-    def reset(self) -> Dict[str, torch.Tensor]:
-        """Reset the complete environment and return a output multispace
-        Returns:
-            Dict[str, torch.Tensor]: Output multispace (names in the dict correspond to those given in the multispace),
-        """
-        pass
-
-
-
-    
-    @abstractmethod
-    def _get_actor_observation_spaces(self) -> MultiSpace:
-        """Define the different inputs the actor of the agent
-         (this includes linear observations, viusal observations)
-        
-        This is an asymmetric actor critic implementation  -> The actor observations differ from the critic observations
-        and unlike the critic inputs the actor inputs have to be things that a real life robot could also observe in inference
-        Returns:
-            MultiSpace: [description]
-        """
-        raise NotImplementedError()
-    
-    
-    @abstractmethod        
-    def _get_critic_observation_spaces(self) -> MultiSpace:
-        """Define the different inputs for the critic of the agent
-        
-        This is an asymmetric actor critic implementation  -> The critic observations differ from the actor observations
-        and unlike the actor inputs the actor inputs don't have to be things that a real life robot could also observe in inference.
-        
-        Things like distance to target position, that can not be observed on site can be included in the critic input
-    
-        Returns:
-            MultiSpace: [description]
-        """
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def _get_action_space(self) -> gym.Space:
-        """The action space is only a single gym space and most often a suspace of the multispace output_space 
-        Returns:
-            gym.Space: [description]
-        """
-        raise NotImplementedError()
+from common.utils.spaces import MultiSpace
 
 class VecTask(Env, ABC):
     
@@ -314,12 +194,16 @@ class VecTask(Env, ABC):
             Observations(names in the dict correspond to those given in the multispace), rewards, resets, info
         """
         
+        extras = {}
+        
         self.pre_physics_step(actions)
         
         for i in range(self.control_freq_inv):
             # simulation loop
             self.render()
             self.gym.simulate(self.sim)
+        
+        #region timeout and resetting
         
         # increase the num_steps_in_ep tensor and reset environments if needed
         self.num_steps_in_ep += 1  
@@ -329,21 +213,24 @@ class VecTask(Env, ABC):
 
         # check if there are enviromments, that need a reset
         reset_env_ids = self.do_reset.nonzero(as_tuple=False).flatten()
-        
-        
         if len(reset_env_ids) > 0:
             self.reset_envs(reset_env_ids)
             
         # set the num steps in ep, the is_timeout and the do_reset tensors to 0
-        
         self.num_steps_in_ep[reset_env_ids] = 0
+         
+        
         self.do_reset[reset_env_ids] = 0
         
-    
-
+        #endregion
+        
+        # Calculate obs and reward in the post pyhsics step (in the concrete implementation)
         self.post_physics_step()
         
         self.global_step += 1
+        
+        return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, extras
+        
         
         
     def allocate_buffers(self):

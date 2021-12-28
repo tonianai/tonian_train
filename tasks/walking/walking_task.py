@@ -9,7 +9,7 @@ from tasks.base.vec_task import VecTask, Env, GenerationalVecTask
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
-from common.spaces import MultiSpace
+from common.utils.spaces import MultiSpace
 
 from gym import spaces
 import gym
@@ -337,7 +337,6 @@ def compute_robot_rewards(root_states: torch.Tensor,
         # reward for proper heading
         
         # reward for being upright
-        
         
         
         # punish for having fallen
