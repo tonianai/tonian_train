@@ -4,7 +4,7 @@ from torch import nn
 import torch.nn as nn
 import numpy as np
 from tasks.base.command import Command
-from tasks.base.vec_task import VecTask, Env
+from tasks.base.vec_task import VecTask, Env, GenerationalVecTask
 
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
@@ -23,7 +23,7 @@ import yaml
 import time
 import os
 
-class WalkingTask(VecTask):
+class WalkingTask(GenerationalVecTask):
     
     def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool) -> None:
         
@@ -67,6 +67,9 @@ class WalkingTask(VecTask):
         
         self.dt = config["sim"]["dt"]
         
+        # The reward weighting dict is located in the config.yaml file and determines how much each reward contributes to the total reward function
+        self.reward_weighting = config["env"]["reward_weighting"]
+        
         return config
             
     def _get_gpu_gym_state_tensors(self) -> None:
@@ -74,6 +77,7 @@ class WalkingTask(VecTask):
         """
         
         # --- aquire tensor pointers
+        # the state of each root body is represented using 13 floats with the same layout as GymRigidBodyState: 3 floats for position, 4 floats for quaternion, 3 floats for linear velocity, and 3 floats for angular velocity.
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         dof_force_tensor = self.gym.acquire_dof_force_tensor(self.sim) 
@@ -132,18 +136,14 @@ class WalkingTask(VecTask):
          
     def post_physics_step(self):
         """Compute Observations and Calculate reward"""
-        self.compute_observations()
-    
-    def compute_observations(self):
-        """Compute the observations necessary for learning from the most recent step
-            -> update the local self.criric_obs tensor and the local self.actor_obs_tensor
-            """
-
+        
+        # The data in the tensors must be correct, before the observation tensors can be computed
         self.refresh_tensors()
         
-        critic_obs, actor_obs = compute_robot_observations(
-            self.root_states, 
-            self.vec_force_sensor_tensor,
+        # use jit script to compute the observations
+        self.actor_obs, self.critic_obs = compute_robot_observations(
+            root_states = self.root_states, 
+            sensor_states=self.vec_force_sensor_tensor,
             dof_vel=self.dof_vel,
             dof_pos= self.dof_pos,
             dof_limits_lower=self.dof_limits_lower,
@@ -153,7 +153,19 @@ class WalkingTask(VecTask):
             actions= self.actions
         )
         
-        """Todo add proper """
+        
+        self.rewards , self.do_reset = compute_robot_rewards(
+            root_states= self.root_states,
+            sensor_states=self.vec_force_sensor_tensor,
+            alive_reward= 0.1,
+            death_cost= -1.0,
+            directional_factor= 1.0,
+            energy_cost= 1.0
+        )
+        
+        
+        
+        
         
     def reset_envs(self, env_ids):
         # Randomization can only happen at reset time, since it can reset actor positions on GPU
@@ -273,7 +285,7 @@ class WalkingTask(VecTask):
         Returns:
             MultiSpace: [description]
         """
-        num_actor_obs = 82
+        num_actor_obs = 103
         return MultiSpace({
             "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
         })
@@ -292,7 +304,7 @@ class WalkingTask(VecTask):
         Returns:
             MultiSpace: [description]
         """
-        num_critic_obs = 82
+        num_critic_obs = 134
         return MultiSpace({
             "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })
@@ -308,19 +320,37 @@ class WalkingTask(VecTask):
         
 
 @torch.jit.script
-def compute_robot_rewards():
+def compute_robot_rewards(root_states: torch.Tensor,
+                          sensor_states: torch.Tensor,
+                          death_cost: float,
+                          alive_reward: float, 
+                          directional_factor: float,
+                          energy_cost: float
+                          )-> Tuple[torch.Tensor, torch.Tensor]:
+        
+        
+        #base reward for being alive  
+        reward = torch.ones_like(root_states[:, 0]) * alive_reward
+        
+        # Todo: Add other values to reward function and make the robots acceptable to command
         
         # reward for proper heading
         
         # reward for being upright
         
-        # punish for having fallen
         
+        
+        # punish for having fallen
+        terminations_height = 0.8
+        # root_states[:, 2] defines the y positon of the root body 
+        reward = torch.where(root_states[:, 2] < terminations_height, torch.ones_like(reward) * death_cost, reward)
+        has_fallen = torch.zeros_like(reward, dtype=torch.int8)
+        has_fallen = torch.where(root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
+         
         # reward for power effinecy
         
         # reward for runnign speed 
-                
-        pass
+        return (reward, has_fallen)
 
 @torch.jit.script
 def compute_robot_observations(root_states: torch.Tensor, 
@@ -365,10 +395,8 @@ def compute_robot_observations(root_states: torch.Tensor,
     
     # todo: the actor still needs a couple of accelerometers
     linear_actor_obs = torch.cat((sensor_states, dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions), dim=-1)
-    print(linear_actor_obs.shape)
     
     
     linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
-    print(linear_critic_obs.shape)
     
     return  {'linear': linear_actor_obs},  {'linear': linear_critic_obs}

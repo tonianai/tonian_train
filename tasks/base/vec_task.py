@@ -437,3 +437,29 @@ class VecTask(Env, ABC):
 
         # return the configured params
         return sim_params
+
+
+class GenerationalVecTask(VecTask, ABC):
+    
+    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
+        """
+        Generational tasks are tasks, that have differing reward functions and domain randomization with changing generations.
+        Generations are defined within the given config dict.
+        
+        The gernerational_goals property of that dict, contains the information, when an generation changes and with it the reward function and the domain randomization.
+        The generation changes when the reward goal of the generation is achived.
+        
+        The reward goal get calculated, by averaging over a defined amount of episoded the complete episode rewards
+         
+        """
+        super().__init__(config, sim_device, graphics_device_id, headless)
+        
+        
+        self.generational_goal = config["env"]["generational_goals"]
+        
+        # The gerneration changes when a predefines gernaational goal is achived
+        # differnt generations can have different degrees of domain randomisation and different reward functions
+        self.current_gen = 1
+        
+        # Todo implement generational evolving
+        
