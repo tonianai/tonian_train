@@ -26,18 +26,9 @@ import os
 class WalkingTask(VecTask):
     
     def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool) -> None:
-         
-        with open(config_path, 'r') as stream:
-            try:
-                config = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:    
-                raise FileNotFoundError( f"File {config_path} not found")
-            
-      
-        #extract params from config 
-        self.randomize = config["task"]["randomize"]
         
-        self.power_scale = config["env"]["powerscale"]
+        
+        config = self._fetch_config_params(config_path)
         
         super().__init__(config, sim_device, graphics_device_id, headless)
         
@@ -46,77 +37,85 @@ class WalkingTask(VecTask):
             cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
     
-    
-         # get gym GPU state tensors
-        actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
-        dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
-        sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
-        
-        
-        self.refresh_tensors()
-        
-        self.root_states = gymtorch.wrap_tensor(actor_root_state) # root states of the actors -> shape( numenvs, 13)
-        self.initial_root_states = self.root_states.clone()
-        self.initial_root_states[:, 7:13] = 0
 
-        
-        self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
-        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
-        self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
-        self.initial_dof_pos = torch.zeros_like(self.dof_pos, device=self.device, dtype=torch.float)
-        
+        self._get_gpu_gym_state_tensors()
         
         self.targets = to_torch([1000, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.target_dirs = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
-        self.dt = self.config["sim"]["dt"]
         
         
-    def _get_actor_observation_spaces(self) -> MultiSpace:
-        """Define the different observation the actor of the agent
-         (this includes linear observations, viusal observations, commands)
+        self.heading_vector = to_torch([1,0,0], device= self.device).repeat((self.num_envs, 1))
+        self.initial_heading_vector = self.heading_vector.clone()
+        
+    def _fetch_config_params(self, config_path: str) -> Dict:
+        """Fetches the config file and extracts config properties from it and sets important member variables
+        Args:
+            config_path (str): relative path to the config file
+        """
+        
+        # opfen the config file 
+        with open(config_path, 'r') as stream:
+            try:
+                config = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"File {config_path} not found")
+        
+        #extract params from config 
+        self.randomize = config["task"]["randomize"]
+        
+        self.power_scale = config["env"]["powerscale"]
+        
+        self.dt = config["sim"]["dt"]
+        
+        return config
+            
+    def _get_gpu_gym_state_tensors(self) -> None:
+        """Retreive references to the gym tensors for the environment, that are on the gpu
+        """
+        
+        # --- aquire tensor pointers
+        actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
+        dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
+        dof_force_tensor = self.gym.acquire_dof_force_tensor(self.sim) 
+        sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
          
-         The observations will later be combined with other inputs like commands to create the actor input space
         
-        This is an asymmetric actor critic implementation  -> The actor observations differ from the critic observations
-        and unlike the critic inputs the actor inputs have to be things that a real life robot could also observe in inference
+        # --- wrap pointers to torch tensors
+        self.root_states = gymtorch.wrap_tensor(actor_root_state) # root states of the actors -> shape( numenvs, 13)
+        self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
+        self.dof_force_tensor = gymtorch.wrap_tensor(dof_force_tensor).view(self.num_envs, self.num_dof)
+        # Todo: Change this value when you add more sensors
+        sensors_per_env = 2
+        self.vec_force_sensor_tensor = gymtorch.wrap_tensor(sensor_tensor).view(self.num_envs, sensors_per_env * 6)
+        
+        # --- refresh the tensors
+        self.refresh_tensors()
+        
+        
 
-        Returns:
-            MultiSpace: [description]
-        """
-        num_obs = 30
-        return MultiSpace({
-            "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_obs, ))
-        })
+        # positions of the joints
+        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+        # velocities of the joints
+        self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         
-    def _get_critic_observation_spaces(self) -> MultiSpace:
-        """Define the different observations for the critic of the agent
+        # --- set initial tensors
+        self.initial_dof_pos = torch.zeros_like(self.dof_pos, device=self.device, dtype=torch.float)
+        
+        self.initial_root_states = self.root_states.clone()
+        self.initial_root_states[:, 7:13] = 0
         
         
-         The observations will later be combined with other inputs like commands to create the critic input space
-        
-        This is an asymmetric actor critic implementation  -> The critic observations differ from the actor observations
-        and unlike the actor inputs the actor inputs don't have to be things that a real life robot could also observe in inference.
-        
-        Things like distance to target position, that can not be observed on site can be included in the critic input
+        pass
     
-        Returns:
-            MultiSpace: [description]
-        """
-        return self._get_actor_observation_spaces()
-    
-    def _get_action_space(self) -> gym.Space:
-        """The action space is only a single gym space and most often a suspace of the multispace output_space 
-        Returns:
-            gym.Space: [description]
-        """
-        num_actions = 21
-        return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
-    
+    def refresh_tensors(self):
+        """Refreshes tensors, that are on the GPU        """
+        self.gym.refresh_dof_state_tensor(self.sim) # state tensor contains velocities and position for the jonts 
+        self.gym.refresh_actor_root_state_tensor(self.sim) # root state tensor contains ground truth information about the root link of the actor
+        self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
+        self.gym.refresh_dof_force_tensor(self.sim) # dof force tensor contains foces applied to the joints
     
     def reset(self) -> Dict[str, torch.Tensor]:
         return super().reset()
-    
-
     
     def pre_physics_step(self, actions: torch.Tensor):
         """Appl the action given to all the envs
@@ -130,23 +129,32 @@ class WalkingTask(VecTask):
         forces = self.actions * self.motor_efforts
         force_tensor = gymtorch.unwrap_tensor(forces)
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
-        
-        
-        
+         
     def post_physics_step(self):
         """Compute Observations and Calculate reward"""
         self.compute_observations()
-         
     
     def compute_observations(self):
-        """Compute the observations necessary for learning from the most recent step"""
-        
+        """Compute the observations necessary for learning from the most recent step
+            -> update the local self.criric_obs tensor and the local self.actor_obs_tensor
+            """
+
         self.refresh_tensors()
+        
+        critic_obs, actor_obs = compute_robot_observations(
+            self.root_states, 
+            self.vec_force_sensor_tensor,
+            dof_vel=self.dof_vel,
+            dof_pos= self.dof_pos,
+            dof_limits_lower=self.dof_limits_lower,
+            dof_limits_upper=self.dof_limits_upper,
+            dof_force= self.dof_force_tensor,
+            initial_heading= self.initial_heading_vector,
+            actions= self.actions
+        )
         
         """Todo add proper """
         
-        
-
     def reset_envs(self, env_ids):
         # Randomization can only happen at reset time, since it can reset actor positions on GPU
         if self.randomize:
@@ -170,14 +178,8 @@ class WalkingTask(VecTask):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
         
-        
-        
     def apply_randomizations(self):
         pass
-        
-    
-    def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:
-        super().step(actions)
     
     def _create_envs(self, spacing: float, num_per_row: int) -> None:
         
@@ -259,16 +261,53 @@ class WalkingTask(VecTask):
 
         self.extremities = to_torch([5, 8], device=self.device, dtype=torch.long)
         
-    def refresh_tensors(self):
-        """Refreshes tensors, that are on the GPU        """
-        self.gym.refresh_dof_state_tensor(self.sim) # refreseh 
-        self.gym.refresh_actor_root_state_tensor(self.sim) # refreshes the self.root_states tensor
-        self.gym.refresh_force_sensor_tensor(self.sim)
-        self.gym.refresh_dof_force_tensor(self.sim)
+    def _get_actor_observation_spaces(self) -> MultiSpace:
+        """Define the different observation the actor of the agent
+         (this includes linear observations, viusal observations, commands)
+         
+         The observations will later be combined with other inputs like commands to create the actor input space
+        
+        This is an asymmetric actor critic implementation  -> The actor observations differ from the critic observations
+        and unlike the critic inputs the actor inputs have to be things that a real life robot could also observe in inference
+
+        Returns:
+            MultiSpace: [description]
+        """
+        num_actor_obs = 82
+        return MultiSpace({
+            "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
+        })
+        
+    def _get_critic_observation_spaces(self) -> MultiSpace:
+        """Define the different observations for the critic of the agent
+        
+        
+         The observations will later be combined with other inputs like commands to create the critic input space
+        
+        This is an asymmetric actor critic implementation  -> The critic observations differ from the actor observations
+        and unlike the actor inputs the actor inputs don't have to be things that a real life robot could also observe in inference.
+        
+        Things like distance to target position, that can not be observed on site can be included in the critic input
+    
+        Returns:
+            MultiSpace: [description]
+        """
+        num_critic_obs = 82
+        return MultiSpace({
+            "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
+        })
+    
+    def _get_action_space(self) -> gym.Space:
+        """The action space is only a single gym space and most often a suspace of the multispace output_space 
+        Returns:
+            gym.Space: [description]
+        """
+        num_actions = 21
+        return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
         
         
 
-
+@torch.jit.script
 def compute_robot_rewards():
         
         # reward for proper heading
@@ -282,13 +321,54 @@ def compute_robot_rewards():
         # reward for runnign speed 
                 
         pass
-    
-def compute_critic_observations(root_states, sensor_statems, dof_vel, dof_pos ):
-    
-    
-    pass
 
-
-def compute_actor_observations(sensor_states, dof_vel, dof_pos):
+@torch.jit.script
+def compute_robot_observations(root_states: torch.Tensor, 
+                                sensor_states: torch.Tensor, 
+                                dof_vel: torch.Tensor, 
+                                dof_pos: torch.Tensor, 
+                                dof_limits_lower: torch.Tensor,
+                                dof_limits_upper: torch.Tensor,
+                                dof_force: torch.Tensor,
+                                actions: torch.Tensor,
+                                initial_heading: torch.Tensor
+                                ):
     
-    pass
+    
+    """Calculate the observation tensors for the crititc and the actor for the humanoid robot
+    
+    Note: The resulting tensors must be in the same shape as the multispaces: 
+        - self.actor_observation_spaces
+        - self.critic_observatiom_spaces
+
+    Args:
+        root_states (torch.Tensor): Root states contain things like positions, velcocities, angular velocities and orientation of the root of the robot 
+        sensor_states (torch.Tensor): state of the sensors given 
+        dof_vel (torch.Tensor): velocity tensor of the dofs
+        dof_pos (torch.Tensor): position tensor of the dofs
+        dof_force (torch.Tensor): force tensor of the dofs
+        actions (torch.Tensor): actions of the previous 
+
+    Returns:
+        Tuple[Dict[torch.Tensor]]: (actor observation tensor, critic observation tensor)
+    """
+    
+    
+    torso_position = root_states[:, 0:3]
+    torso_rotation = root_states[:, 3:7]
+    velocity = root_states[:, 7:10]
+    ang_velocity = root_states[:, 10:13]
+    
+    
+    # todo add some other code to deal with initial information, that might be required
+    
+    
+    # todo: the actor still needs a couple of accelerometers
+    linear_actor_obs = torch.cat((sensor_states, dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions), dim=-1)
+    print(linear_actor_obs.shape)
+    
+    
+    linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
+    print(linear_critic_obs.shape)
+    
+    return  {'linear': linear_actor_obs},  {'linear': linear_critic_obs}
