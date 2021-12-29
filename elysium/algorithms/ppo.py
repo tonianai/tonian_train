@@ -16,7 +16,22 @@ class PPO(BaseAlgorithm):
     
     def __init__(self, env: VecTask, config: Dict, policy : ActorCriticPolicy) -> None:
         super().__init__(env, config)
+        self._fetch_config_params(config)
+        self.actor_obs_shapes = env.actor_observation_spaces.shape
+        self.critic_obs_shapes = env.critic_observation_spaces.shape
         
+    def _fetch_config_params(self, config):
+        """Fetćh hyperparameters from the configuration dict and set them to member variables
+        
+        Args:
+            config ([type]): [description]
+        """
+        
+        self.gamma = config['gamma']
+        self.lr = config['lr']
+        self.k_epochs = config['k_epochs']
+        
+    
         
     def train(timesteps: int):
         return super().train()
