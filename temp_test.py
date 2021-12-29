@@ -31,6 +31,8 @@ for i in range(10000):
     #action = np.ones((num_agents, env.get_action_size()))
     obss, rewards, dones, _ =   env.step(action)
     
+    print(obss[0])
+    
     
     if i % 1000 == 0:
         env.reset()
