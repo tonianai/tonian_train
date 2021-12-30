@@ -18,11 +18,22 @@ class MultiSpace():
        
         
     def update(self, spaces: Dict[str, gym.Space]) -> None:
+        """Override the current spaces with new ones
+        
+        Args:
+            spaces (Dict[str, gym.Space]): new Space Dict
+        """
+        
         self.spaces = spaces
         self.space_names = spaces.keys()
         self.num_spaces = len(spaces)
         self.shape = tuple([self.spaces[i].shape for i in self.spaces])
-        print(self.shape)
+        
+        self.dict_shape = {}
+        for key in self.spaces:
+            self.dict_shape[key] = self.spaces[key].shape
+            
+        
         
     def sample(self) -> Tuple[np.ndarray, ...]:
         return tuple([self.spaces[i].sample() for i in self.spaces])

@@ -55,7 +55,7 @@ class Schedule:
         assert len(self.schedule) != 0, "The schedule must have at least one value"
         
         
-    def get_value(self, query: Union[float, int]):
+    def __call__(self, query: Union[float, int]):
         """Get a value for a query value -> This should not be executed too often, because it is not trivial to compute
         Args:
             query (Union[float, int]): [description]

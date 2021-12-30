@@ -20,7 +20,7 @@ class BaseAlgorithm(ABC):
         self.config = config
     
     @abstractmethod
-    def train(timesteps: int):
+    def train(self) -> None:
         raise NotImplementedError()
         
     @abstractmethod
