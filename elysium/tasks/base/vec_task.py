@@ -54,8 +54,7 @@ class VecTask(BaseEnv, ABC):
         # torch._C._jit_set_profiling_executor(False)
         
         self.gym = gymapi.acquire_gym()
-        
-        
+         
         self.global_step = 0
         self.sim_initialized = False
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
@@ -237,7 +236,24 @@ class VecTask(BaseEnv, ABC):
         self.global_step += 1
         
         return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, extras
-        
+    
+    
+    def reset(self) -> Tuple[Dict[str, torch.Tensor]]:
+        """Reset the environment 
+
+        Returns:
+            Tuple[Dict[str, torch.Tensor]]: actor_obs, critic_ob
+        """
+       
+        actions = torch.zeros([self.num_envs, self.action_space.shape[0] ], dtype=torch.float32, device=self.rl_device)
+
+        # step the simulator
+        self.step(actions)
+
+        return self.actor_obs, self.critic_obs
+
+ 
+    
         
         
     def allocate_buffers(self):

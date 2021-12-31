@@ -89,7 +89,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         combined_actor_input_size = 0
         for input_space_shape in self.actor_obs_shapes:
-            assert len(input_space_shape) == 1, "The actor input spaces must all be one dimensional"
+            assert len(input_space_shape) == 1 , "The actor input spaces must all be one dimensional"
             combined_actor_input_size += input_space_shape[0]
             
         combined_critic_input_size = 0
@@ -157,7 +157,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         # the asterix is unpacking all layers_critic items and passing them into the nn.Sequential
         self.actor = nn.Sequential(*layers_critic)
         
-    def predict_action(self, actor_obs: Dict[torch.Tensor]):
+    def predict_action(self, actor_obs: Dict[str, torch.Tensor]):
         """Create an action using the actor network and a gaussian distribution
         -> the tensors will become detached after execution (only use for actiung eith the env)
         print(concat_obs.shape)
@@ -170,7 +170,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         for key in actor_obs:
             
             if concat_obs:
-                torch.cat((concat_obs, actor_obs), dim=1)
+                torch.cat((concat_obs, actor_obs[key]), dim=1)
             else:
                 concat_obs = actor_obs[key]
                 
@@ -187,14 +187,14 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         return action.detach(), log_prob.detach()
         
-    def evaluate_action(self, actor_obs: Dict[torch.Tensor], critic_obs: Dict[torch.Tensor], action: torch.Tensor):
+    def evaluate_action(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor], action: torch.Tensor):
         
         concat_obs = None
         
         for key in actor_obs:
             
             if concat_obs:
-                torch.cat((concat_obs, actor_obs), dim=1)
+                torch.cat((concat_obs, actor_obs[key]), dim=1)
             else:
                 concat_obs = actor_obs[key]
         
@@ -209,5 +209,30 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         state_values = self.critic(critic_obs)
 
         return action_logprobs, state_values, dist_entropy 
+    
+    def forward(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor]):
+        """Forward pass in all networks (actor and critic)
+
+        Args:
+            actor_obs (Dict[str, torch.Tensor]): [description]
+            critic_obs (Dict[str): [description]
+            
+        Returns:
+            action, value and log probability of that action
+        """
+        
+        actor_concat_obs = None
+        
+        for key in actor_obs:
+            if actor_concat_obs:
+                torch.cat((actor_concat_obs, actor_obs[key]), dim=1)
+            else:
+                actor_concat_obs = actor_obs[key]
+        
+            concat_obs = None
+         
+                        
+        
+        values = self.critic()
         
         

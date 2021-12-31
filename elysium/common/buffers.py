@@ -19,15 +19,7 @@ class BaseBuffer(ABC):
 
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def sample(self, num_sample: int):
-        pass
-    
-    @abstractmethod 
-    def clear(self):
-        pass
-    
+        
 
 class DictRolloutBufferSamples(NamedTuple):
     critic_obs: Dict[Union[int, str], torch.Tensor]
@@ -133,8 +125,8 @@ class DictRolloutBuffer(BaseBuffer):
         
     def add(
         self, 
-        critic_obs: Dict[str, torch.Tensor],
         actor_obs: Dict[str, torch.Tensor],
+        critic_obs: Dict[str, torch.Tensor],
         action: torch.Tensor,
         reward: torch.Tensor,
         is_epidsode_start: torch.Tensor,
@@ -156,10 +148,10 @@ class DictRolloutBuffer(BaseBuffer):
             log_prob = log_prob.reshape(-1, 1)
         
         for key in self.actor_obs:
-            self.actor_obs[key][self.pos] = actor_obs.detach().clone()
+            self.actor_obs[key][self.pos] = actor_obs[key].detach().clone()
         
         for key in self.critic_obs:
-            self.critic_obs[key][self.pos] = critic_obs.detach().clone()
+            self.critic_obs[key][self.pos] = critic_obs[key].detach().clone()
         
         self.actions[self.pos] = action.detach().clone()
         self.rewards[self.pos] = reward.detach().clone()

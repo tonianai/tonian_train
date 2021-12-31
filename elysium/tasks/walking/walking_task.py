@@ -1,7 +1,4 @@
 from gym.spaces import space
-import torch
-from torch import nn 
-import torch.nn as nn
 import numpy as np
 from elysium.tasks.base.command import Command
 from elysium.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
@@ -22,6 +19,11 @@ from isaacgym.torch_utils import to_torch
 import yaml
 import time
 import os
+
+
+import torch
+from torch import nn 
+import torch.nn as nn
 
 class WalkingTask(GenerationalVecTask):
     
@@ -64,6 +66,7 @@ class WalkingTask(GenerationalVecTask):
         self.randomize = config["task"]["randomize"]
         
         self.power_scale = config["env"]["powerscale"]
+        
         
         self.dt = config["sim"]["dt"]
         
@@ -118,7 +121,12 @@ class WalkingTask(GenerationalVecTask):
         self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
         self.gym.refresh_dof_force_tensor(self.sim) # dof force tensor contains foces applied to the joints
     
-    def reset(self) -> Dict[str, torch.Tensor]:
+    def reset(self) -> Tuple[Dict[str, torch.Tensor]]:
+        """Reset the environment and gather the first obs
+        
+        Returns:
+            Tuple[Dict[str, torch.Tensor]]: actor_obs, critic_obs
+        """
         return super().reset()
     
     def pre_physics_step(self, actions: torch.Tensor):

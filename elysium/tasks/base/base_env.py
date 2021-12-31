@@ -71,6 +71,7 @@ class BaseEnv(ABC):
         self.critic_observation_spaces = self._get_critic_observation_spaces()
         self.actor_observation_spaces = self._get_actor_observation_spaces()
         self.action_space = self._get_action_space()
+        
 
         
         
@@ -92,7 +93,7 @@ class BaseEnv(ABC):
         pass
     
     @abstractmethod
-    def reset(self) -> Dict[str, torch.Tensor]:
+    def reset(self) -> Tuple[Dict[str, torch.Tensor]]:
         """Reset the complete environment and return a output multispace
         Returns:
             Dict[str, torch.Tensor]: Output multispace (names in the dict correspond to those given in the multispace),

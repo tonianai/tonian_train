@@ -63,7 +63,6 @@ class Schedule:
         
         # get the lowest query value 
         
-      
         
         if query > self.schedule[-1][0]:
             # query value is below smalles schedule value -> no extrapolation
