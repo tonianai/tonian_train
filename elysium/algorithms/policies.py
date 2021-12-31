@@ -229,10 +229,26 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             else:
                 actor_concat_obs = actor_obs[key]
         
-            concat_obs = None
-         
-                        
+        critic_concat_obs = None
         
-        values = self.critic()
+        for key in critic_obs:
+            
+            if critic_concat_obs:
+                torch.cat((critic_obs, critic_obs[key]), dim= 1)
+            else:
+                critic_concat_obs = critic_obs[key]
+                
+        values = self.critic(critic_concat_obs)
+        
+        action_mean = self.actor(actor_concat_obs)
+        action_var = self.action_var.expand_as(action_mean)
+        cov_mat = torch.diag_embed(action_var).to(self.device)
+        dist = MultivariateNormal(action_mean, cov_mat)
+        
+        actions = dist.sample()
+        
+        log_prob = dist.log_prob(actions)
+                        
+        return actions, values, log_prob
         
         
