@@ -2,7 +2,7 @@ gamma: 0.99
 lr: 1e-4
 n_epochs: 10
 eps_clip: 0.1
-n_steps: 1000
+n_steps: 100
 batch_size: 100
 target_kl: 0.1
 gae_lamda: 0.5

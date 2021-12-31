@@ -99,6 +99,9 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         assert combined_actor_input_size > 0 and combined_critic_input_size > 0 , "The input space cannot be 0 in size"
         
+        self.combined_actor_input_size = combined_actor_input_size
+        self.combined_critic_input_size = combined_critic_input_size
+                
         # create the actor network
         layers_actor = []
         if len(actor_hidden_layer_sizes) == 0:
@@ -116,7 +119,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                 layers_actor.append(self.activation_fn())
                 
                 # add the linear layer
-                layers_actor.append(nn.Linear(actor_hidden_layer_sizes[-1], size))
+                layers_actor.append(nn.Linear(actor_hidden_layer_sizes[i-1], size))
    
             layers_actor.append(self.activation_fn())
             
@@ -135,9 +138,9 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             # Simple One Layer Network without hidden layers -> maps to one value of the state
             layers_critic.append(nn.Linear(combined_critic_input_size, 1))
         else:
-            layers_critic.append(nn.Linear(combined_critic_input_size, actor_hidden_layer_sizes[0]))
+            layers_critic.append(nn.Linear(combined_critic_input_size, critic_hidden_layer_sizes[0]))
             
-            for i, size in enumerate(actor_hidden_layer_sizes):
+            for i, size in enumerate(critic_hidden_layer_sizes):
                 
                 if i == 0:
                     continue
@@ -146,16 +149,18 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                 layers_critic.append(self.activation_fn())
                 
                 # add the linear layer
-                layers_critic.append(nn.Linear(actor_hidden_layer_sizes[-1], size))
+                layers_critic.append(nn.Linear(critic_hidden_layer_sizes[i-1], size))
    
             layers_critic.append(self.activation_fn())
              
-            layers_critic.append(nn.Linear(actor_hidden_layer_sizes[-1], 1))
+            layers_critic.append(nn.Linear(critic_hidden_layer_sizes[-1], 1))
             
         # the critic does not need a last layer
         
         # the asterix is unpacking all layers_critic items and passing them into the nn.Sequential
-        self.actor = nn.Sequential(*layers_critic)
+        self.critic = nn.Sequential(*layers_critic)
+        
+        print(self.critic)
         
     def predict_action(self, actor_obs: Dict[str, torch.Tensor]):
         """Create an action using the actor network and a gaussian distribution
@@ -187,29 +192,23 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         return action.detach(), log_prob.detach()
         
-    def evaluate_action(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor], action: torch.Tensor):
-        
-        concat_obs = None
-        
-        for key in actor_obs:
-            
-            if concat_obs:
-                torch.cat((concat_obs, actor_obs[key]), dim=1)
-            else:
-                concat_obs = actor_obs[key]
-        
-        action_mean = self.actor(actor_obs)
-        
-        action_var = self.action_var.expand_as(action_mean)
-        cov_mat = torch.diag_embed(action_var).to(self.device)
-        dist = MultivariateNormal(action_mean, cov_mat)
-        
-        action_logprobs = dist.log_prob(action)
-        dist_entropy = dist.entropy()
-        state_values = self.critic(critic_obs)
+    def evaluate(self, critic_obs: Dict[str, torch.Tensor]):
+        """Evaluate a state observation via the critic model
 
-        return action_logprobs, state_values, dist_entropy 
-    
+        Args:
+            critic_obs (Dict[str, torch.Tensor]): [description]
+        """
+        critic_concat_obs = None
+        
+        for key in critic_obs:
+            
+            if critic_concat_obs:
+                torch.cat((critic_obs, critic_obs[key]), dim= 1)
+            else:
+                critic_concat_obs = critic_obs[key]
+        
+        return self.critic(critic_concat_obs)
+
     def forward(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor]):
         """Forward pass in all networks (actor and critic)
 
@@ -228,6 +227,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                 torch.cat((actor_concat_obs, actor_obs[key]), dim=1)
             else:
                 actor_concat_obs = actor_obs[key]
+      
         
         critic_concat_obs = None
         
@@ -237,6 +237,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                 torch.cat((critic_obs, critic_obs[key]), dim= 1)
             else:
                 critic_concat_obs = critic_obs[key]
+       
                 
         values = self.critic(critic_concat_obs)
         

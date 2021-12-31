@@ -134,7 +134,7 @@ class DictRolloutBuffer(BaseBuffer):
         log_prob: torch.Tensor
     ) -> None:
         """
-        :param critic_obs: Observation
+        :param critic_obs: Observation 
         :param actor_obs: Action
         :param reward:
         :param episode_start: End of episode signal.
@@ -156,8 +156,9 @@ class DictRolloutBuffer(BaseBuffer):
         self.actions[self.pos] = action.detach().clone()
         self.rewards[self.pos] = reward.detach().clone()
         self.is_epidsode_start[self.pos] = is_epidsode_start.detach().clone()
-        self.values[self.pos] = value.detach().clone()
+        self.values[self.pos] = value.detach().clone().squeeze()
         self.log_probs[self.pos] = log_prob.detach().clone()
+        
         
         self.pos += 1
         
@@ -242,11 +243,13 @@ class DictRolloutBuffer(BaseBuffer):
 
         For more information, see discussion in https://github.com/DLR-RM/stable-baselines3/pull/375.
 
-        :param last_values: state value estimation for the last step (one for each env)
-        :param dones: if the last step was a terminal step (one bool for each env).
+        :param last_values: state value estimation for the last step (one for each env) shape(num_envs)
+        :param dones: if the last step was a terminal step (one bool for each env). shape(num_envs)
         """
         
         last_gae_lam = 0
+        
+        
         for step in reversed(range(self.buffer_size)):
             if step == self.buffer_size - 1:
                 next_non_terminal = 1.0 - dones

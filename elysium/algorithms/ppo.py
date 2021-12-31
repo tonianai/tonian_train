@@ -157,24 +157,29 @@ class PPO(BaseAlgorithm):
     
     
         n_steps = 0
+        print("Reset")
         self.rollout_buffer.reset()
         
         while n_steps < n_rollout_steps:
             
             with torch.no_grad():
-                actions, values, log_probs = self.policy.forward(self._last_obs) # todo: implement
+                actions, values, log_probs = self.policy.forward(self._last_obs[0], self._last_obs[1])
             
             # clamp the action space using pytorch
             clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
             
-            new_obs ,  rewards, dones, _ = self.env.step(clipped_actions)
+            new_obs, rewards, dones, _ = self.env.step(clipped_actions)
             # type new_obs: Dict[str, torch.Tensor]
             
             self.num_timesteps += self.env.num_envs
             
             n_steps += 1
             
-            self.rollout_buffer.add(self._last_obs(0), self._last_obs(1), actions, rewards, self._last_episode_starts, values, log_probs)
+            
+            # refer to stable-baselines on_policy_alorgithm.py line 196 
+            
+            
+            self.rollout_buffer.add(self._last_obs[0], self._last_obs[1], actions, rewards, self._last_episode_starts, values, log_probs)
             
             self._last_obs = new_obs
             self._last_episode_starts = dones
@@ -182,18 +187,33 @@ class PPO(BaseAlgorithm):
         
         with torch.no_grad():
             # compute the value for the last timestep
+            values = self.policy.evaluate(new_obs[1])
             
-            values = self.policy.eval(new_obs, self.device)
+            
         
-        self.rollout_buffer.compute_returns_and_advantages(new_obs, dones)
+        self.rollout_buffer.compute_returns_and_advantages(values.squeeze(), dones)
         
         return True        
     
     def train(self)-> None:
-        """Update the policy using the memory buffer
-        -> clear the buffer afterwards
+        """Update the policy using the rollout buffer
         """        
+        # switch to train mode
+        self.policy.train(True)
+        # update schedules (like lr)
+        
+        self._update_schedules()        
+        
+        
+        
+        
+        
+        
     pass
+
+    def _update_schedules(self):
+        
+        pass
      
     
     def save(self, path: str):

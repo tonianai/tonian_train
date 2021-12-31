@@ -25,7 +25,10 @@ import yaml
 
 
  
-env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
+env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml",
+                  sim_device="gpu"
+                  , graphics_device_id=0
+                  , headless=True)
 
 
 config_path = "./elysium/algorithms/ppo_config.yaml"
@@ -49,4 +52,4 @@ policy = SimpleActorCriticPolicy(actor_obs_shapes=env.actor_observation_spaces.s
 
 algo = PPO(env, config, policy=policy, device="cuda:0")
 
-algo.learn(total_timesteps=10000)
+algo.learn(total_timesteps=1000000)
