@@ -27,6 +27,8 @@ import torch.nn as nn
 
 class WalkingTask(GenerationalVecTask):
     
+    
+    
     def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool) -> None:
         
         
