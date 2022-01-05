@@ -164,7 +164,6 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
     def predict_action(self, actor_obs: Dict[str, torch.Tensor]):
         """Create an action using the actor network and a gaussian distribution
         -> the tensors will become detached after execution (only use for actiung eith the env)
-        print(concat_obs.shape)
         Args:
             actor_obs (Dict[torch.Tensor]): Multispace output
         """
@@ -177,8 +176,8 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                 torch.cat((concat_obs, actor_obs[key]), dim=1)
             else:
                 concat_obs = actor_obs[key]
-                
-                
+    
+        
         action_mean = self.actor(concat_obs)
         
         # the vairables are independend of each other within the distribution -> therefore diagonal matrix
@@ -239,6 +238,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
        
                 
         values = self.critic(critic_concat_obs)
+        
         
         action_mean = self.actor(actor_concat_obs)
         action_var = self.action_var.expand_as(action_mean)

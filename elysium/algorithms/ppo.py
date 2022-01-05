@@ -2,6 +2,8 @@ from typing import Dict, Union, List, Tuple, Type, Optional
 
 import torch 
 import torch.nn as nn
+from torch.nn import functional as F
+
 from torch.distributions import MultivariateNormal
 
 from collections import deque
@@ -43,6 +45,7 @@ class PPO(BaseAlgorithm):
         
         self.policy = policy.to(self.device)
         
+        
         self.buffer_size = self.env.num_envs * self.n_steps
         
         self._last_obs = None # Type Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]] # first dirct is critic obs last dice is actor obs
@@ -71,6 +74,9 @@ class PPO(BaseAlgorithm):
         self.target_kl = config['target_kl']
         self.gae_lambda = config['gae_lamda']
         self.eps_clip = config['eps_clip']
+        self.value_f_coef = config['value_f_coef']
+        self.entropy_coef = config['entropy_coef']
+        
         
         self.action_std_schedule = Schedule(config['action_std'])
         self.action_std = self.action_std_schedule(0)
@@ -139,8 +145,6 @@ class PPO(BaseAlgorithm):
             
             self.train()
             
-        
-        
     
     def collect_rollouts(self, 
                          n_rollout_steps: int) -> bool:
@@ -189,8 +193,6 @@ class PPO(BaseAlgorithm):
             # compute the value for the last timestep
             values = self.policy.evaluate(new_obs[1])
             
-            
-        
         self.rollout_buffer.compute_returns_and_advantages(values.squeeze(), dones)
         
         return True        
@@ -205,27 +207,70 @@ class PPO(BaseAlgorithm):
         
         self._update_schedules()        
         
-        entropy_lossed = []
+        entropy_losses = []
         pg_losses = []
         value_losses = []
         clip_fractions = []
         
         continue_training = True
         
+        clip_range = self.eps_clip
+        # todo introduce schedule
+        
         for epoch in range(self.n_epochs):
             # train for each epoch
             
-            approx_kl_div = []
+            approx_kl_divs = []
             
             # Do a complete pass on the rollout buffer
             for rollout_data in self.rollout_buffer.get(self.batch_size):
-                print(self.batch_size)
                 
                 actions = rollout_data.actions
+
+                values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
                 
-               # values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.ob)
+                values = values.flatten()
+                
+                # Normalize advantage
+                advantages = rollout_data.advantages
+                advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         
-        
+                # ratio between old and new policy, should be one at the first iteration
+                ratio = torch.exp(log_prob - rollout_data.old_log_prob)
+
+                # clipped surrogate loss
+                policy_loss_1 = advantages * ratio
+                policy_loss_2 = advantages * torch.clamp(ratio, 1 - clip_range, 1 + clip_range)
+                policy_loss = -torch.min(policy_loss_1, policy_loss_2).mean()
+                
+                # Logging
+                pg_losses.append(policy_loss.item())
+                clip_fraction = torch.mean((torch.abs(ratio - 1) > clip_range).float()).item()
+                clip_fractions.append(clip_fraction)
+                
+                
+                # todo: maybe introduce value function clipping
+                
+                # Value loss using the TD(gae_lambda) target
+                value_loss = F.mse_loss(rollout_data.returns, values)
+                value_losses.append(value_loss.item())
+                
+                entropy_loss = -torch.mean(entropy)
+                
+                loss = policy_loss + self.entropy_coef * entropy_loss + self.value_f_coef * value_loss
+
+                # Calculate approximate form of reverse KL Divergence for early stopping
+                # see issue #417: https://github.com/DLR-RM/stable-baselines3/issues/417
+                # and discussion in PR #419: https://github.com/DLR-RM/stable-baselines3/pull/419
+                # and Schulman blog: http://joschu.net/blog/kl-approx.html
+                with torch.no_grad():
+                    log_ratio = log_prob - rollout_data.old_log_prob
+                    approx_kl_div = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
+                    approx_kl_divs.append(approx_kl_div)
+                    
+                    
+                # Optimization Step
+                
         
     pass
 

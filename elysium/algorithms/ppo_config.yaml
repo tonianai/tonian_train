@@ -6,6 +6,8 @@ n_steps: 100
 batch_size: 100
 target_kl: 0.1
 gae_lamda: 0.5
+entropy_coef: 1
+value_f_coef: 1
 
 # action standard devisation schedule with timestep taken in the environment
 action_std: {

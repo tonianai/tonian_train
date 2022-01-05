@@ -97,15 +97,9 @@ class DictRolloutBuffer(BaseBuffer):
         self.full = False
         self.n_envs = n_envs
         
-        # critic obs and actor obs must be dicts, because this enables multispace environments
-        self.critic_obs = {}
-        self.actor_obs = {}
+        self.reset()
         
-        for key, obs_shape in self.actor_obs_dict_shape.items():
-            self.actor_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.device)
         
-        for key, obs_shape in self.critic_obs_dict_shape.items():
-            self.critic_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.device)
         
     def reset(self) -> None:
         """
@@ -122,6 +116,16 @@ class DictRolloutBuffer(BaseBuffer):
         self.values = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
         self.log_probs = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
         self.advantages = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
+        
+        # critic obs and actor obs must be dicts, because this enables multispace environments
+        self.critic_obs = {}
+        self.actor_obs = {}
+        
+        for key, obs_shape in self.actor_obs_dict_shape.items():
+            self.actor_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.device)
+        
+        for key, obs_shape in self.critic_obs_dict_shape.items():
+            self.critic_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.device)
         
     def add(
         self, 
@@ -150,8 +154,6 @@ class DictRolloutBuffer(BaseBuffer):
         
         
         for key in self.actor_obs:
-            print(actor_obs[key].shape)
-            print(actor_obs[key])
             self.actor_obs[key][self.pos] = actor_obs[key].detach().clone()
         
         for key in self.critic_obs:
@@ -215,7 +217,7 @@ class DictRolloutBuffer(BaseBuffer):
         
         return DictRolloutBufferSamples (
             critic_obs={key: obs[batch_inds] for (key, obs) in self.critic_obs.items()},
-            actor_obs={key: obs[batch_inds] for (key, obs) in self.critic_obs.items()},
+            actor_obs={key: obs[batch_inds] for (key, obs) in self.actor_obs.items()},
             actions= self.actions[batch_inds],
             old_values= self.values[batch_inds],
             old_log_prob= self.log_probs[batch_inds],
