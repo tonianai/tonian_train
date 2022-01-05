@@ -6,7 +6,7 @@ name: 01_walking
 physics_engine: physx
 
 env: 
-  num_envs: 12000
+  num_envs: 1200
   env_spacing: 5
   max_episode_length: 1000
   powerscale: 1.0

@@ -28,7 +28,7 @@ import yaml
 env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml",
                   sim_device="gpu"
                   , graphics_device_id=0
-                  , headless=True)
+                  , headless=False)
 
 
 config_path = "./elysium/algorithms/ppo_config.yaml"

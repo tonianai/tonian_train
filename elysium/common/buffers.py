@@ -146,12 +146,17 @@ class DictRolloutBuffer(BaseBuffer):
         if len(log_prob.shape) == 0:
             # Reshape 0-d tensor to avoid error
             log_prob = log_prob.reshape(-1, 1)
+            
+        
         
         for key in self.actor_obs:
+            print(actor_obs[key].shape)
+            print(actor_obs[key])
             self.actor_obs[key][self.pos] = actor_obs[key].detach().clone()
         
         for key in self.critic_obs:
             self.critic_obs[key][self.pos] = critic_obs[key].detach().clone()
+        
         
         self.actions[self.pos] = action.detach().clone()
         self.rewards[self.pos] = reward.detach().clone()

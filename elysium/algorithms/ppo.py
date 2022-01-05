@@ -70,6 +70,7 @@ class PPO(BaseAlgorithm):
         self.n_steps = config['n_steps']
         self.target_kl = config['target_kl']
         self.gae_lambda = config['gae_lamda']
+        self.eps_clip = config['eps_clip']
         
         self.action_std_schedule = Schedule(config['action_std'])
         self.action_std = self.action_std_schedule(0)
@@ -156,8 +157,7 @@ class PPO(BaseAlgorithm):
         self.policy.train(False)
     
     
-        n_steps = 0
-        print("Reset")
+        n_steps = 0 
         self.rollout_buffer.reset()
         
         while n_steps < n_rollout_steps:
@@ -201,17 +201,37 @@ class PPO(BaseAlgorithm):
         # switch to train mode
         self.policy.train(True)
         # update schedules (like lr)
+        print("Train")
         
         self._update_schedules()        
         
+        entropy_lossed = []
+        pg_losses = []
+        value_losses = []
+        clip_fractions = []
         
+        continue_training = True
         
+        for epoch in range(self.n_epochs):
+            # train for each epoch
+            
+            approx_kl_div = []
+            
+            # Do a complete pass on the rollout buffer
+            for rollout_data in self.rollout_buffer.get(self.batch_size):
+                print(self.batch_size)
+                
+                actions = rollout_data.actions
+                
+               # values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.ob)
         
         
         
     pass
 
     def _update_schedules(self):
+        # todo add lr schedule and not a fixed rate
+         
         
         pass
      

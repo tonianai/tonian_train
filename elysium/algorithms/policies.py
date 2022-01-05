@@ -160,7 +160,6 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         # the asterix is unpacking all layers_critic items and passing them into the nn.Sequential
         self.critic = nn.Sequential(*layers_critic)
         
-        print(self.critic)
         
     def predict_action(self, actor_obs: Dict[str, torch.Tensor]):
         """Create an action using the actor network and a gaussian distribution
@@ -251,5 +250,51 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         log_prob = dist.log_prob(actions)
                         
         return actions, values, log_prob
+        
+    
+    def evaluate_actions(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor], actions: torch.Tensor):
+        """
+        Evaluate actions according to the current policy
+
+        Args:
+            actor_obs (Dict[str, torch.Tensor]): [description]
+            critic_obs (Dict[str, torch.Tensor]): [description]
+            actions (torch.Tensor): [description]
+            
+        Returns:
+            estimated state value, log_prob of taking that action, entropy of the action distribution
+        """
+        
+        # concat the extracted obs  to usable tensors
+        actor_concat_obs = None
+        
+        for key in actor_obs:
+            if actor_concat_obs:
+                torch.cat((actor_concat_obs, actor_obs[key]), dim=1)
+            else:
+                actor_concat_obs = actor_obs[key]
+      
+        
+        critic_concat_obs = None
+        
+        for key in critic_obs:
+            
+            if critic_concat_obs:
+                torch.cat((critic_obs, critic_obs[key]), dim= 1)
+            else:
+                critic_concat_obs = critic_obs[key]
+    
+        
+        # the vairables are independend of each other within the distribution -> therefore diagonal matrix
+        cov_matrix = torch.diag(self.action_var).unsqueeze(dim = 0)
+        
+        dist = MultivariateNormal(self.actor(actor_concat_obs), cov_matrix)
+        
+        log_prob = dist.log_prob(actions)
+        
+        values = self.critic(critic_concat_obs)
+        
+        return values, log_prob, dist.entropy
+        
         
         
