@@ -251,8 +251,9 @@ class PPO(BaseAlgorithm):
                 
                 # todo: maybe introduce value function clipping
                 
-                # Value loss using the TD(gae_lambda) target
-                value_loss = F.mse_loss(rollout_data.returns, values)
+                # Value loss using the TD(gae_lambda
+                
+                value_loss = F.mse_loss(rollout_data.returns.squeeze(), values)
                 value_losses.append(value_loss.item())
                 
                 entropy_loss = -torch.mean(entropy)
@@ -270,6 +271,9 @@ class PPO(BaseAlgorithm):
                     
                     
                 # Optimization Step
+                self.policy.optimizer.zero_grad()
+                loss.backward()
+                self.policy.optimizer.step()
                 
         
     pass

@@ -23,7 +23,6 @@ import yaml
 
 
 
-
  
 env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml",
                   sim_device="gpu"
@@ -45,6 +44,7 @@ policy = SimpleActorCriticPolicy(actor_obs_shapes=env.actor_observation_spaces.s
                                  critic_obs_shapes= env.critic_observation_spaces.shape, 
                                  action_size=env.action_space.shape[0],
                                  action_std_init=0.1, 
+                                 lr_init=0.001,
                                  actor_hidden_layer_sizes= (128, 128, 64),
                                  critic_hidden_layer_sizes= (128, 128, 61)
                                 )

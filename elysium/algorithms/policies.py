@@ -3,7 +3,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 import torch.nn as nn
 
 
-from typing import Union, Dict, Tuple, Type, List
+from typing import Union, Dict, Tuple, Type, List, Optional, Any   
 
 from gym import spaces
 import gym
@@ -24,7 +24,10 @@ class ActorCriticPolicy(nn.Module, ABC):
                  critic_obs_shapes: Tuple[Tuple[int, ...]],
                  action_size: int,
                  action_std_init: float,
+                 lr_init: float,
                  activation_fn: Type[nn.Module] = nn.ELU,
+                 optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam, 
+                 optimizer_kwargs: Optional[Dict[str, Any]] = None,
                  device: str = 'cuda:0'
                  ) -> None:
         """Create an instance of the Actor critic policy base class
@@ -45,6 +48,22 @@ class ActorCriticPolicy(nn.Module, ABC):
         self.device = device
         self.action_size = action_size
         self.set_action_std(action_std_init)
+        self.lr_init = lr_init
+        
+        if optimizer_kwargs is None:
+            optimizer_kwargs = {}
+            
+
+        self.optimizer_class = optimizer_class
+        self.optimizer_kwargs = optimizer_kwargs
+        
+        
+        
+    def _build_optim(self):
+        """Set the optimizer"""
+        self.optimizer = self.optimizer_class(self.parameters(),lr=self.lr_init, **self.optimizer_kwargs)
+        
+
         
     
     def set_action_std(self, new_action_std: float) -> None:
@@ -69,9 +88,14 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                  critic_obs_shapes: Tuple[Tuple[int, ...]], 
                  action_size: int, 
                  action_std_init: float, 
+                 lr_init: float,
                  actor_hidden_layer_sizes: Tuple[int],
                  critic_hidden_layer_sizes: Tuple[int],
-                 activation_fn: Type[nn.Module] = nn.ELU) -> None:
+                 activation_fn: Type[nn.Module] = nn.ELU,
+                 optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
+                 optimizer_kwargs: Optional[Dict[str, Any]] = None,
+                 device: str = "cuda:0"
+                 ) -> None:
         """Create an instance of the Actor critic policy base class
 
         Args:
@@ -84,7 +108,15 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             critic_hidden_layer_sizes (Tuple[int]): The size of the layers, between the critic obs layer and the 1 dim value
             activation_fn (Type[nn.Module], optional): [description]. Defaults to nn.ELU.
         """
-        super().__init__(actor_obs_shapes, critic_obs_shapes, action_size ,action_std_init, activation_fn=activation_fn)
+        super().__init__(actor_obs_shapes, 
+                         critic_obs_shapes, 
+                         action_size,
+                         action_std_init, 
+                         lr_init, 
+                         activation_fn=activation_fn, 
+                         optimizer_class=optimizer_class,
+                         optimizer_kwargs= optimizer_kwargs,
+                         device=device)
 
         
         combined_actor_input_size = 0
@@ -160,6 +192,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         # the asterix is unpacking all layers_critic items and passing them into the nn.Sequential
         self.critic = nn.Sequential(*layers_critic)
         
+        self._build_optim()
         
     def predict_action(self, actor_obs: Dict[str, torch.Tensor]):
         """Create an action using the actor network and a gaussian distribution
@@ -294,7 +327,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         values = self.critic(critic_concat_obs)
         
-        return values, log_prob, dist.entropy
+        return values, log_prob, dist.entropy()
         
         
         
