@@ -1,6 +1,6 @@
 gamma: 0.99
 lr: 1e-4
-n_epochs: 10
+n_epochs: 5
 eps_clip: 0.1
 n_steps: 100
 batch_size: 100

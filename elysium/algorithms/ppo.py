@@ -156,6 +156,7 @@ class PPO(BaseAlgorithm):
         Return: True if function returned with at least `n_rollout_steps`
             collected, False if callback terminated rollout prematurely.
         """
+        print("collect rollouts")
         
         assert self._last_obs is not None, "No previous obs was provided"
         self.policy.train(False)
@@ -286,7 +287,7 @@ class PPO(BaseAlgorithm):
      
     
     def save(self, path: str):
-        return super().save(path)
+        self.policy.save()
 
 
     def load(self, path: str):
@@ -294,6 +295,6 @@ class PPO(BaseAlgorithm):
         Args:
             path (str): [description]
         """
-        pass
+        self.policy.load(path)
     
     

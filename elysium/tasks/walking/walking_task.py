@@ -30,8 +30,6 @@ class WalkingTask(GenerationalVecTask):
     
     
     def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool) -> None:
-        
-        
         config = self._fetch_config_params(config_path)
         
         super().__init__(config, sim_device, graphics_device_id, headless)
@@ -151,7 +149,7 @@ class WalkingTask(GenerationalVecTask):
         self.refresh_tensors()
         
         # use jit script to compute the observations
-        self.actor_obs, self.critic_obs = compute_robot_observations(
+        self.actor_obs["linear"][:], self.critic_obs["linear"][:] = compute_linear_robot_observations(
             root_states = self.root_states, 
             sensor_states=self.vec_force_sensor_tensor,
             dof_vel=self.dof_vel,
@@ -326,6 +324,9 @@ class WalkingTask(GenerationalVecTask):
         """
         num_actions = 21
         return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
+    
+    def _is_symmetric(self):
+        return False
         
         
 
@@ -362,7 +363,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
         return (reward, has_fallen)
 
 @torch.jit.script
-def compute_robot_observations(root_states: torch.Tensor, 
+def compute_linear_robot_observations(root_states: torch.Tensor, 
                                 sensor_states: torch.Tensor, 
                                 dof_vel: torch.Tensor, 
                                 dof_pos: torch.Tensor, 
@@ -408,4 +409,4 @@ def compute_robot_observations(root_states: torch.Tensor,
     
     linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
     
-    return  {'linear': linear_actor_obs},  {'linear': linear_critic_obs}
+    return  linear_actor_obs,   linear_critic_obs

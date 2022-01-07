@@ -39,6 +39,8 @@ class VecTask(BaseEnv, ABC):
         """
         super().__init__(config, sim_device, graphics_device_id, headless)
         
+        # if the actor is symmetric only the actor_obs space will be regarded, the critic_obs space will not exist
+        self.is_symmetric = self._is_symmetric()
         
         self.sim_params = self.__parse_sim_params(self.config["physics_engine"], self.config["sim"])
         if self.config["physics_engine"] == "physx":
@@ -72,6 +74,9 @@ class VecTask(BaseEnv, ABC):
 
         self.allocate_buffers()
         self.set_viewer()
+        
+        
+        
         
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
         """Create an Isaac Gym sim object.
@@ -235,8 +240,7 @@ class VecTask(BaseEnv, ABC):
         
         self.global_step += 1
         
-        return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, extras
-    
+        return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, extras 
     
     def reset(self) -> Tuple[Dict[str, torch.Tensor]]:
         """Reset the environment 
@@ -249,10 +253,8 @@ class VecTask(BaseEnv, ABC):
 
         # step the simulator
         self.step(actions)
-
-        return self.actor_obs, self.critic_obs
-
- 
+        
+        return self.actor_obs, self.critic_obs 
     
         
         
@@ -276,11 +278,18 @@ class VecTask(BaseEnv, ABC):
         # The num_steps_in_ep buffer declares the amount of steps a enviromnent as done since 
         self.num_steps_in_ep = torch.zeros((self.num_envs, ) , device= self.device, dtype= torch.int32)
         
-        # This is a list of tensors, that reside on device, a list is needed, because we are dealing with multispace observations
-        self.actor_obs = [  torch.zeros((self.num_envs, ) + space_shape, device= self.device, dtype= torch.float32) for  space_shape in self.actor_observation_spaces.shape]
         
-        # Todo: Use the same reference if the implementation is not an asymemtric actor critic approach
-        self.critic_obs = [ torch.zeros((self.num_envs, ) + space_shape, device=self.device, dtype=torch.float32) for space_shape in self.critic_observation_spaces.shape]
+        
+        # This is a list of tensors, that reside on device, a list is needed, because we are dealing with multispace observations
+        self.actor_obs = { key: torch.zeros((self.num_envs, ) + space_shape, device= self.device, dtype= torch.float32) for  (key, space_shape) in self.actor_observation_spaces.dict_shape.items()}
+
+        
+        if not self.is_symmetric:
+            # only asymmetric environments have critic observations
+            self.critic_obs = {key: torch.zeros((self.num_envs, ) + space_shape, device=self.device, dtype=torch.float32) for (key,space_shape) in self.critic_observation_spaces.dict_shape.items()}
+        else:
+            self.critic_obs = self.actor_obs
+       
 
         # Randomize buffer determines whether a given env should randomize 
         self.do_randomize = torch.zeros((self.num_envs, ), device=self.device, dtype= torch.int8 )
@@ -347,6 +356,11 @@ class VecTask(BaseEnv, ABC):
 
         # return the configured params
         return sim_params
+    
+    
+    @abstractmethod
+    def _is_symmetric(self):
+        pass     
 
 
 class GenerationalVecTask(VecTask, ABC):
