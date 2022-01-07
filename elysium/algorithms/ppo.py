@@ -15,6 +15,7 @@ from elysium.tasks.base.vec_task import VecTask
 
 from elysium.algorithms.policies import ActorCriticPolicy
 
+ 
 
 import time
 
@@ -57,6 +58,7 @@ class PPO(BaseAlgorithm):
         assert self.buffer_size % self.batch_size == 0, "the buffer size must be a multiple of the batch size"
         
         self._setup_model()
+        
         
         
     def _fetch_config_params(self, config):
@@ -281,13 +283,19 @@ class PPO(BaseAlgorithm):
 
     def _update_schedules(self):
         # todo add lr schedule and not a fixed rate
-         
+        # change 
         
         pass
      
     
-    def save(self, path: str):
-        self.policy.save()
+    def save(self, path: Optional[str] = None):
+        
+        if path is None:
+            path = self.run_folder_name + "/saves/"
+        
+        
+        
+        self.policy.save(path)
 
 
     def load(self, path: str):

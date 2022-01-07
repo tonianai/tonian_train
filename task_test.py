@@ -16,20 +16,18 @@ from  elysium.tasks.base.vec_task import MultiSpace, VecTask
 import gym
 from gym import spaces
 import numpy as np
-
+from elysium.tasks.cartpole.cartpole_task import Cartpole
 
 import torch
 
 import yaml
 
 
+
  
-env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml",
-                  sim_device="gpu"
-                  , graphics_device_id=0
-                  , headless=False)
-
-
+#env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=False)
+ 
+env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
 
 config_path = "./elysium/algorithms/ppo_config.yaml"
@@ -46,9 +44,9 @@ policy = SimpleActorCriticPolicy(actor_obs_shapes=env.actor_observation_spaces.s
                                  critic_obs_shapes= env.critic_observation_spaces.shape, 
                                  action_size=env.action_space.shape[0],
                                  action_std_init=0.1, 
-                                 lr_init=0.001,
-                                 actor_hidden_layer_sizes= (128, 128, 64),
-                                 critic_hidden_layer_sizes= (128, 128, 61)
+                                 lr_init=0.0001,
+                                 actor_hidden_layer_sizes= (32, 16),
+                                 critic_hidden_layer_sizes= (32, 16)
                                 )
 
 
@@ -63,14 +61,3 @@ print("I have learned")
 
 env.close()
 
-
-actor_obs, critic_obs = env.reset()
-cumulative_reward = 0
-for i in range(100):
-    action, _ = policy.predict_action(actor_obs)
-    obs, reward, done, _ = env.step(actions=action)
-    cumulative_reward += reward.sum()
-    env.render()
-
-    
-env.close()

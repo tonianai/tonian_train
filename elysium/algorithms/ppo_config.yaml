@@ -1,9 +1,9 @@
 gamma: 0.99
 lr: 1e-4
-n_epochs: 5
+n_epochs: 3
 eps_clip: 0.1
-n_steps: 100
-batch_size: 100
+n_steps: 200 # the amount of steps taken per env between training and update
+batch_size: 1000
 target_kl: 0.1
 gae_lamda: 0.5
 entropy_coef: 1
@@ -13,10 +13,10 @@ value_f_coef: 1
 action_std: {
   schedule_type: 'steps', 
   schedule: [ 
-    [0, 0.5],
-    [1000, 0.4],
-    [2000, 0.3],
-    [3000, 0.2],
-    [10000, 0.1]
+    [0, 0.3],
+    [1000, 0.2],
+    [2000, 0.1],
+    [3000, 0.05],
+    [10000, 0.01]
   ]
 }

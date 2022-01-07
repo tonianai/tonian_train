@@ -121,8 +121,7 @@ class Cartpole(VecTask):
         pole_vel = self.actor_obs["linear"][:, 3]
         cart_vel = self.actor_obs["linear"][:, 1]
         cart_pos = self.actor_obs["linear"][:, 0]
-        
-        print(self.reset_dist)
+         
 
         self.rewards, self.do_reset = compute_cartpole_reward(
             pole_angle, pole_vel, cart_vel, cart_pos,
@@ -134,8 +133,7 @@ class Cartpole(VecTask):
             env_ids = np.arange(self.num_envs)
 
         self.gym.refresh_dof_state_tensor(self.sim)
-        
-        print(type(self.actor_obs))
+         
 
         self.actor_obs["linear"][env_ids, 0] = self.dof_pos[env_ids, 0].squeeze()
         self.actor_obs["linear"][env_ids, 1] = self.dof_vel[env_ids, 0].squeeze()
@@ -196,7 +194,7 @@ class Cartpole(VecTask):
         """
         There is no critic observation space, this is a symemtric env
         """
-        return None
+        return self._get_actor_observation_spaces()
     
     def _get_action_space(self) -> gym.Space:
         """The action space is only a single gym space and most often a suspace of the multispace output_space 
@@ -223,6 +221,7 @@ class Cartpole(VecTask):
 @torch.jit.script
 def compute_cartpole_reward(pole_angle, pole_vel, cart_vel, cart_pos,
                             reset_dist, reset_buf, progress_buf, max_episode_length):
+    # eslint-disable-next-line
     # type: (Tensor, Tensor, Tensor, Tensor, float, Tensor, Tensor, float) -> Tuple[Tensor, Tensor]
     
     # reward is combo of angle deviated from upright, velocity of cart, and velocity of pole moving

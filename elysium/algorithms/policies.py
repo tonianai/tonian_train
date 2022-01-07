@@ -76,6 +76,15 @@ class ActorCriticPolicy(nn.Module, ABC):
     
     def forward():
         raise NotImplementedError()
+    
+    @abstractmethod
+    def save(self, path: str) -> None:
+        pass
+    
+    @abstractmethod
+    def load(self, path: str) -> None:
+        pass
+    
 
 class SimpleActorCriticPolicy(ActorCriticPolicy):
     """The Simple Actor critic policy is an assymetric actor critic policy without an cnn and without rnn.
@@ -329,5 +338,25 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         return values, log_prob, dist.entropy()
         
+    def save(self, path: str) -> None:
+        """Save the policy to the given path
+
+        Args:
+            path (str): [description]
+        """
         
+        torch.save(self.critic.state_dict(), f"{path}/critic.pth")
+        torch.save(self.actor.state_dict(), f"{path}/actor.pth")
+        
+    
+    def load(self, path: str) -> None:
+        """Load the policy from the given path
+
+        Args:
+            path (str): [description]
+ 
+        """
+        
+        self.critic.load_state_dict(torch.load(f"{path}/critic.pth"))
+        self.actor.load_state_dict(torch.load(f"{path}/actor.pth"))
         
