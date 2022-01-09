@@ -27,7 +27,7 @@ import yaml
  
 #env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=False)
  
-env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
+env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=True)
 
 
 config_path = "./elysium/algorithms/ppo_config.yaml"
@@ -43,7 +43,6 @@ with open(config_path, 'r') as stream:
 policy = SimpleActorCriticPolicy(actor_obs_shapes=env.actor_observation_spaces.shape,
                                  critic_obs_shapes= env.critic_observation_spaces.shape, 
                                  action_size=env.action_space.shape[0],
-                                 action_std_init=0.1, 
                                  lr_init=0.0001,
                                  actor_hidden_layer_sizes= (32, 16),
                                  critic_hidden_layer_sizes= (32, 16)

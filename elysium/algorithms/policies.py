@@ -1,5 +1,5 @@
 import torch
-from torch.distributions.multivariate_normal import MultivariateNormal 
+from torch.distributions import Normal 
 import torch.nn as nn
 
 
@@ -23,8 +23,8 @@ class ActorCriticPolicy(nn.Module, ABC):
                  actor_obs_shapes: Tuple[Tuple[int, ...]], 
                  critic_obs_shapes: Tuple[Tuple[int, ...]],
                  action_size: int,
-                 action_std_init: float,
                  lr_init: float,
+                 log_std_init: float = 0,
                  activation_fn: Type[nn.Module] = nn.ELU,
                  optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam, 
                  optimizer_kwargs: Optional[Dict[str, Any]] = None,
@@ -47,8 +47,13 @@ class ActorCriticPolicy(nn.Module, ABC):
         self.activation_fn = activation_fn
         self.device = device
         self.action_size = action_size
-        self.set_action_std(action_std_init)
+        self.log_std_init = log_std_init
         self.lr_init = lr_init
+        
+        self.log_std = nn.Parameter(torch.ones(self.action_size) * self.log_std_init, requires_grad=True)
+        
+        #self.register_parameter("fdsjkdskfl", self.log_std)
+        
         
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
@@ -64,15 +69,7 @@ class ActorCriticPolicy(nn.Module, ABC):
         self.optimizer = self.optimizer_class(self.parameters(),lr=self.lr_init, **self.optimizer_kwargs)
         
 
-        
     
-    def set_action_std(self, new_action_std: float) -> None:
-        """Creates an action variance for a given standard deviation.
-        This Variance is used to sample from a multidimensinal gaussian as the output for an action
-        Args:
-            new_action_std (float): new standard deviation of the action
-        """
-        self.action_var = torch.full((self.action_size, ), new_action_std * new_action_std).to(self.device)
     
     def forward():
         raise NotImplementedError()
@@ -96,10 +93,10 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                  actor_obs_shapes: Tuple[Tuple[int, ...]], 
                  critic_obs_shapes: Tuple[Tuple[int, ...]], 
                  action_size: int, 
-                 action_std_init: float, 
                  lr_init: float,
                  actor_hidden_layer_sizes: Tuple[int],
                  critic_hidden_layer_sizes: Tuple[int],
+                 log_std_init: float = 0, 
                  activation_fn: Type[nn.Module] = nn.ELU,
                  optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
                  optimizer_kwargs: Optional[Dict[str, Any]] = None,
@@ -111,7 +108,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             actor_obs_shapes (Tuple[Tuple[int, ...]]): The shapes the actor net has to take in, including commands
             critic_obs_shapes (Tuple[Tuple[int, ...]]): The shapes the critic net has to take in, including commands
             action_size (int): The size of the continous one dimensional action vector
-            action_std_init (float): Standatrd deviation of the multidim gaussian, from whch the action will be sampled
+            std_init (float): Standatrd deviation of the multidim gaussian, from whch the action will be sampled
             activation_fn (Type[nn.Module], optional): The activation function used as standard throughout the network. Defaults to nn.ELU.
             actor_hidden_layer_sizes (Tuple[int]): The sizes of the layers, between the obs layer and the action vector
             critic_hidden_layer_sizes (Tuple[int]): The size of the layers, between the critic obs layer and the 1 dim value
@@ -120,8 +117,8 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         super().__init__(actor_obs_shapes, 
                          critic_obs_shapes, 
                          action_size,
-                         action_std_init, 
                          lr_init, 
+                         log_std_init= log_std_init,
                          activation_fn=activation_fn, 
                          optimizer_class=optimizer_class,
                          optimizer_kwargs= optimizer_kwargs,
@@ -171,7 +168,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         layers_actor.append(nn.Tanh())
         
         # the asterix is unpacking all layers_actor items and passing them into the nn.Sequential
-        self.actor = nn.Sequential(*layers_actor)
+        self.actor = nn.Sequential(*layers_actor).to(self.device)
         
         # create the critic network
         layers_critic = []
@@ -199,7 +196,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         # the critic does not need a last layer
         
         # the asterix is unpacking all layers_critic items and passing them into the nn.Sequential
-        self.critic = nn.Sequential(*layers_critic)
+        self.critic = nn.Sequential(*layers_critic).to(self.device)
         
         self._build_optim()
         
@@ -208,7 +205,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         -> the tensors will become detached after execution (only use for actiung eith the env)
         Args:
             actor_obs (Dict[torch.Tensor]): Multispace output
-        """
+        """ 
         
         concat_obs = None
         
@@ -222,13 +219,18 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         action_mean = self.actor(concat_obs)
         
-        # the vairables are independend of each other within the distribution -> therefore diagonal matrix
-        cov_matrix = torch.diag(self.action_var).unsqueeze(dim = 0)
-        dist = MultivariateNormal(action_mean, cov_matrix)
         
-        action = dist.sample()
         
-        log_prob = dist.log_prob(action)
+        action_std = torch.ones_like(action_mean) * self.log_std.exp()
+        
+        self.dist = Normal(action_mean, action_std)
+        
+        
+        action = self.dist.sample()
+         
+        
+        log_prob = self.dist.log_prob(action)
+        
         
         return action.detach(), log_prob.detach()
         
@@ -280,16 +282,17 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
        
                 
         values = self.critic(critic_concat_obs)
-        
-        
         action_mean = self.actor(actor_concat_obs)
-        action_var = self.action_var.expand_as(action_mean)
-        cov_mat = torch.diag_embed(action_var).to(self.device)
-        dist = MultivariateNormal(action_mean, cov_mat)
         
-        actions = dist.sample()
         
-        log_prob = dist.log_prob(actions)
+        action_std = torch.ones_like(action_mean) * self.log_std.exp()
+        
+        self.dist = Normal(action_mean, action_std)
+        
+        actions = self.dist.sample()
+        
+        log_prob = self.dist.log_prob(actions)
+                        
                         
         return actions, values, log_prob
         
@@ -325,18 +328,22 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                 torch.cat((critic_obs, critic_obs[key]), dim= 1)
             else:
                 critic_concat_obs = critic_obs[key]
-    
-        
-        # the vairables are independend of each other within the distribution -> therefore diagonal matrix
-        cov_matrix = torch.diag(self.action_var).unsqueeze(dim = 0)
-        
-        dist = MultivariateNormal(self.actor(actor_concat_obs), cov_matrix)
-        
-        log_prob = dist.log_prob(actions)
-        
+                
+        action_mean = self.actor(actor_concat_obs)
         values = self.critic(critic_concat_obs)
         
-        return values, log_prob, dist.entropy()
+        
+        
+        action_std = torch.ones_like(action_mean) * self.log_std.exp()
+        
+        self.dist = Normal(action_mean, action_std)
+         
+        
+        log_prob = self.dist.log_prob(actions)
+        dist_entropy = self.dist.entropy()
+        
+        
+        return values, log_prob, dist_entropy
         
     def save(self, path: str) -> None:
         """Save the policy to the given path

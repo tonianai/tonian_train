@@ -163,7 +163,7 @@ class DictRolloutBuffer(BaseBuffer):
         self.rewards[self.pos] = reward.detach().clone()
         self.is_epidsode_start[self.pos] = is_epidsode_start.detach().clone()
         self.values[self.pos] = value.detach().clone().squeeze()
-        self.log_probs[self.pos] = log_prob.detach().clone()
+        self.log_probs[self.pos] = log_prob.detach().clone().squeeze()
         
         
         self.pos += 1

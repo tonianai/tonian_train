@@ -84,7 +84,7 @@ class PPO(BaseAlgorithm):
         
         self.action_std_schedule = Schedule(config['action_std'])
         self.action_std = self.action_std_schedule(0)
-        
+         
         
         
     def _setup_model(self) -> None:
@@ -263,7 +263,8 @@ class PPO(BaseAlgorithm):
                 
                 value_losses.append(value_loss.item())
                 
-                entropy_loss = -torch.mean(entropy)
+                
+                entropy_loss = torch.mean(entropy)
                 
                 entropy_losses.append(entropy_loss.item())
                 
