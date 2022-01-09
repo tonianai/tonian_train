@@ -46,7 +46,7 @@ class BaseAlgorithm(ABC):
         
         
         if logger is None:
-            self.logger = TensorboardLogger(self.run_folder_name)
+            self.logger = TensorboardLogger(self.run_folder_name + "/logs")
         else:
             self.logger = logger
         

@@ -15,6 +15,8 @@ from elysium.tasks.base.vec_task import VecTask
 
 from elysium.algorithms.policies import ActorCriticPolicy
 
+import numpy as np
+
  
 
 import time
@@ -210,6 +212,7 @@ class PPO(BaseAlgorithm):
         
         self._update_schedules()        
         
+        
         entropy_losses = []
         pg_losses = []
         value_losses = []
@@ -257,9 +260,13 @@ class PPO(BaseAlgorithm):
                 # Value loss using the TD(gae_lambda
                 
                 value_loss = F.mse_loss(rollout_data.returns.squeeze(), values)
+                
                 value_losses.append(value_loss.item())
                 
                 entropy_loss = -torch.mean(entropy)
+                
+                entropy_losses.append(entropy_loss.item())
+                
                 
                 loss = policy_loss + self.entropy_coef * entropy_loss + self.value_f_coef * value_loss
 
@@ -271,13 +278,18 @@ class PPO(BaseAlgorithm):
                     log_ratio = log_prob - rollout_data.old_log_prob
                     approx_kl_div = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
                     approx_kl_divs.append(approx_kl_div)
-                    
+
                     
                 # Optimization Step
                 self.policy.optimizer.zero_grad()
                 loss.backward()
                 self.policy.optimizer.step()
                 
+        
+        self.logger.log("train/entropy_loss", np.mean(entropy_losses), self.num_timesteps)       
+        self.logger.log("train/value_loss", np.mean(value_losses), self.num_timesteps)
+                    
+        
         
     pass
 
@@ -292,8 +304,6 @@ class PPO(BaseAlgorithm):
         
         if path is None:
             path = self.run_folder_name + "/saves/"
-        
-        
         
         self.policy.save(path)
 
