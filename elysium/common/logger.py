@@ -28,7 +28,7 @@ class TensorboardLogger(BaseLogger):
     def __init__(self, folder: str, print_to_console: bool = True) -> None:
         super().__init__()
         self.folder = folder
-        self.writer = SummaryWriter()
+        self.writer = SummaryWriter(log_dir=folder)
         self.print_to_console = print_to_console
         
 

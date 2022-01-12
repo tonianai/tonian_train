@@ -8,6 +8,8 @@ from isaacgym import gymtorch, gymapi
 from isaacgym.torch_utils import to_torch
 from elysium.tasks.base.base_env import BaseEnv
 
+from elysium.common.utils.utils import dict_to, dict_to_cpu
+
 import numpy as np
 
 import torch 
@@ -28,7 +30,7 @@ class VecTask(BaseEnv, ABC):
     """
     
     
-    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
+    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str)  -> None:
         """Initialise the `VecTask`.
 
         Args:
@@ -37,7 +39,7 @@ class VecTask(BaseEnv, ABC):
             graphics_device_id (int): The device id to render with
             headless (bool): determines whether the scene is rendered
         """
-        super().__init__(config, sim_device, graphics_device_id, headless)
+        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         # if the actor is symmetric only the actor_obs space will be regarded, the critic_obs space will not exist
         self.is_symmetric = self._is_symmetric()
@@ -240,8 +242,13 @@ class VecTask(BaseEnv, ABC):
         
         self.global_step += 1
         
-        return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, extras 
-    
+        if not self.is_symmetric:
+            return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, extras 
+        if self.rl_device == 'cpu':
+            return dict_to_cpu(self.actor_obs), self.rewards.cpu(), self.do_reset.cpu(), extras
+        return self.actor_obs, self.rewards, self.do_reset, extras
+ 
+        
     def reset(self) -> Tuple[Dict[str, torch.Tensor]]:
         """Reset the environment 
 
@@ -254,9 +261,16 @@ class VecTask(BaseEnv, ABC):
         # step the simulator
         self.step(actions)
         
-        return self.actor_obs, self.critic_obs 
-    
+        if not self.is_symmetric:
+            return self.actor_obs, self.critic_obs 
+        if self.rl_device == 'cpu':
+            print(dict_to_cpu(self.actor_obs))
+            return dict_to_cpu(self.actor_obs)
+        return self.actor_obs
         
+   
+        
+            
         
     def allocate_buffers(self):
         """initialize the tensors on the gpu
@@ -365,7 +379,7 @@ class VecTask(BaseEnv, ABC):
 
 class GenerationalVecTask(VecTask, ABC):
     
-    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
+    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device) -> None:
         """
         Generational tasks are tasks, that have differing reward functions and domain randomization with changing generations.
         Generations are defined within the given config dict.
@@ -376,7 +390,7 @@ class GenerationalVecTask(VecTask, ABC):
         The reward goal get calculated, by averaging over a defined amount of episoded the complete episode rewards
          
         """
-        super().__init__(config, sim_device, graphics_device_id, headless)
+        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         
         self.generational_goal = config["env"]["generational_goals"]

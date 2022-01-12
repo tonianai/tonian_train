@@ -6,17 +6,7 @@ n_steps: 200 # the amount of steps taken per env between training and update
 batch_size: 1000
 target_kl: 0.1
 gae_lamda: 0.5
-entropy_coef: 0.1
+entropy_coef: 0.01
 value_f_coef: 1
 
-# action standard devisation schedule with timestep taken in the environment
-action_std: {
-  schedule_type: 'steps', 
-  schedule: [ 
-    [0, 0.1],
-    [1000, 0.2],
-    [2000, 0.1],
-    [3000, 0.05],
-    [10000, 0.01]
-  ]
-}
+

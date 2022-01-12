@@ -28,6 +28,16 @@ def get_device(device: Union[torch.device, str] = "auto") -> torch.device:
 
     return device
 
+def dict_to(torch_dict: Dict[str, torch.Tensor], device: str):
+        for i in torch_dict:
+            torch_dict[i].to(device)
+        return torch_dict
+    
+def dict_to_cpu(torch_dict: Dict[str, torch.Tensor]):
+    for i in torch_dict:
+        torch_dict[i] = torch_dict[i].cpu()
+    return torch_dict
+
 
 
 class Schedule: 

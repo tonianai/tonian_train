@@ -25,11 +25,11 @@ from elysium.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 class Cartpole(VecTask):
 
-    def __init__(self, config_path, sim_device, graphics_device_id, headless):
+    def __init__(self, config_path, sim_device, graphics_device_id, headless, rl_device: str = "gpu:0"):
     
         config = self._fetch_config_params(config_path)
         
-        super().__init__(config, sim_device, graphics_device_id, headless)
+        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         if self.viewer != None:
             cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
@@ -212,6 +212,9 @@ class Cartpole(VecTask):
             [bool]
         """
         return True
+    
+    def reward_range(self):
+        return (-1e100, 1e100)
 
 #####################################################################
 ###=========================jit functions=========================###
@@ -234,5 +237,7 @@ def compute_cartpole_reward(pole_angle, pole_vel, cart_vel, cart_pos,
     reset = torch.where(torch.abs(cart_pos) > reset_dist, torch.ones_like(reset_buf), reset_buf)
     reset = torch.where(torch.abs(pole_angle) > np.pi / 2, torch.ones_like(reset_buf), reset)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
+    
+    
 
     return reward, reset

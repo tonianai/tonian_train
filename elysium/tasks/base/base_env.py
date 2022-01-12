@@ -21,7 +21,7 @@ from elysium.common.utils.spaces import MultiSpace
 
 class BaseEnv(ABC):
     
-    def __init__(self,config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool) -> None:
+    def __init__(self,config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str= "cuda:0") -> None:
         """An asymmetric actor critic base environment class based on isaac gym 
 
         Args:
@@ -49,7 +49,7 @@ class BaseEnv(ABC):
                 print("GPU Pipeline can only be used with GPU simulation. Forcing CPU Pipeline.")
                 config["sim"]["use_gpu_pipeline"] = False
 
-        self.rl_device = config.get("rl_device", "cuda:0")
+        self.rl_device = config.get("rl_device", rl_device)
         
         
         enable_camera_sensors = config.get("enableCameraSensors", False)
@@ -72,7 +72,16 @@ class BaseEnv(ABC):
         self.actor_observation_spaces = self._get_actor_observation_spaces()
         self.action_space = self._get_action_space()
         
+        self.metadata = {}
+        
+    
+    @property
+    def observation_space(self) -> gym.Space:
+        return spaces.Dict(self.actor_observation_spaces.spaces)
 
+    @abstractproperty
+    def reward_range(self):
+        pass
         
         
         

@@ -29,10 +29,10 @@ class WalkingTask(GenerationalVecTask):
     
     
     
-    def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool) -> None:
+    def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
         config = self._fetch_config_params(config_path)
         
-        super().__init__(config, sim_device, graphics_device_id, headless)
+        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         if self.viewer != None:
             cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)

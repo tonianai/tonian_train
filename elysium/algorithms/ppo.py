@@ -25,7 +25,7 @@ import time
 
 class PPO(BaseAlgorithm):
     
-    def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device]) -> None:
+    def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device], log_compute_rewards: bool = True) -> None:
         super().__init__(env, config, device)
         self._fetch_config_params(config)
         
@@ -80,10 +80,6 @@ class PPO(BaseAlgorithm):
         self.eps_clip = config['eps_clip']
         self.value_f_coef = config['value_f_coef']
         self.entropy_coef = config['entropy_coef']
-        
-        
-        self.action_std_schedule = Schedule(config['action_std'])
-        self.action_std = self.action_std_schedule(0)
          
         
         
@@ -178,6 +174,8 @@ class PPO(BaseAlgorithm):
             clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
             
             new_obs, rewards, dones, _ = self.env.step(clipped_actions)
+            
+            print(rewards)
             # type new_obs: Dict[str, torch.Tensor]
             
             self.num_timesteps += self.env.num_envs
@@ -192,11 +190,14 @@ class PPO(BaseAlgorithm):
             
             self._last_obs = new_obs
             self._last_episode_starts = dones
-            
+        
         
         with torch.no_grad():
             # compute the value for the last timestep
             values = self.policy.evaluate(new_obs[1])
+
+            
+        
             
         self.rollout_buffer.compute_returns_and_advantages(values.squeeze(), dones)
         
@@ -219,6 +220,7 @@ class PPO(BaseAlgorithm):
         clip_fractions = []
         
         continue_training = True
+        
         
         clip_range = self.eps_clip
         # todo introduce schedule
@@ -289,7 +291,9 @@ class PPO(BaseAlgorithm):
         
         self.logger.log("train/entropy_loss", np.mean(entropy_losses), self.num_timesteps)       
         self.logger.log("train/value_loss", np.mean(value_losses), self.num_timesteps)
-                    
+        self.logger.log("train/action_std", self.policy.log_std.exp().item(), self.num_timesteps)
+        self.logger.log("train/loss", loss.item(), self.num_timesteps)
+        self.logger.log("train/clip_fraction", np.mean(clip_fractions), self.num_timesteps)
         
         
     pass

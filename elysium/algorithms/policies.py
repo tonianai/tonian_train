@@ -108,7 +108,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             actor_obs_shapes (Tuple[Tuple[int, ...]]): The shapes the actor net has to take in, including commands
             critic_obs_shapes (Tuple[Tuple[int, ...]]): The shapes the critic net has to take in, including commands
             action_size (int): The size of the continous one dimensional action vector
-            std_init (float): Standatrd deviation of the multidim gaussian, from whch the action will be sampled
+            log_std_init (float): The log of the Standatrd deviation of the multidim gaussian, from whch the action will be sampled
             activation_fn (Type[nn.Module], optional): The activation function used as standard throughout the network. Defaults to nn.ELU.
             actor_hidden_layer_sizes (Tuple[int]): The sizes of the layers, between the obs layer and the action vector
             critic_hidden_layer_sizes (Tuple[int]): The size of the layers, between the critic obs layer and the 1 dim value

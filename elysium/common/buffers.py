@@ -79,6 +79,9 @@ class DictRolloutBuffer(BaseBuffer):
         self.actor_obs_space = actor_obs_space
         self.action_space = action_space
         self.action_size = action_space.shape[0]
+
+        print(self.buffer_size)
+    
     
         assert self.action_size, "Action size must not be zero"
             
@@ -256,6 +259,7 @@ class DictRolloutBuffer(BaseBuffer):
         last_gae_lam = 0
         
         
+        
         for step in reversed(range(self.buffer_size)):
             if step == self.buffer_size - 1:
                 next_non_terminal = 1.0 - dones
@@ -269,8 +273,15 @@ class DictRolloutBuffer(BaseBuffer):
         # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
         # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
         self.returns = self.advantages + self.values
- 
+        print(self.returns)
+        print(self.returns.shape)
+        print(self.rewards.shape)
+        print(self.rewards[:][0])
+        print(self.rewards[:][0].shape)
         
+    
+ 
+ 
         
 
 
