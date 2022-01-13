@@ -21,6 +21,10 @@ from elysium.common.utils.spaces import MultiSpace
 
 from isaacgym.torch_utils import to_torch
 from isaacgym import gymutil, gymtorch, gymapi
+
+
+from stable_baselines3.common.vec_env import VecEnv, DummyVecEnv
+
 from elysium.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 class Cartpole(VecTask):
@@ -241,3 +245,4 @@ def compute_cartpole_reward(pole_angle, pole_vel, cart_vel, cart_pos,
     
 
     return reward, reset
+

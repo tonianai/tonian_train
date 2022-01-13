@@ -15,7 +15,7 @@ from elysium.tasks.base.command import Command
 from  elysium.tasks.base.vec_task import MultiSpace, VecTask 
 
 import numpy as np
-from elysium.tasks.cartpole.cartpole_task import Cartpole
+from elysium.tasks.cartpole.cartpole_task import Cartpole, CartpoleSb3Task
 
 import torch
 
@@ -24,7 +24,7 @@ import yaml
 
 
 
-env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False, rl_device = "cpu")
+env = CartpoleSb3Task(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False, rl_device = "cpu")
 
 
 import gym
