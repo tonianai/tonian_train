@@ -259,7 +259,7 @@ class VecTask(BaseEnv, ABC):
             Observations(names in the dict correspond to those given in the multispace), rewards, resets, info
         """
         
-        extras = {}
+        self.extras = {}
         
         self.pre_physics_step(actions)
         
@@ -313,10 +313,10 @@ class VecTask(BaseEnv, ABC):
         self.global_step += 1
         
         if not self.is_symmetric:
-            return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, extras 
+            return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, self.extras 
         if self.rl_device == 'cpu':
-            return dict_to_cpu(self.actor_obs), self.rewards.cpu(), self.do_reset.cpu(), extras
-        return self.actor_obs, self.rewards, self.do_reset, extras
+            return dict_to_cpu(self.actor_obs), self.rewards.cpu(), self.do_reset.cpu(), self.extras
+        return self.actor_obs, self.rewards, self.do_reset, self.extras
  
         
     def reset(self) -> Tuple[Dict[str, torch.Tensor]]:

@@ -32,9 +32,9 @@ class TensorboardLogger(BaseLogger):
         self.print_to_console = print_to_console
         
 
-    def log(self, key: str, value: Union[int, float], step: int):
+    def log(self, key: str, value: Union[int, float], step: int, verbose: bool = False):
         self.writer.add_scalar(key, value, step)
         
-        if self.print_to_console:
+        if self.print_to_console and verbose:
             print(f"{step}  -  {key}: {value} ")
             

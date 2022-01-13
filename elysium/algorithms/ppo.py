@@ -165,6 +165,15 @@ class PPO(BaseAlgorithm):
         n_steps = 0 
         self.rollout_buffer.reset()
         
+        # cumulative sum of  episode rewards within rollout ()
+        sum_ep_reward = 0
+        
+        # cumulative sum of the amount of completed episodes
+        n_completed_episodes = 0
+        
+        # cumulative sum of all the steps taken in all the episodes
+        sum_steps_per_episode = 0
+        
         while n_steps < n_rollout_steps:
             
             with torch.no_grad():
@@ -173,7 +182,17 @@ class PPO(BaseAlgorithm):
             # clamp the action space using pytorch
             clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
             
-            new_obs, rewards, dones, _ = self.env.step(clipped_actions)
+            new_obs, rewards, dones, info = self.env.step(clipped_actions)
+             
+            # add all the episodes that were completed whitin the last time step to the counter
+            n_completed_episodes +=  torch.sum(dones).item()
+            
+            # sum of all rewards of all completed episodes
+            sum_ep_reward = torch.sum(info["episode_reward"]).item()
+            
+            # sum all the steps of all completed episodes
+            sum_steps_per_episode  = torch.sum(info["episode_steps"]).item()
+            
             
             #print(rewards)
             # type new_obs: Dict[str, torch.Tensor]
@@ -191,6 +210,10 @@ class PPO(BaseAlgorithm):
             self._last_obs = new_obs
             self._last_episode_starts = dones
         
+
+        # log the rollout information 
+        self.logger.log("run/episode_rewards", sum_ep_reward / n_completed_episodes, self.num_timesteps)
+        self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
         
         with torch.no_grad():
             # compute the value for the last timestep
