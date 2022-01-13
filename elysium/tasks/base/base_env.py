@@ -66,11 +66,12 @@ class BaseEnv(ABC):
         self.clip_actions = config["env"].get("clip_actions", np.Inf)
         
         
-        # This implementation used Asymetic Actor Critics
+        # This implementation used Asymmetic Actor Critics
         # https://arxiv.org/abs/1710.06542
         self.critic_observation_spaces = self._get_critic_observation_spaces()
         self.actor_observation_spaces = self._get_actor_observation_spaces()
         self.action_space = self._get_action_space()
+        
         
         self.metadata = {}
         

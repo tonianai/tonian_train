@@ -175,7 +175,7 @@ class PPO(BaseAlgorithm):
             
             new_obs, rewards, dones, _ = self.env.step(clipped_actions)
             
-            print(rewards)
+            #print(rewards)
             # type new_obs: Dict[str, torch.Tensor]
             
             self.num_timesteps += self.env.num_envs

@@ -273,11 +273,6 @@ class DictRolloutBuffer(BaseBuffer):
         # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
         # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
         self.returns = self.advantages + self.values
-        print(self.returns)
-        print(self.returns.shape)
-        print(self.rewards.shape)
-        print(self.rewards[:][0])
-        print(self.rewards[:][0].shape)
         
     
  

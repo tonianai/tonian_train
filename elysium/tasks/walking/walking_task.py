@@ -327,6 +327,10 @@ class WalkingTask(GenerationalVecTask):
     
     def _is_symmetric(self):
         return False
+    
+
+    def reward_range(self):
+        return (-1e100, 1e100)
         
         
 

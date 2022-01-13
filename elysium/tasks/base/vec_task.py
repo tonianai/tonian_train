@@ -78,6 +78,58 @@ class VecTask(BaseEnv, ABC):
         self.set_viewer()
         
         
+        # These are the extras that will be returned on the step function
+        self.extras = {}
+        
+    
+    
+        
+    def allocate_buffers(self):
+        """initialize the tensors on the gpu
+          it is important, that these tensors reside on the gpu, as to reduce the amount of data, that has to be transmitted between gpu and cpu
+        """
+        
+        
+        # The reset buffer contains boolean values, that determine whether an environment of a given id should be reset in the next step
+        # shape: (num_envs)
+        self.do_reset = torch.zeros( (self.num_envs, ), device= self.device, dtype=torch.int8)
+        
+        
+        # The timeout buffer is similar to the reset buffer
+        # If the num_steps_in_ep exceeds the self.max_steps the value of the is_timeout is 1 at the position of that environment, and the env resets
+        self.is_timeout = torch.zeros( (self.num_envs, ), device= self.device, dtype= torch.int8)
+        
+        """Note: The logical or between is_timout and do_reset determines whether the episode will be reset"""
+        
+        # The num_steps_in_ep buffer declares the amount of steps a enviromnent as done since 
+        self.num_steps_in_ep = torch.zeros((self.num_envs, ) , device= self.device, dtype= torch.int32)
+        
+        # the masked numer of steos in episode, only shows the final value when the episode ternubates
+        self.masked_num_steps_in_ep = torch.zeros((self.num_envs,), device= self.device, dtype= torch.int32)
+        
+        # This is a list of tensors, that reside on device, a list is needed, because we are dealing with multispace observations
+        self.actor_obs = { key: torch.zeros((self.num_envs, ) + space_shape, device= self.device, dtype= torch.float32) for  (key, space_shape) in self.actor_observation_spaces.dict_shape.items()}
+
+        
+        if not self.is_symmetric:
+            # only asymmetric environments have critic observations
+            self.critic_obs = {key: torch.zeros((self.num_envs, ) + space_shape, device=self.device, dtype=torch.float32) for (key,space_shape) in self.critic_observation_spaces.dict_shape.items()}
+        else:
+            self.critic_obs = self.actor_obs
+                   
+
+        # Randomize buffer determines whether a given env should randomize 
+        self.do_randomize = torch.zeros((self.num_envs, ), device=self.device, dtype= torch.int8 )
+        
+        # rewards tensor stores the rewards that were given at last
+        self.rewards = torch.zeros((self.num_envs, ) , device= self.device, dtype=torch.float32)
+
+
+        # the cumulative rewards achieved within the environment until this steop
+        self.cumulative_rewards = torch.zeros(self.num_envs, device= self.device, dtype= torch.float32)
+        
+        # the cumulative rewards, but only the envs in terminal states are not hidden
+        self.masked_cumulative_rewards = torch.zeros(self.num_envs, device= self.device, dtype= torch.float32)
         
         
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
@@ -240,6 +292,24 @@ class VecTask(BaseEnv, ABC):
         # Calculate obs and reward in the post pyhsics step (in the concrete implementation)
         self.post_physics_step()
         
+        # add the rewards to the cumulative rewards
+        self.cumulative_rewards += self.rewards
+        
+        # mask info tensors with the do_reset tensor
+        
+        self.masked_num_steps_in_ep = self.do_reset * self.num_steps_in_ep
+        
+        self.masked_cumulative_rewards = self.do_reset * self.cumulative_rewards
+        
+        # reset the cumulative rewards for the do_reset values
+        self.cumulative_rewards = self.cumulative_rewards * (1- self.do_reset)
+        
+        # add the masked info tensors to the extras for the step
+        self.extras["episode_reward"] = self.masked_cumulative_rewards.to(self.rl_device)
+        self.extras["time_outs"] = self.is_timeout.to(self.rl_device)
+        self.extras["episode_steps"] = self.masked_num_steps_in_ep
+        
+        
         self.global_step += 1
         
         if not self.is_symmetric:
@@ -255,6 +325,8 @@ class VecTask(BaseEnv, ABC):
         Returns:
             Tuple[Dict[str, torch.Tensor]]: actor_obs, critic_ob
         """
+        
+        print(self.rl_device)
        
         actions = torch.zeros([self.num_envs, self.action_space.shape[0] ], dtype=torch.float32, device=self.rl_device)
 
@@ -268,48 +340,6 @@ class VecTask(BaseEnv, ABC):
             return dict_to_cpu(self.actor_obs)
         return self.actor_obs
         
-   
-        
-            
-        
-    def allocate_buffers(self):
-        """initialize the tensors on the gpu
-          it is important, that these tensors reside on the gpu, as to reduce the amount of data, that has to be transmitted between gpu and cpu
-        """
-        
-        
-        # The reset buffer contains boolean values, that determine whether an environment of a given id should be reset in the next step
-        # shape: (num_envs)
-        self.do_reset = torch.zeros( (self.num_envs, ), device= self.device, dtype=torch.int8)
-        
-        
-        # The timeout buffer is similar to the reset buffer
-        # If the num_steps_in_ep exceeds the self.max_steps the value of the is_timeout is 1 at the position of that environment, and the env resets
-        self.is_timeout = torch.zeros( (self.num_envs, ), device= self.device, dtype= torch.int8)
-        
-        """Note: The logical or between is_timout and do_reset determines whether the episode will be reset"""
-        
-        # The num_steps_in_ep buffer declares the amount of steps a enviromnent as done since 
-        self.num_steps_in_ep = torch.zeros((self.num_envs, ) , device= self.device, dtype= torch.int32)
-        
-        
-        
-        # This is a list of tensors, that reside on device, a list is needed, because we are dealing with multispace observations
-        self.actor_obs = { key: torch.zeros((self.num_envs, ) + space_shape, device= self.device, dtype= torch.float32) for  (key, space_shape) in self.actor_observation_spaces.dict_shape.items()}
-
-        
-        if not self.is_symmetric:
-            # only asymmetric environments have critic observations
-            self.critic_obs = {key: torch.zeros((self.num_envs, ) + space_shape, device=self.device, dtype=torch.float32) for (key,space_shape) in self.critic_observation_spaces.dict_shape.items()}
-        else:
-            self.critic_obs = self.actor_obs
-       
-
-        # Randomize buffer determines whether a given env should randomize 
-        self.do_randomize = torch.zeros((self.num_envs, ), device=self.device, dtype= torch.int8 )
-        
-        # rewards tensor stores the rewards that were given at last
-        self.rewards = torch.zeros((self.num_envs, ) , device= self.device, dtype=torch.float32)
 
     
     def _create_ground_plane(self, sim = None):

@@ -29,7 +29,7 @@ from elysium.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 class Cartpole(VecTask):
 
-    def __init__(self, config_path, sim_device, graphics_device_id, headless, rl_device: str = "gpu:0"):
+    def __init__(self, config_path, sim_device, graphics_device_id, headless, rl_device: str = "cuda:0"):
     
         config = self._fetch_config_params(config_path)
         

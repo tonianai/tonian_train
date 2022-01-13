@@ -29,6 +29,7 @@ import yaml
  
 env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
+env.is_symmetric = False
 
 config_path = "./elysium/algorithms/ppo_config.yaml"
 
