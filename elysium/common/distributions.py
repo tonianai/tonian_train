@@ -80,7 +80,7 @@ class Distribution(ABC):
         return self.sample()
     
     @abstractmethod
-    def actions_from_params(self, *args, **kwargs) -> th.Tensor:
+    def actions_from_params(self, *args, **kwargs) -> torch.Tensor:
         """
         Returns samples from the probability distribution
         given its parameters.
@@ -89,7 +89,7 @@ class Distribution(ABC):
         """
 
     @abstractmethod
-    def log_prob_from_params(self, *args, **kwargs) -> Tuple[th.Tensor, th.Tensor]:
+    def log_prob_from_params(self, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Returns samples and the associated log probabilities
         from the probability distribution given its parameters.
