@@ -178,6 +178,7 @@ class PPO(BaseAlgorithm):
             
             with torch.no_grad():
                 actions, values, log_probs = self.policy.forward(self._last_obs[0], self._last_obs[1])
+                
             
             # clamp the action space using pytorch
             clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
@@ -192,10 +193,7 @@ class PPO(BaseAlgorithm):
             
             # sum all the steps of all completed episodes
             sum_steps_per_episode  = torch.sum(info["episode_steps"]).item()
-            
-            
-            #print(rewards)
-            # type new_obs: Dict[str, torch.Tensor]
+             
             
             self.num_timesteps += self.env.num_envs
             
@@ -289,7 +287,7 @@ class PPO(BaseAlgorithm):
                 value_losses.append(value_loss.item())
                 
                 
-                entropy_loss = torch.mean(entropy)
+                entropy_loss = -torch.mean(entropy)
                 
                 entropy_losses.append(entropy_loss.item())
                 
@@ -314,7 +312,7 @@ class PPO(BaseAlgorithm):
         
         self.logger.log("train/entropy_loss", np.mean(entropy_losses), self.num_timesteps)       
         self.logger.log("train/value_loss", np.mean(value_losses), self.num_timesteps)
-        self.logger.log("train/action_std", self.policy.log_std.exp().item(), self.num_timesteps)
+        self.logger.log("train/action_std", self.policy.log_std.exp().mean().item(), self.num_timesteps)
         self.logger.log("train/loss", loss.item(), self.num_timesteps)
         self.logger.log("train/clip_fraction", np.mean(clip_fractions), self.num_timesteps)
         

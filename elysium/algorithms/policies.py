@@ -225,7 +225,6 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         self.dist = Normal(action_mean, action_std)
         
-        
         action = self.dist.sample()
          
         
@@ -292,8 +291,11 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         actions = self.dist.sample()
         
         log_prob = self.dist.log_prob(actions)
-                        
-                        
+        
+        if self.action_size > 1:
+            # sum log probs eithin a run
+            log_prob = torch.sum(log_prob, dim = 1)
+        
         return actions, values, log_prob
         
     
@@ -330,17 +332,18 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                 critic_concat_obs = critic_obs[key]
                 
         action_mean = self.actor(actor_concat_obs)
-        values = self.critic(critic_concat_obs)
-        
-        
-        
+        values = self.critic(critic_concat_obs) 
         action_std = torch.ones_like(action_mean) * self.log_std.exp()
         
         self.dist = Normal(action_mean, action_std)
          
+            
+        log_prob = self.dist.log_prob(actions).sum()
         
-        log_prob = self.dist.log_prob(actions)
-        dist_entropy = self.dist.entropy()
+        if self.action_size > 1:
+            log_prob = torch.sum(log_prob, dim= 1)
+        
+        dist_entropy = self.dist.entropy().sum()
         
         
         return values, log_prob, dist_entropy
