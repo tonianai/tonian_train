@@ -16,7 +16,7 @@ import time
 
 import sys
 
-from elysium.common.utils.spaces import MultiSpace
+from elysium.common.spaces import MultiSpace
 
 
 class BaseEnv(ABC):

@@ -6,7 +6,7 @@ from elysium.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
-from elysium.common.utils.spaces import MultiSpace
+from elysium.common.spaces import MultiSpace
 
 from gym import spaces
 import gym

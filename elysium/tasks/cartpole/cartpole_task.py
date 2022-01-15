@@ -16,7 +16,7 @@ import os
 from typing import Dict, Optional, Any, Union
 
 
-from elysium.common.utils.spaces import MultiSpace
+from elysium.common.spaces import MultiSpace
 
 
 from isaacgym.torch_utils import to_torch

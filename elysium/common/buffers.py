@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union, NamedTuple
 
-from elysium.common.utils.spaces import MultiSpace
+from elysium.common.spaces import MultiSpace
 
 from gym import spaces
 
