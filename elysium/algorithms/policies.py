@@ -43,9 +43,59 @@ class BasePolicy(nn.Module , ABC):
         
         self.device = device
         
+    @staticmethod
+    def init_weights(module: nn.Module, gain: float = 1) -> None:
+        """
+        Orthogonal initialization (used in PPO and A2C)
+        """
+        if isinstance(module, (nn.Linear, nn.Conv2d)):
+            nn.init.orthogonal_(module.weight, gain=gain)
+            if module.bias is not None:
+                module.bias.data.fill_(0.0)
+    
+    
     @abstractmethod
     def forward(self, *args, **kwargs):
         pass
+    
+    @abstractmethod
+    def predict(self, *args, **kwargs):
+        pass
+    
+    
+    def save(self, path: str) -> None:
+        """
+        Save model to a given location.
+
+        :param path:
+        """
+        torch.save({"state_dict": self.state_dict(), "data": self._get_constructor_parameters()}, path)
+        
+    @classmethod
+    def load(cls, path: str, device: Union[torch.device, str] = "auto") -> "BasePolicy":
+        """
+        Load model from path.
+
+        :param path:
+        :param device: Device on which the policy should be loaded.
+        :return:
+        """
+        saved_variables = torch.load(path, map_location=device)
+
+        # Create policy object
+        model = cls(**saved_variables["data"])  # pytype: disable=not-instantiable
+        # Load weights
+        model.load_state_dict(saved_variables["state_dict"])
+        model.to(device)
+        return model
+    
+    @abstractmethod
+    def _get_constructor_parameters(self) -> Dict[str, Any]:
+        """
+        Get data that need to be saved in order to re-create the model when loading it from disk.
+
+        :return: The dictionary to pass to the as kwargs constructor when reconstruction this model.
+        """
     
 class ActorCriticPolicy(BasePolicy, ABC):
     
@@ -54,8 +104,9 @@ class ActorCriticPolicy(BasePolicy, ABC):
                  critic_obs_space: Optional[Union[spaces.Space, MultiSpace]],
                  action_space: spaces.Space,
                  lr_schedule: Schedule,
-                 init_log_std: float, 
-                 device: Union[torch.device, str],
+                 init_log_std: float = 0, 
+                 device: Union[torch.device, str] = "cuda:0",
+                 ortho_init: bool = True,
                  optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
                  optimizer_kwargs: Optional[Dict[str, Any]] = None) -> None:
         """The actor critic policy has in addition to having an action output also a value output
@@ -81,6 +132,8 @@ class ActorCriticPolicy(BasePolicy, ABC):
         self.actor_obs_space = actor_obs_space
         self.critic_obs_space = critic_obs_space
         
+        self.ortho_init = ortho_init
+        
         self.lr_schedule = lr_schedule
         self.init_log_std = init_log_std
         
@@ -91,10 +144,47 @@ class ActorCriticPolicy(BasePolicy, ABC):
                 optimizer_kwargs["eps"] = 1e-5
         
         self.action_dist = DiagGaussianDistribution()
+        
+    def _get_constructor_parameters(self) -> Dict[str, Any]:
+        """
+        Get data that need to be saved in order to re-create the model when loading it from disk.
+
+        :return: The dictionary to pass to the as kwargs constructor when reconstruction this model.
+        """
+        return {
+            "actor_obs_space": self.actor_obs_space,
+            "critic_obs_space": self.critic_obs_space,
+            "action_space":self.action_space,
+            "lr_schedule": self.lr_schedule,
+            "init_log_std": self.init_log_std,
+            "ortho_init": self.ortho_init,
+            "device":self.device,
+            "optimizer_class": self.optimizer_class,
+            "optimizer_kwargs": self.optimizer_kwargs
+            
+        }
     
     def forward(self, actor_obs: torch.Tensor,  critic_obs: Optional[torch.Tensor]):
         pass
         
-    
-    
+    def predict(self, actor_obs: torch.Tensor):
+        """
+        
 
+        Args:
+            actor_obs (torch.Tensor): [description]
+        """
+    
+    def _predict(self, actor_obs: torch.Tensor):
+        """
+        Get the actions according to the policy for a given observation.
+        
+        
+
+        Args:
+            actor_obs (torch.Tensor): [description]
+
+        Raises:
+            NotImplementedError: [description]
+        """
+        raise NotImplementedError

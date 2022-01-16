@@ -347,7 +347,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         
         
         return values, log_prob, dist_entropy
-        
+         
     def save(self, path: str) -> None:
         """Save the policy to the given path
 
