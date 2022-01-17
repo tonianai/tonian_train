@@ -174,7 +174,8 @@ class ActorCriticPolicy(BasePolicy, ABC):
         Args:
             actor_obs (torch.Tensor): [description]
         """
-    
+        
+    @abstractmethod
     def _predict(self, actor_obs: torch.Tensor):
         """
         Get the actions according to the policy for a given observation.
@@ -188,3 +189,24 @@ class ActorCriticPolicy(BasePolicy, ABC):
             NotImplementedError: [description]
         """
         raise NotImplementedError
+    
+    def initialize_nets(self):
+        
+        self.actor_net = self.
+    
+    @abstractmethod
+    def build_actor_net(self) -> nn.Module:
+        """Build the actor net in the implementation of the actor critic algorithm 
+        Returns:
+            nn.Module: actor_net
+        """
+        pass
+    
+    @abstractmethod
+    def build_critic_net(self) -> nn.Module:
+        pass
+    
+    @abstractmethod
+    def build_shared_net(self) -> nn.Module:
+        pass
+        
