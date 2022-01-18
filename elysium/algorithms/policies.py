@@ -1,9 +1,14 @@
 """ Policy Base class and concrete implementations based on the implementation of stable baselines3"""
 
+from lib2to3.pytree import Base
 from typing import Dict, Union, Tuple, Any, List, Type, Optional
 
 import torch
 import torch.nn as nn
+
+from functools import partial
+
+import numpy as np
 
 from abc import ABC, abstractmethod
 
@@ -15,7 +20,8 @@ import warnings
 from elysium.common.distributions import DiagGaussianDistribution
 from elysium.common.spaces import MultiSpace
 from elysium.common.utils.utils import Schedule
-
+from elysium.common.networks import BaseNet
+from elysium.common.type_aliases import Observation
 class BasePolicy(nn.Module , ABC):
     
     def __init__(self, 
@@ -39,7 +45,7 @@ class BasePolicy(nn.Module , ABC):
 
         self.optimizer_class = optimizer_class
         self.optimizer_kwargs = optimizer_kwargs
-        self.optimizer = None  # type: Optional[th.optim.Optimizer]
+        self.optimizer = None  # type: Optional[torch.optim.Optimizer]
         
         self.device = device
         
@@ -144,6 +150,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
                 optimizer_kwargs["eps"] = 1e-5
         
         self.action_dist = DiagGaussianDistribution()
+        self.build(lr_schedule(1))
         
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         """
@@ -164,49 +171,89 @@ class ActorCriticPolicy(BasePolicy, ABC):
             
         }
     
-    def forward(self, actor_obs: torch.Tensor,  critic_obs: Optional[torch.Tensor]):
+    def forward(self, actor_obs: Observation, critic_obs: Optional[Observation]):
         pass
         
-    def predict(self, actor_obs: torch.Tensor):
+    def predict(self, actor_obs: Observation):
         """
         
-
         Args:
             actor_obs (torch.Tensor): [description]
         """
         
-    @abstractmethod
-    def _predict(self, actor_obs: torch.Tensor):
-        """
-        Get the actions according to the policy for a given observation.
         
-        
-
-        Args:
-            actor_obs (torch.Tensor): [description]
-
-        Raises:
-            NotImplementedError: [description]
-        """
-        raise NotImplementedError
     
-    def initialize_nets(self):
+    def build(self, init_lr: float):
+        """Initialize the networks
+            - shared_net
+            - critic_net
+            - actor_net
+        """
         
-        self.actor_net = self.
+        # get the implementations from child classes
+        self.actor_net = self.build_actor_net()
+        self.critic_net = self.build_critic_net()
+        self.shared_net = self.build_shared_net()
+        
+        self.latent_dim_pi = self.actor_net.latent_dim
+        self.latent_dim_vf = self.critic_net.latent_dim
+        
+        # TODO: add different distributions if needed
+        
+        # the action latent net connectes the action net with the action size
+        # the log dist 
+        self.action_latent_net, self.log_dist = self.action_dist.proba_distribution_net(
+            latent_dim= self.latent_dim_pi,
+            log_std_init= self.init_log_std
+        )
+        
+        # value latent net combines the output of the value net to a single dim
+        self.value_latent_net = nn.Linear(self.latent_dim_vf, 1)
+        
+        # Init weights: use orthogonal initialization
+        # with small initial weight for the output
+        if self.ortho_init:
+            # Values from stable-baselines.
+            # features_extractor/mlp values are
+            # originally from openai/baselines (default gains/init_scales).
+            self.shared_net.appy(partial(self.init_weights, gain = np.sqrt(2)))
+            self.actor_net.appy(partial(self.init_weights, gain = np.sqrt(2)))
+            self.critic_net.appy(partial(self.init_weights, gain = np.sqrt(2))) 
+            
+            self.action_latent_net.appply(partial(self.init_weights, gain=1.0))
+            self.value_latent_net.appply(partial(self.init_weights, gain=0.01))
+            
+        self.optimizer = self.optimizer_class(self.parameters(), lr=init_lr, **self.optimizer_kwargs)
+            
+            
+        
     
     @abstractmethod
-    def build_actor_net(self) -> nn.Module:
+    def build_actor_net(self) -> BaseNet:
         """Build the actor net in the implementation of the actor critic algorithm 
+        
         Returns:
-            nn.Module: actor_net
+            BaseNet: actor_net
         """
         pass
     
     @abstractmethod
-    def build_critic_net(self) -> nn.Module:
+    def build_critic_net(self) -> BaseNet:
+        """Build the critic in the implementaion of the actor critic algorithm
+
+        Returns:
+            BaseNet: [description]
+        """
+        
         pass
     
     @abstractmethod
-    def build_shared_net(self) -> nn.Module:
+    def build_shared_net(self) -> BaseNet:
+        """Build the network, that is shared between the actor and the critic 
+        
+        Returns:
+            BaseNet: [description]
+        """
+        
         pass
         
