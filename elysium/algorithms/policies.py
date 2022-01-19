@@ -19,8 +19,11 @@ import warnings
 from elysium.common.distributions import DiagGaussianDistribution, Distribution
 from elysium.common.spaces import MultiSpace
 from elysium.common.utils.utils import Schedule
-from elysium.common.networks import BaseNet
+from elysium.common.networks import BaseNet, SimpleDynamicForwardNet
 from elysium.common.type_aliases import Observation
+
+
+
 class BasePolicy(nn.Module , ABC):
     
     def __init__(self, 
@@ -381,8 +384,8 @@ class ActorCriticPolicy(BasePolicy, ABC):
         """
         
         # get the implementations from child classes
-        self.actor_net = self.build_actor_net()
-        self.critic_net = self.build_critic_net()
+        self.actor_net = self._build_actor_net()
+        self.critic_net = self._build_critic_net()
         
         self.latent_dim_pi = self.actor_net.latent_dim
         self.latent_dim_vf = self.critic_net.latent_dim
@@ -417,7 +420,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         
     
     @abstractmethod
-    def build_actor_net(self) -> BaseNet:
+    def _build_actor_net(self) -> BaseNet:
         """Build the actor net in the implementation of the actor critic algorithm 
         
         Returns:
@@ -426,7 +429,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         pass
     
     @abstractmethod
-    def build_critic_net(self) -> BaseNet:
+    def _build_critic_net(self) -> BaseNet:
         """Build the critic in the implementaion of the actor critic algorithm
 
         Returns:
@@ -434,4 +437,122 @@ class ActorCriticPolicy(BasePolicy, ABC):
         """
         
         pass
+        
+
+class SimpleActorCriticPolicy(ActorCriticPolicy):
+    
+    
+    def __init__(self, 
+                 actor_obs_space: Union[spaces.Space, MultiSpace],
+                 critic_obs_space: Optional[Union[spaces.Space, MultiSpace]], 
+                 action_space: spaces.Space, 
+                 activation_fn_class: Type[nn.Module],
+                 lr_schedule: Schedule, 
+                 actor_hidden_layer_sizes: Tuple[int] = (64, 64),
+                 critic_hiddent_layer_sizes: Tuple[int] = (64, 64),
+                 init_log_std: float = 0, 
+                 device: Union[torch.device, str] = "cuda:0", 
+                 squash_actions: bool = False, 
+                 ortho_init: bool = True, 
+                 optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam, 
+                 optimizer_kwargs: Optional[Dict[str, Any]] = None) -> None:
+        """The SimpleActorCriticPolicy is an Actor Critic Policy that uses asymmetric SimpleDynamicForwardNet 
+
+        Args:
+            actor_obs_space (Union[spaces.Space, MultiSpace]): the observation space used as an input for the actor
+            critic_obs_space (Optional[Union[spaces.Space, MultiSpace]]):The observation space used as an input for the critic 
+                -> if it is null the critic net uses the same observation space as the actor net and the actor critic is symmetric
+             action_space (spaces.Space):
+              the output space of the neural network for the actions
+              Only spaces are supported at this time, multispaces for for example communication between robots could be added in the future
+            activation_fn_class (Type[nn.Module]): The class used for the activation functions between layers
+            lr_schedule (Schedule): 
+                Schedule for chaning the learning rate of the optimizer dynamically
+            actor_hidden_layer_sizes (Tuple[int]): The hidden layer sizes of the actor. Defaults to (64, 64)
+            critic_hiddent_layer_sizes (Tuple[int]): The hidden layer sizes of the critic. Defaults to (64, 64)
+            init_log_std (float, optional):  
+                Initial log of the standard deviation for the action distribution. Defaults to 0.
+            device (Union[torch.device, str], optional): device. Defaults to "cuda:0".
+            squash_actions (bool, optional): 
+                If true it swashes the actions according to the action space for continuous actions.
+                If it is false the actions will be clipped in continous actions. Defaults to False.
+            ortho_init (bool, optional): Orthogonal Initialization (used in PPO). Defaults to True.
+            optimizer_class (Type[torch.optim.Optimizer], optional): The class of the optimizer. Defaults to torch.optim.Adam.
+            optimizer_kwargs (Optional[Dict[str, Any]], optional): Additional args for the optimizer. Defaults to None.
+        """
+        
+        super().__init__(actor_obs_space,
+                         critic_obs_space, 
+                         action_space,
+                         lr_schedule,
+                         init_log_std,
+                         device,
+                         squash_actions, 
+                         ortho_init, 
+                         optimizer_class,
+                         optimizer_kwargs)
+        
+        self.actor_hidden_layer_sizes = actor_hidden_layer_sizes
+        self.critic_hidden_layer_sizes = critic_hiddent_layer_sizes
+        self.activation_fn_class = activation_fn_class
+        
+        
+    def _build_actor_net(self) -> BaseNet:
+        """Build the actor net in the implementation of the actor critic algorithm 
+        
+        Returns:
+            BaseNet: actor_net
+        """
+        
+        if isinstance(self.actor_obs_space, MultiSpace):
+            # The Simple dynamic Forward requires a dict_shape not a tuple of tuple shape
+            shape = self.actor_obs_space.dict_shape 
+        else:
+            shape = self.actor_obs_space.shape
+            
+        return SimpleDynamicForwardNet(shape, self.actor_hidden_layer_sizes, self.activation_fn_class, self.device)
+        
+    
+    def _build_critic_net(self) -> BaseNet:  
+        """Build the critic in the implementaion of the actor critic algorithm
+
+        Returns:
+            BaseNet: [description]
+        """ 
+        
+        if isinstance(self.critic_obs_space, MultiSpace):
+            # The Simple dynamic Forward requires a dict_shape not a tuple of tuple shape
+            shape = self.critic_obs_space.dict_shape 
+        else:
+            shape = self.critic_obs_space.shape
+            
+        return SimpleDynamicForwardNet(shape, self.critic_hidden_layer_sizes, self.activation_fn_class, self.device)
+    
+        
+        
+        
+    def _get_constructor_parameters(self) -> Dict[str, Any]:
+        """
+        Get data that need to be saved in order to re-create the model when loading it from disk.
+
+        :return: The dictionary to pass to the as kwargs constructor when reconstruction this model.
+        """
+        
+        return {
+            "actor_obs_space": self.actor_obs_space,
+            "critic_obs_space": self.critic_obs_space,
+            "action_space":self.action_space,
+            "activation_fn_class": self.activation_fn_class,
+            "lr_schedule": self.lr_schedule,
+            "actor_hidden_layer_sizes": self.actor_hidden_layer_sizes,
+            "critic_hiddent_layer_sizes": self.critic_hidden_layer_sizes,
+            "init_log_std": self.init_log_std,
+            "ortho_init": self.ortho_init,
+            "device":self.device,
+            "squash_actions": self.squash_actions,
+            "optimizer_class": self.optimizer_class,
+            "optimizer_kwargs": self.optimizer_kwargs
+        }
+        
+        
         
