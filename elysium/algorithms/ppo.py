@@ -10,7 +10,7 @@ from collections import deque
 
 from elysium.algorithms.base_algorithm import BaseAlgorithm
 from elysium.common.buffers import DictRolloutBuffer
-from elysium.common.utils.utils import Schedule
+from elysium.common.schedule import Schedule
 from elysium.tasks.base.vec_task import VecTask
 
 from elysium.algorithms.policies import ActorCriticPolicy

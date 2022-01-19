@@ -18,9 +18,9 @@ import warnings
 
 from elysium.common.distributions import DiagGaussianDistribution, Distribution
 from elysium.common.spaces import MultiSpace
-from elysium.common.utils.utils import Schedule
+from elysium.common.schedule import Schedule
 from elysium.common.networks import BaseNet, SimpleDynamicForwardNet
-from elysium.common.type_aliases import Observation
+from elysium.common.type_aliases import ActivationFnClass, Observation
 
 
 
@@ -446,8 +446,8 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                  actor_obs_space: Union[spaces.Space, MultiSpace],
                  critic_obs_space: Optional[Union[spaces.Space, MultiSpace]], 
                  action_space: spaces.Space, 
-                 activation_fn_class: Type[nn.Module],
                  lr_schedule: Schedule, 
+                 activation_fn_class: ActivationFnClass,
                  actor_hidden_layer_sizes: Tuple[int] = (64, 64),
                  critic_hiddent_layer_sizes: Tuple[int] = (64, 64),
                  init_log_std: float = 0, 

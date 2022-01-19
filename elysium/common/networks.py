@@ -8,7 +8,7 @@ import torch.nn as nn
 from typing import Dict, Optional, Union, Tuple, Type
 
 from elysium.common.spaces import MultiSpace
-from elysium.common.type_aliases import Observation
+from elysium.common.type_aliases import Observation, ActivationFnClass
 
 from abc import ABC, abstractmethod
 
@@ -38,7 +38,7 @@ class SimpleDynamicForwardNet(BaseNet):
     def __init__(self,
                  obs_shapes: Union[Dict[ Union[str, int] ,Tuple[int, ...]], int, Tuple[int]],
                  hidden_layer_sizes : Tuple[int],
-                 activation_fn_type: Type[nn.Module],
+                 activation_fn_type: ActivationFnClass,
                  device: Union[str, torch.device]) -> None:
         """The SimpleDynamicForwardNet used for a flat input linearly to a output
         Args:

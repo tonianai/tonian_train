@@ -13,6 +13,8 @@ from elysium.algorithms.policies import SimpleActorCriticPolicy
 from gym.spaces import space
 from elysium.tasks.base.command import Command
 from  elysium.tasks.base.vec_task import MultiSpace, VecTask
+from elysium.common.utils.utils import Schedule
+
 import gym
 from gym import spaces
 import numpy as np
@@ -39,16 +41,15 @@ with open(config_path, 'r') as stream:
         config = yaml.safe_load(stream)
     except yaml.YAMLError as exc:    
         raise FileNotFoundError( f"File {config_path} not found")
+    
+lr_schedule = Schedule(config["lr_schedule"])
 
 
-policy = SimpleActorCriticPolicy(actor_obs_shapes=env.actor_observation_spaces.shape,
-                                 critic_obs_shapes= env.critic_observation_spaces.shape, 
-                                 action_size=env.action_space.shape[0],
-                                 lr_init=0.0001,
-                                 actor_hidden_layer_sizes= (32, 16),
-                                 critic_hidden_layer_sizes= (32, 16),
-                                 log_std_init=-1.0
-                                )
+
+policy = SimpleActorCriticPolicy(actor_obs_space=env.actor_observation_spaces,
+                                 critic_obs_space=env.critic_observation_spaces,
+                                 action_space= env.action_space,
+                                 lr_schedule=lr_schedule)
 
 
 algo = PPO(env, config, policy=policy, device="cuda:0")
