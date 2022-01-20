@@ -110,6 +110,8 @@ def sum_independent_dims(tensor: torch.Tensor) -> torch.Tensor:
         print("Go to distributions tensors and check if sum_independent is desired")
         tensor = tensor.sum()
         
+    return tensor
+        
 class DiagGaussianDistribution(Distribution):
     """Gaussioan distribution with diagonal covariance matrice, for continoous acitons
 
@@ -147,8 +149,7 @@ class DiagGaussianDistribution(Distribution):
         :return:
         """
         action_std = torch.ones_like(mean_actions) * log_std.exp()
-        
-        print(log_std)
+         
         self.distribution = Normal(mean_actions, action_std)
         return self
         

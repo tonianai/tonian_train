@@ -1,7 +1,8 @@
+ 
 from typing import Union, Dict, List, Tuple
 
 class Schedule: 
-    def __init__(self, schedule: Union[Dict, int]) -> None:
+    def __init__(self, schedule: Union[Dict, float]) -> None:
         """A schedule takes progess as an input (eg. steps, episodes, generations) and returns a value for a hyperparameter (e.g lr)
         Args:
             schedule (Dict): often defined in confing files:
@@ -20,16 +21,21 @@ class Schedule:
         """
         
         # if the schedule is just a number entered -> only return that value 
-        self.is_static = isinstance(schedule, int)
+        self.is_static = not isinstance(schedule, Dict) 
         
-        if self.is_static:
-            self.static_value = schedule
-        else:
+        if not self.is_static:
             self.schedule_type: str = schedule['schedule_type'] 
             self.schedule: Union[List[List[float]], List[Tuple[int]]] = schedule['schedule']
         
             #schedules with no values will be rejected
             assert len(self.schedule) != 0, "The schedule must have at least one value"
+        elif isinstance(schedule, float):
+            self.static_value = schedule
+        elif isinstance(schedule, str):
+            self.static_value = float(schedule)
+            print(self.static_value)
+        else:
+            raise ValueError(f"The schedule input type is not acceptable, Type: {type(schedule)}")
         
         
     def __call__(self, query: Union[float, int]):

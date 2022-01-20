@@ -1,6 +1,7 @@
 
 from abc import abstractmethod, abstractproperty
 from turtle import forward
+from numpy import isin
 import torch
 import torch.nn as nn
 
@@ -54,27 +55,29 @@ class SimpleDynamicForwardNet(BaseNet):
         self.device = device
         
         # set the combined obs size
-        self.combined_obs_size = 0
-        if type(obs_shapes) is Tuple:
-            # check if the tuple is multidimensional 
-            assert len(obs_shapes) == 1, "The obs shapes on the SimpleDynamicForwardNet must be one dimenstional"
-            self.combined_obs_size = obs_shapes[0]
-
-        elif type(obs_shapes) is int:
-            self.combined_obs_size = obs_shapes
-            
-        else:
+        self.combined_obs_size = 0 
+        
+        if isinstance(self.obs_shapes,Dict):
             # The type of te obs_shapes is a Dict -> add all linear layers together
             for key in self.obs_shapes:
                 single_input_shape = self.obs_shapes[key]
                 assert len(single_input_shape) == 1, "All obs shapes on the SimpleDynamicForwardNet must be one dimensional"
                 self.combined_obs_size += single_input_shape[0]
+           
+        elif type(obs_shapes) is int:
+            self.combined_obs_size = obs_shapes
+        else:  
+            # check if the tuple is multidimensional 
+            assert len(obs_shapes) == 1, "The obs shapes on the SimpleDynamicForwardNet must be one dimenstional"
+            self.combined_obs_size = obs_shapes[0]
+
+      
                 
         
         # the type of the activation
         self.activation_fn_type = activation_fn_type        
         
-        assert self.combined_obs_size == 0, "The input space cannot be 0 in size on the SimpleDynamicForwardNet"
+        assert self.combined_obs_size != 0, "The input space cannot be 0 in size on the SimpleDynamicForwardNet"
         
         
         # create the layers of the network
@@ -134,4 +137,4 @@ class SimpleDynamicForwardNet(BaseNet):
         """
             returns the dimensionality of the result of the forward pass. type int
         """
-        return self.hidden_layer_sizes(-1)
+        return self.hidden_layer_sizes[-1]

@@ -189,11 +189,11 @@ class PPO(BaseAlgorithm):
             n_completed_episodes +=  torch.sum(dones).item()
             
             # sum of all rewards of all completed episodes
-            sum_ep_reward = torch.sum(info["episode_reward"]).item()
+            sum_ep_reward += torch.sum(info["episode_reward"]).item()
             
             # sum all the steps of all completed episodes
-            sum_steps_per_episode  = torch.sum(info["episode_steps"]).item()
-             
+            sum_steps_per_episode  += torch.sum(info["episode_steps"]).item()
+            
             
             self.num_timesteps += self.env.num_envs
             
@@ -215,7 +215,7 @@ class PPO(BaseAlgorithm):
         
         with torch.no_grad():
             # compute the value for the last timestep
-            values = self.policy.evaluate(new_obs[1])
+            values = self.policy.predict_values(new_obs[1])
 
             
         

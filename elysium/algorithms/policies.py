@@ -48,10 +48,14 @@ class BasePolicy(nn.Module , ABC):
          
         self.action_space = action_space
         self.squash_actions = squash_actions
+        
+        if optimizer_kwargs is None: 
+            optimizer_kwargs = {}
 
         self.optimizer_class = optimizer_class
         self.optimizer_kwargs = optimizer_kwargs
         self.optimizer = None  # type: Optional[torch.optim.Optimizer]
+        
         
         self.device = device
         
@@ -233,8 +237,49 @@ class ActorCriticPolicy(BasePolicy, ABC):
             if optimizer_class == torch.optim.Adam:
                 optimizer_kwargs["eps"] = 1e-5
         
-        self.action_dist = DiagGaussianDistribution()
+        self.action_dist = make_proba_distribution(action_space)
         self.build(lr_schedule(1))
+        
+    
+    def build(self, init_lr: float):
+        """Initialize the networks
+            - shared_net
+            - critic_net
+            - actor_net
+        """
+        
+        # get the implementations from child classes
+        self.actor_net = self._build_actor_net()
+        self.critic_net = self._build_critic_net()
+        
+        self.latent_dim_pi = self.actor_net.latent_dim
+        self.latent_dim_vf = self.critic_net.latent_dim
+        
+        # TODO: add different distributions if needed
+        
+        # the action latent net connectes the action net with the action size
+        # the log dist 
+        self.action_latent_net, self.log_std = self.action_dist.proba_distribution_net(
+            latent_dim= self.latent_dim_pi,
+            log_std_init= self.init_log_std
+        )
+        
+        # value latent net combines the output of the value net to a single dim
+        self.value_latent_net = nn.Linear(self.latent_dim_vf, 1)
+        
+        # Init weights: use orthogonal initialization
+        # with small initial weight for the output
+        if self.ortho_init:
+            # Values from stable-baselines.
+            # features_extractor/mlp values are
+            # originally from openai/baselines (default gains/init_scales).
+            self.actor_net.apply(partial(self.init_weights, gain = np.sqrt(2)))
+            self.critic_net.apply(partial(self.init_weights, gain = np.sqrt(2))) 
+            
+            self.action_latent_net.apply(partial(self.init_weights, gain=1.0))
+            self.value_latent_net.apply(partial(self.init_weights, gain=0.01))
+            
+        self.optimizer = self.optimizer_class(self.parameters(), lr=init_lr, **self.optimizer_kwargs)
         
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         """
@@ -290,8 +335,10 @@ class ActorCriticPolicy(BasePolicy, ABC):
         
         # sample from the distribution
         actions = distribution.get_actions(deterministic= deterministic)
-
+ 
+        
         log_probs = distribution.log_prob(actions)
+         
         
         return actions, values, log_probs
         
@@ -331,6 +378,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         
         distribution = self._get_action_dist_from_latent(latent_pi)
         log_prob = distribution.log_prob(action)
+         
         values = self.value_latent_net(latent_vf)
         return values, log_prob, distribution.entropy()
     
@@ -375,48 +423,6 @@ class ActorCriticPolicy(BasePolicy, ABC):
         else:
             raise ValueError("Invalid action distribution")
         
-    
-    def build(self, init_lr: float):
-        """Initialize the networks
-            - shared_net
-            - critic_net
-            - actor_net
-        """
-        
-        # get the implementations from child classes
-        self.actor_net = self._build_actor_net()
-        self.critic_net = self._build_critic_net()
-        
-        self.latent_dim_pi = self.actor_net.latent_dim
-        self.latent_dim_vf = self.critic_net.latent_dim
-        
-        # TODO: add different distributions if needed
-        
-        # the action latent net connectes the action net with the action size
-        # the log dist 
-        self.action_latent_net, self.log_std = self.action_dist.proba_distribution_net(
-            latent_dim= self.latent_dim_pi,
-            log_std_init= self.init_log_std
-        )
-        
-        # value latent net combines the output of the value net to a single dim
-        self.value_latent_net = nn.Linear(self.latent_dim_vf, 1)
-        
-        # Init weights: use orthogonal initialization
-        # with small initial weight for the output
-        if self.ortho_init:
-            # Values from stable-baselines.
-            # features_extractor/mlp values are
-            # originally from openai/baselines (default gains/init_scales).
-            self.actor_net.appy(partial(self.init_weights, gain = np.sqrt(2)))
-            self.critic_net.appy(partial(self.init_weights, gain = np.sqrt(2))) 
-            
-            self.action_latent_net.appply(partial(self.init_weights, gain=1.0))
-            self.value_latent_net.appply(partial(self.init_weights, gain=0.01))
-            
-        self.optimizer = self.optimizer_class(self.parameters(), lr=init_lr, **self.optimizer_kwargs)
-            
-            
         
     
     @abstractmethod
@@ -447,7 +453,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                  critic_obs_space: Optional[Union[spaces.Space, MultiSpace]], 
                  action_space: spaces.Space, 
                  lr_schedule: Schedule, 
-                 activation_fn_class: ActivationFnClass,
+                 activation_fn_class: ActivationFnClass = nn.Tanh,
                  actor_hidden_layer_sizes: Tuple[int] = (64, 64),
                  critic_hiddent_layer_sizes: Tuple[int] = (64, 64),
                  init_log_std: float = 0, 
@@ -481,6 +487,12 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             optimizer_kwargs (Optional[Dict[str, Any]], optional): Additional args for the optimizer. Defaults to None.
         """
         
+        
+        self.actor_hidden_layer_sizes = actor_hidden_layer_sizes
+        self.critic_hidden_layer_sizes = critic_hiddent_layer_sizes
+        self.activation_fn_class = activation_fn_class
+        # has to be done before the super constructor, because the parameters will be used during initilisaition of the parent
+        
         super().__init__(actor_obs_space,
                          critic_obs_space, 
                          action_space,
@@ -492,9 +504,6 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                          optimizer_class,
                          optimizer_kwargs)
         
-        self.actor_hidden_layer_sizes = actor_hidden_layer_sizes
-        self.critic_hidden_layer_sizes = critic_hiddent_layer_sizes
-        self.activation_fn_class = activation_fn_class
         
         
     def _build_actor_net(self) -> BaseNet:
@@ -509,7 +518,7 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             shape = self.actor_obs_space.dict_shape 
         else:
             shape = self.actor_obs_space.shape
-            
+       
         return SimpleDynamicForwardNet(shape, self.actor_hidden_layer_sizes, self.activation_fn_class, self.device)
         
     
@@ -554,5 +563,44 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             "optimizer_kwargs": self.optimizer_kwargs
         }
         
-        
-        
+
+def make_proba_distribution(
+    action_space: spaces.Space, use_sde: bool = False, dist_kwargs: Optional[Dict[str, Any]] = None
+) -> Distribution:
+    """
+    Return an instance of Distribution for the correct type of action space
+
+    :param action_space: the input action space
+    :param use_sde: Force the use of StateDependentNoiseDistribution
+        instead of DiagGaussianDistribution
+    :param dist_kwargs: Keyword arguments to pass to the probability distribution
+    :return: the appropriate Distribution object
+    """
+    if dist_kwargs is None:
+        dist_kwargs = {}
+
+    if isinstance(action_space, spaces.Box):
+        assert len(action_space.shape) == 1, "Error: the action space must be a vector"
+        return DiagGaussianDistribution(int(np.prod(action_space.shape)), **dist_kwargs) 
+    else:
+        raise NotImplementedError(
+            "Error: probability distribution, not implemented for action space"
+            f"of type {type(action_space)}."
+            " Must be of type Gym Spaces: Box, Discrete, MultiDiscrete or MultiBinary."
+        )
+
+
+def kl_divergence(dist_true: Distribution, dist_pred: Distribution) -> torch.Tensor:
+    """
+    Wrapper for the PyTorch implementation of the full form KL Divergence
+
+    :param dist_true: the p distribution
+    :param dist_pred: the q distribution
+    :return: KL(dist_true||dist_pred)
+    """
+    # KL Divergence for different distribution types is out of scope
+    assert dist_true.__class__ == dist_pred.__class__, "Error: input distributions should be the same type"
+
+    # Use the PyTorch kl_divergence implementation
+    
+    return torch.distributions.kl_divergence(dist_true.distribution, dist_pred.distribution)
