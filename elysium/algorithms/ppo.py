@@ -48,6 +48,8 @@ class PPO(BaseAlgorithm):
         
         self.policy = policy.to(self.device)
         
+        # the step when the last save was made
+        self.last_save = 0
         
         self.buffer_size = self.env.num_envs * self.n_steps
         
@@ -238,6 +240,7 @@ class PPO(BaseAlgorithm):
         entropy_losses = []
         pg_losses = []
         value_losses = []
+        
         clip_fractions = []
         
         continue_training = True
@@ -287,7 +290,7 @@ class PPO(BaseAlgorithm):
                 value_losses.append(value_loss.item())
                 
                 
-                entropy_loss = -torch.mean(entropy)
+                entropy_loss = torch.mean(entropy)
                 
                 entropy_losses.append(entropy_loss.item())
                 
@@ -315,6 +318,14 @@ class PPO(BaseAlgorithm):
         self.logger.log("train/action_std", self.policy.log_std.exp().mean().item(), self.num_timesteps)
         self.logger.log("train/loss", loss.item(), self.num_timesteps)
         self.logger.log("train/clip_fraction", np.mean(clip_fractions), self.num_timesteps)
+        self.logger.log("train/policy_gradient_loss", np.mean(pg_losses), self.num_timesteps)
+        self.logger.log("train/approx_kl_div", np.mean(approx_kl_div), self.num_timesteps)
+        
+        # TODO: add explained variance
+        if self.num_timesteps - self.last_save > 1e6 or self.last_save == 0:
+            self.save()
+            self.last_save = self.num_timesteps
+        
         
         
     pass
@@ -329,7 +340,7 @@ class PPO(BaseAlgorithm):
     def save(self, path: Optional[str] = None):
         
         if path is None:
-            path = self.run_folder_name + "/saves/"
+            path = self.run_folder_name + "/saves/" + str(self.num_timesteps) + ".pth"
         
         self.policy.save(path)
 

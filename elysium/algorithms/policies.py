@@ -158,7 +158,8 @@ class BasePolicy(nn.Module , ABC):
 
         :param path:
         """
-        torch.save({"state_dict": self.state_dict(), "data": self._get_constructor_parameters()}, path)
+        torch.save(self.state_dict(), path)
+        #torch.save({"state_dict": self.state_dict(), "data": self._get_constructor_parameters()}, path )
         
     @classmethod
     def load(cls, path: str, device: Union[torch.device, str] = "auto") -> "BasePolicy":

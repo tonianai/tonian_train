@@ -9,7 +9,7 @@ env:
   num_envs: 1200
   env_spacing: 5
   max_episode_length: 1000
-  powerscale: 1.0
+  powerscale: 2.0
 
   gen_averaged_episodes : 100 # refering to local episodes, global episodes do not exist
 
