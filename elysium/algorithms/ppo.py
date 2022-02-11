@@ -29,6 +29,11 @@ class PPO(BaseAlgorithm):
         super().__init__(env, config, device)
         self._fetch_config_params(config)
         
+        #The maximim value for the gradient clipping 
+        # TODO add to the config
+        
+        self.max_grad_norm = 0.5
+        
         
         # set the action and obervation space to member variables
         self.critic_obs_spaces = env.critic_observation_spaces
@@ -310,6 +315,8 @@ class PPO(BaseAlgorithm):
                 # Optimization Step
                 self.policy.optimizer.zero_grad()
                 loss.backward()
+                # Clip grad norm
+                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.policy.optimizer.step()
                 
         
@@ -322,7 +329,7 @@ class PPO(BaseAlgorithm):
         self.logger.log("train/approx_kl_div", np.mean(approx_kl_div), self.num_timesteps)
         
         # TODO: add explained variance
-        if self.num_timesteps - self.last_save > 1e6 or self.last_save == 0:
+        if self.num_timesteps - self.last_save > 1e7 or self.last_save == 0:
             self.save()
             self.last_save = self.num_timesteps
         

@@ -27,9 +27,9 @@ import yaml
 
 
  
-env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=False)
+#env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=True)
  
-#env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=True)
+env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=True)
 
 env.is_symmetric = False
 
@@ -56,7 +56,7 @@ policy = SimpleActorCriticPolicy(actor_obs_space=env.actor_observation_spaces,
 algo = PPO(env, config, policy=policy, device="cuda:0")
 
 # train for a million steps
-algo.learn(total_timesteps=1e9)
+algo.learn(total_timesteps=1e10)
 
 # show the learned policy
 
