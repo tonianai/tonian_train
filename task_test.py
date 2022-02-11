@@ -33,6 +33,7 @@ env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="g
 
 env.is_symmetric = False
 
+
 config_path = "./elysium/algorithms/ppo_config.yaml"
 
 # opfen the config file 
