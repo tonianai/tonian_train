@@ -29,7 +29,7 @@ import yaml
  
 #env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=True)
  
-env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=True)
+env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
 
