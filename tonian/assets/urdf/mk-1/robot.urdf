@@ -1,0 +1,801 @@
+<robot name="onshape">
+
+    <!--Link 1 - torso leg connector-->
+    <link name="torso_leg_connector">
+        <visual>
+            <origin xyz="0.842594 0.0204002 1.31463" rpy="6.12324e-17 1.16066e-28 -1.57877" />
+            <geometry>
+                <mesh filename="package://torso_leg_connector.stl"/>
+            </geometry>
+            <material name="torso_leg_connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.842594 0.0204002 1.31463" rpy="6.12324e-17 1.16066e-28 -1.57877" />
+            <geometry>
+                <mesh filename="package://torso_leg_connector.stl"/>
+            </geometry>
+            <material name="torso_leg_connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="0.754201 0.0211054 1.31463" rpy="0 0 0"/>
+            <mass value="0.603417" />
+            <inertia ixx="0.00022341" ixy="-1.50063e-05" ixz="5.33561e-10" iyy="0.00210465" iyz="1.19101e-09" izz="0.0021183" />
+        </inertial>
+    </link>
+
+
+    <!--Link 2 - upper leg-->
+    <link name="upper_leg">
+        <visual>
+            <origin xyz="-1.73472e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://upper_leg.stl"/>
+            </geometry>
+            <material name="upper_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-1.73472e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://upper_leg.stl"/>
+            </geometry>
+            <material name="upper_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-2.93953e-07 0.215271 -5.59377e-07" rpy="0 0 0"/>
+            <mass value="20.5898" />
+            <inertia ixx="0.0474216" ixy="6.66384e-07" ixz="1.23094e-07" iyy="0.544253" iyz="-9.52371e-07" izz="0.555328" />
+        </inertial>
+    </link>
+
+
+    <link name="lower_leg">
+        <visual>
+            <origin xyz="0.02 0.53 0" rpy="1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot_bolt.stl"/>
+            </geometry>
+            <material name="foot_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.02 0.53 0" rpy="1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot_bolt.stl"/>
+            </geometry>
+            <material name="foot_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="2.05565e-16 -4.44089e-16 -2.22045e-16" rpy="1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg_bolt.stl"/>
+            </geometry>
+            <material name="lower_leg_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="2.05565e-16 -4.44089e-16 -2.22045e-16" rpy="1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg_bolt.stl"/>
+            </geometry>
+            <material name="lower_leg_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="0.05 0.31 -1.11022e-16" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg.stl"/>
+            </geometry>
+            <material name="lower_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.05 0.31 -1.11022e-16" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg.stl"/>
+            </geometry>
+            <material name="lower_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-0.00598954 0.233996 3.61639e-08" rpy="0 0 0"/>
+            <mass value="21.2048" />
+            <inertia ixx="0.124856" ixy="-0.00179935" ixz="0.00546074" iyy="0.485474" iyz="1.89124e-08" izz="0.57568" />
+        </inertial>
+    </link>
+
+    <link name="foot">
+        <visual>
+            <origin xyz="0.06 0.072 -1.11022e-16" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot.stl"/>
+            </geometry>
+            <material name="foot_material">
+                <color rgba="0.713725 0.760784 0.8 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.06 0.072 -1.11022e-16" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot.stl"/>
+            </geometry>
+            <material name="foot_material">
+                <color rgba="0.713725 0.760784 0.8 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="0.0434243 0.0631189 -5.92219e-08" rpy="0 0 0"/>
+            <mass value="4.57756" />
+            <inertia ixx="0.0311674" ixy="-3.40164e-09" ixz="0.00244158" iyy="0.0291831" iyz="-4.07042e-08" izz="0.00822564" />
+        </inertial>
+    </link>
+
+    <!--Joint 0 left_foot-->
+    <joint name="left_foot" type="revolute">
+        <origin xyz="0.02 0.53 -2.22045e-16" rpy="3.14159 -1.97232e-14 3.10995" />
+        <parent link="lower_leg" />
+        <child link="foot" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-0.523599" upper="0.523599"/>
+        <dynamics damping="10.0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 1 left knee-->
+    <joint name="left_knee" type="revolute">
+        <origin xyz="2.44162e-16 0.5 2.22045e-16" rpy="-3.14159 -1.61144e-15 -3.14159" />
+        <parent link="upper_leg" />
+        <child link="lower_leg" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-1.91986" upper="0"/>
+        <dynamics damping="10.0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 2 left hip-->
+    <joint name="left_hip_b" type="revolute">
+        <origin xyz="0.840594 0.0204162 1.31463" rpy="-1.5708 -0.0224217 -1.57877" />
+        <parent link="torso_leg_connector" />
+        <child link="upper_leg" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-1.74533" upper="0"/>
+        <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
+    </joint>
+
+    <link name="lower_torso">
+        <visual>
+            <origin xyz="0.075 1.38778e-17 -0.03" rpy="2.77138e-39 -2.24018e-39 -2.22805e-20" />
+            <geometry>
+                <mesh filename="package://lower_torso.stl"/>
+            </geometry>
+            <material name="lower_torso_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.075 1.38778e-17 -0.03" rpy="2.77138e-39 -2.24018e-39 -2.22805e-20" />
+            <geometry>
+                <mesh filename="package://lower_torso.stl"/>
+            </geometry>
+            <material name="lower_torso_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="0.075 2.412e-08 -0.0143888" rpy="0 0 0"/>
+            <mass value="28.6039" />
+            <inertia ixx="0.198533" ixy="-1.01671e-06" ixz="3.81869e-11" iyy="0.132403" iyz="-7.89246e-08" izz="0.143984" />
+        </inertial>
+    </link>
+
+    <link name="torso_leg_connector_2">
+        <visual>
+            <origin xyz="1.30104e-18 0.13 -3.2634e-06" rpy="1.55287e-34 2.54071e-33 -1.37316e-18" />
+            <geometry>
+                <mesh filename="package://torso_leg_connector.stl"/>
+            </geometry>
+            <material name="torso_leg_connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="1.30104e-18 0.13 -3.2634e-06" rpy="1.55287e-34 2.54071e-33 -1.37316e-18" />
+            <geometry>
+                <mesh filename="package://torso_leg_connector.stl"/>
+            </geometry>
+            <material name="torso_leg_connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-7.04185e-08 0.0416043 -3.26387e-06" rpy="0 0 0"/>
+            <mass value="0.603417" />
+            <inertia ixx="0.00210477" ixy="-1.39613e-09" ixz="1.18672e-09" iyy="0.00022329" iyz="-5.43044e-10" izz="0.0021183" />
+        </inertial>
+    </link>
+
+    <link name="upper_leg_2">
+        <visual>
+            <origin xyz="0 0.5 0.05" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://upper_leg.stl"/>
+            </geometry>
+            <material name="upper_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0.5 0.05" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://upper_leg.stl"/>
+            </geometry>
+            <material name="upper_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-2.93953e-07 0.215271 -5.59377e-07" rpy="0 0 0"/>
+            <mass value="20.5898" />
+            <inertia ixx="0.0474216" ixy="6.66384e-07" ixz="1.23094e-07" iyy="0.544253" iyz="-9.52371e-07" izz="0.555328" />
+        </inertial>
+    </link>
+
+    <link name="lower_leg_2">
+        <visual>
+            <origin xyz="0 1.11022e-16 0" rpy="-1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg_bolt.stl"/>
+            </geometry>
+            <material name="lower_leg_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 1.11022e-16 0" rpy="-1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg_bolt.stl"/>
+            </geometry>
+            <material name="lower_leg_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="0.05 -0.31 -5.55112e-17" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg.stl"/>
+            </geometry>
+            <material name="lower_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.05 -0.31 -5.55112e-17" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_leg.stl"/>
+            </geometry>
+            <material name="lower_leg_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="0.02 -0.53 -1.11022e-16" rpy="-1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot_bolt.stl"/>
+            </geometry>
+            <material name="foot_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.02 -0.53 -1.11022e-16" rpy="-1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot_bolt.stl"/>
+            </geometry>
+            <material name="foot_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-0.00598954 -0.233996 -3.61639e-08" rpy="0 0 0"/>
+            <mass value="21.2048" />
+            <inertia ixx="0.124856" ixy="0.00179935" ixz="0.00546074" iyy="0.485474" iyz="-2.41692e-08" izz="0.57568" />
+        </inertial>
+    </link>
+
+    <link name="foot_2">
+        <visual>
+            <origin xyz="0.06 0.072 5.55112e-17" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot.stl"/>
+            </geometry>
+            <material name="foot_material">
+                <color rgba="0.713725 0.760784 0.8 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.06 0.072 5.55112e-17" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://foot.stl"/>
+            </geometry>
+            <material name="foot_material">
+                <color rgba="0.713725 0.760784 0.8 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="0.0434243 0.0631189 -5.92219e-08" rpy="0 0 0"/>
+            <mass value="4.57756" />
+            <inertia ixx="0.0311674" ixy="-3.40164e-09" ixz="0.00244158" iyy="0.0291831" iyz="-4.07042e-08" izz="0.00822564" />
+        </inertial>
+    </link>
+
+    <!--Joint 3 right_foot-->
+    <joint name="right_foot" type="revolute">
+        <origin xyz="0.02 -0.53 -1.11022e-16" rpy="1.6217e-15 -1.50899e-14 -3.10906" />
+        <parent link="lower_leg_2" />
+        <child link="foot_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-0.523599" upper="0.523599"/>
+        <dynamics damping="10.0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 4 right knee-->
+    <joint name="right_knee" type="revolute">
+        <origin xyz="6.93889e-18 0.5 0" rpy="-1.93571e-15 1.78614e-15 3.14159" />
+        <parent link="upper_leg_2" />
+        <child link="lower_leg_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="0" upper="1.5708"/>
+        <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
+    </joint>
+
+    <!--Joint 5 right hip b-->
+    <joint name="right_hip_b" type="revolute">
+        <origin xyz="3.90313e-18 0.128 -3.2634e-06" rpy="1.5708 0.0235009 2.26335e-15" />
+        <parent link="torso_leg_connector_2" />
+        <child link="upper_leg_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-1.74533" upper="0"/>
+        <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
+    </joint>
+
+    <!--Joint 6 right hip a -->
+    <joint name="right_hip_a" type="revolute">
+        <origin xyz="0.15 9.54445e-15 0" rpy="-3.14159 -6.12323e-17 1.61306" />
+        <parent link="lower_torso" />
+        <child link="torso_leg_connector_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-0.523599" upper="0.523599"/>
+
+       <dynamics damping="10.0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <link name="upper_torso">
+        <visual>
+            <origin xyz="0 3.46945e-18 -0.02" rpy="3.14159 -0 0" />
+            <geometry>
+                <mesh filename="package://upper_torso.stl"/>
+            </geometry>
+            <material name="upper_torso_material">
+                <color rgba="0.6 0.6 0.6 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 3.46945e-18 -0.02" rpy="3.14159 -0 0" />
+            <geometry>
+                <mesh filename="package://upper_torso.stl"/>
+            </geometry>
+            <material name="upper_torso_material">
+                <color rgba="0.6 0.6 0.6 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="5.4817e-06 0.00825454 -0.467151" rpy="0 0 0"/>
+            <mass value="191.467" />
+            <inertia ixx="9.78331" ixy="7.06362e-05" ixz="-0.000373258" iyy="12.116" iyz="0.251403" izz="3.73893" />
+        </inertial>
+    </link>
+
+    <link name="shoulder-connector">
+        <visual>
+            <origin xyz="8.20791e-08 4.66307e-08 0" rpy="3.14159 4.28462e-31 -1.47518e-30" />
+            <geometry>
+                <mesh filename="package://shoulder-connector.stl"/>
+            </geometry>
+            <material name="shoulder-connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="8.20791e-08 4.66307e-08 0" rpy="3.14159 4.28462e-31 -1.47518e-30" />
+            <geometry>
+                <mesh filename="package://shoulder-connector.stl"/>
+            </geometry>
+            <material name="shoulder-connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-9.49169e-08 -4.81294e-08 -0.0457187" rpy="0 0 0"/>
+            <mass value="4.76436" />
+            <inertia ixx="0.00806615" ixy="2.52134e-06" ixz="3.01207e-08" iyy="0.00646269" iyz="1.6126e-08" izz="0.00632201" />
+        </inertial>
+    </link>
+
+    <link name="shoulder">
+        <visual>
+            <origin xyz="-0.102112 0.170673 -1.38778e-17" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://shoulder.stl"/>
+            </geometry>
+            <material name="shoulder_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-0.102112 0.170673 -1.38778e-17" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://shoulder.stl"/>
+            </geometry>
+            <material name="shoulder_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-0.0806991 0.0625856 1.78929e-07" rpy="0 0 0"/>
+            <mass value="5.94086" />
+            <inertia ixx="0.0225273" ixy="4.17871e-08" ixz="-0.00812076" iyy="0.0304314" iyz="1.93126e-07" izz="0.0243724" />
+        </inertial>
+    </link>
+
+    <link name="upper_arm">
+        <visual>
+            <origin xyz="4.44089e-16 -2.60209e-18 -0.35" rpy="4.7429e-31 1.01465e-17 -1.24819e-31" />
+            <geometry>
+                <mesh filename="package://upper_arm.stl"/>
+            </geometry>
+            <material name="upper_arm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="4.44089e-16 -2.60209e-18 -0.35" rpy="4.7429e-31 1.01465e-17 -1.24819e-31" />
+            <geometry>
+                <mesh filename="package://upper_arm.stl"/>
+            </geometry>
+            <material name="upper_arm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="4.44192e-16 -9.18048e-18 -0.20755" rpy="0 0 0"/>
+            <mass value="8.86512" />
+            <inertia ixx="0.134221" ixy="-1.40724e-05" ixz="-1.47877e-18" iyy="0.13289" iyz="1.42787e-22" izz="0.0115204" />
+        </inertial>
+    </link>
+
+    <link name="forearm">
+        <visual>
+            <origin xyz="2.1688e-09 -0.282 -1.17271e-08" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_forearm.stl"/>
+            </geometry>
+            <material name="lower_forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="2.1688e-09 -0.282 -1.17271e-08" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_forearm.stl"/>
+            </geometry>
+            <material name="lower_forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="0 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://ellbow_bolt.stl"/>
+            </geometry>
+            <material name="ellbow_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://ellbow_bolt.stl"/>
+            </geometry>
+            <material name="ellbow_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="0 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://forearm.stl"/>
+            </geometry>
+            <material name="forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://forearm.stl"/>
+            </geometry>
+            <material name="forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="3.25334e-08 -0.0867606 -1.81965e-06" rpy="0 0 0"/>
+            <mass value="4.07336" />
+            <inertia ixx="0.0114497" ixy="6.45125e-07" ixz="2.65039e-09" iyy="0.0156862" iyz="4.68722e-07" izz="0.0233896" />
+        </inertial>
+    </link>
+
+    <!--Joint 7 left elbow-->
+    <joint name="left_elbow" type="revolute">
+        <origin xyz="4.44089e-16 -1.38778e-17 -0.38" rpy="1.5708 6.20142e-30 1.5708" />
+        <parent link="upper_arm" />
+        <child link="forearm" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-1.74533" upper="0"/>
+        <dynamics damping="10.0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 8 left arm rotate-->
+    <joint name="left_arm_rotate" type="revolute">
+        <origin xyz="-0.102112 0.170673 -1.38778e-17" rpy="-1.5708 5.64975e-15 -3.14159" />
+        <parent link="shoulder" />
+        <child link="upper_arm" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-1.5708" upper="1.5708"/>
+        <joint_properties friction="0.0"/>
+        <dynamics damping="10.0"/>
+    </joint>
+
+    <!--Joint 9 left shoulder b-->
+    <joint name="left_shoulder_b" type="revolute">
+        <origin xyz="8.20791e-08 4.66307e-08 -0.05" rpy="-1.38778e-16 -1.5708 0" />
+        <parent link="shoulder-connector" />
+        <child link="shoulder" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-0.698132" upper="1.5708"/>
+      <dynamics damping="10.0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 10 left shoulder a -->
+    <joint name="left_shoulder_a" type="revolute">
+        <origin xyz="0.193521 0.0155608 -0.786479" rpy="0.785398 1.58051e-14 -1.5708" />
+        <parent link="upper_torso" />
+        <child link="shoulder-connector" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="0" upper="2.0944"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <link name="shoulder-connector_2">
+        <visual>
+            <origin xyz="8.20791e-08 4.66307e-08 0" rpy="3.14159 1.23379e-30 6.76617e-30" />
+            <geometry>
+                <mesh filename="package://shoulder-connector.stl"/>
+            </geometry>
+            <material name="shoulder-connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="8.20791e-08 4.66307e-08 0" rpy="3.14159 1.23379e-30 6.76617e-30" />
+            <geometry>
+                <mesh filename="package://shoulder-connector.stl"/>
+            </geometry>
+            <material name="shoulder-connector_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-9.49169e-08 -4.81294e-08 -0.0457187" rpy="0 0 0"/>
+            <mass value="4.76436" />
+            <inertia ixx="0.00806615" ixy="2.52134e-06" ixz="3.01207e-08" iyy="0.00646269" iyz="1.6126e-08" izz="0.00632201" />
+        </inertial>
+    </link>
+
+    <link name="shoulder_2">
+        <visual>
+            <origin xyz="-0.102112 0.170673 -1.38778e-17" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://shoulder.stl"/>
+            </geometry>
+            <material name="shoulder_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-0.102112 0.170673 -1.38778e-17" rpy="1.5708 1.5708 0" />
+            <geometry>
+                <mesh filename="package://shoulder.stl"/>
+            </geometry>
+            <material name="shoulder_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="-0.0806991 0.0625856 1.78929e-07" rpy="0 0 0"/>
+            <mass value="5.94086" />
+            <inertia ixx="0.0225273" ixy="4.17871e-08" ixz="-0.00812076" iyy="0.0304314" iyz="1.93126e-07" izz="0.0243724" />
+        </inertial>
+    </link>
+
+    <link name="upper_arm_2">
+        <visual>
+            <origin xyz="4.44089e-16 -2.60209e-18 -0.35" rpy="-4.87304e-31 -1.01465e-17 -5.66499e-30" />
+            <geometry>
+                <mesh filename="package://upper_arm.stl"/>
+            </geometry>
+            <material name="upper_arm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="4.44089e-16 -2.60209e-18 -0.35" rpy="-4.87304e-31 -1.01465e-17 -5.66499e-30" />
+            <geometry>
+                <mesh filename="package://upper_arm.stl"/>
+            </geometry>
+            <material name="upper_arm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="4.58265e-16 -9.18048e-18 -0.20755" rpy="0 0 0"/>
+            <mass value="8.86512" />
+            <inertia ixx="0.134221" ixy="-1.40724e-05" ixz="1.20157e-17" iyy="0.13289" iyz="-1.24754e-21" izz="0.0115204" />
+        </inertial>
+    </link>
+
+    <link name="forearm_2">
+        <visual>
+            <origin xyz="2.1688e-09 -0.282 -1.17271e-08" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_forearm.stl"/>
+            </geometry>
+            <material name="lower_forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="2.1688e-09 -0.282 -1.17271e-08" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://lower_forearm.stl"/>
+            </geometry>
+            <material name="lower_forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="8.67362e-19 2.22045e-16 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://ellbow_bolt.stl"/>
+            </geometry>
+            <material name="ellbow_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="8.67362e-19 2.22045e-16 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://ellbow_bolt.stl"/>
+            </geometry>
+            <material name="ellbow_bolt_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <visual>
+            <origin xyz="8.67362e-19 2.22045e-16 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://forearm.stl"/>
+            </geometry>
+            <material name="forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="8.67362e-19 2.22045e-16 0" rpy="-1.5708 -1.5708 0" />
+            <geometry>
+                <mesh filename="package://forearm.stl"/>
+            </geometry>
+            <material name="forearm_material">
+                <color rgba="0.615686 0.811765 0.929412 1.0"/>
+            </material>
+        </collision>
+        <inertial>
+            <origin xyz="3.25334e-08 -0.0867606 -1.81965e-06" rpy="0 0 0"/>
+            <mass value="4.07336" />
+            <inertia ixx="0.0114497" ixy="6.45125e-07" ixz="2.65039e-09" iyy="0.0156862" iyz="4.68722e-07" izz="0.0233896" />
+        </inertial>
+    </link>
+
+    <!--Joint 11 right elbow-->
+    <joint name="right_elbow" type="revolute">
+        <origin xyz="4.44089e-16 -2.1684e-17 -0.38" rpy="1.5708 -3.86634e-30 1.5708" />
+        <parent link="upper_arm_2" />
+        <child link="forearm_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-1.74533" upper="0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 12 right arm rotate-->
+    <joint name="right_arm_rotate" type="revolute">
+        <origin xyz="-0.102112 0.170673 -5.9848e-17" rpy="1.5708 -3.80147e-17 2.34892e-16" />
+        <parent link="shoulder_2" />
+        <child link="upper_arm_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-1.5708" upper="1.5708"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 13 right shoulder b-->
+    <joint name="right_shoulder_b" type="revolute">
+        <origin xyz="8.20791e-08 4.66307e-08 -0.05" rpy="3.14159 -1.5708 0" />
+        <parent link="shoulder-connector_2" />
+        <child link="shoulder_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-0.698132" upper="1.5708"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 14 right shoulder a-->
+    <joint name="right_shoulder_a" type="revolute">
+        <origin xyz="-0.193521 0.0155608 -0.786479" rpy="-0.785398 -4.62008e-14 -1.5708" />
+        <parent link="upper_torso" />
+        <child link="shoulder-connector_2" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-2.0944" upper="0"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 15 torso-->
+    <joint name="torso" type="revolute">
+        <origin xyz="0.075 1.04083e-17 0.07" rpy="3.14159 1.04653e-22 -3.14017" />
+        <parent link="lower_torso" />
+        <child link="upper_torso" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-0.523599" upper="0.523599"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+    <!--Joint 16 left hip a-->
+    <joint name="left_hip_a" type="revolute">
+        <origin xyz="0.712598 0.0214372 1.31464" rpy="-2.49096e-23 1.04618e-22 3.14017" />
+        <parent link="torso_leg_connector" />
+        <child link="lower_torso" />
+        <axis xyz="0 0 1"/>
+        <limit effort="1" velocity="20" lower="-0.349066" upper="0.349066"/>
+        <joint_properties friction="0.0"/>
+    </joint>
+
+
+</robot>
