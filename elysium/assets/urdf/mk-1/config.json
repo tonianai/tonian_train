@@ -1,7 +1,0 @@
-{
-    "documentId": "2c9148f1f3e07fd540ed4cdd",
-    "assemblyName": "robot-assembly", 
-    "outputFormat": "urdf",
-    "useScads":"false"
-    
-}

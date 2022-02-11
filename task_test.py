@@ -2,23 +2,23 @@
 
 
 from warnings import resetwarnings
-from elysium.tasks.walking.walking_task import WalkingTask
+from tonian.tasks.walking.walking_task import WalkingTask
 
 import gym 
 import numpy as np
 
-from elysium.algorithms.ppo import PPO
-from elysium.algorithms.policies import SimpleActorCriticPolicy
+from tonian.algorithms.ppo import PPO
+from tonian.algorithms.policies import SimpleActorCriticPolicy
 
 from gym.spaces import space
-from elysium.tasks.base.command import Command
-from  elysium.tasks.base.vec_task import MultiSpace, VecTask
-from elysium.common.schedule import Schedule
+from tonian.tasks.base.command import Command
+from  tonian.tasks.base.vec_task import MultiSpace, VecTask
+from tonian.common.schedule import Schedule
 
 import gym
 from gym import spaces
 import numpy as np
-from elysium.tasks.cartpole.cartpole_task import Cartpole
+from tonian.tasks.cartpole.cartpole_task import Cartpole
 
 import torch
 
@@ -27,14 +27,14 @@ import yaml
 
 
  
-#env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=True)
+#env = WalkingTask(config_path="./tonian/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=True)
  
-env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
+env = Cartpole(config_path="./tonian/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
 
 
-config_path = "./elysium/algorithms/ppo_config.yaml"
+config_path = "./tonian/algorithms/ppo_config.yaml"
 
 # opfen the config file 
 with open(config_path, 'r') as stream:

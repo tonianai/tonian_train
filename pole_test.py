@@ -1,16 +1,16 @@
 from gym.spaces import space
-from elysium.tasks.base.command import Command
-from elysium.tasks.base.vec_task import MultiSpace, VecTask
+from tonian.tasks.base.command import Command
+from tonian.tasks.base.vec_task import MultiSpace, VecTask
 import gym
 from gym import spaces
 import numpy as np
 
 import torch
 
-from elysium.tasks.cartpole.cartpole_task import Cartpole
+from tonian.tasks.cartpole.cartpole_task import Cartpole
 
  
-env = Cartpole(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
+env = Cartpole(config_path="./tonian/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.reset()
 

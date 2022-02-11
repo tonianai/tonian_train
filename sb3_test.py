@@ -2,20 +2,20 @@
 
 
 from warnings import resetwarnings
-from elysium.tasks.walking.walking_task import WalkingTask
+from tonian.tasks.walking.walking_task import WalkingTask
 
 import gym 
 import numpy as np
 
-from elysium.algorithms.ppo import PPO
-from elysium.algorithms.policies import SimpleActorCriticPolicy
+from tonian.algorithms.ppo import PPO
+from tonian.algorithms.policies import SimpleActorCriticPolicy
 
 from gym.spaces import space
-from elysium.tasks.base.command import Command
-from  elysium.tasks.base.vec_task import MultiSpace, VecTask 
+from tonian.tasks.base.command import Command
+from  tonian.tasks.base.vec_task import MultiSpace, VecTask 
 
 import numpy as np
-from elysium.tasks.cartpole.cartpole_task import Cartpole, CartpoleSb3Task
+from tonian.tasks.cartpole.cartpole_task import Cartpole, CartpoleSb3Task
 
 import torch
 
@@ -24,7 +24,7 @@ import yaml
 
 
 
-env = CartpoleSb3Task(config_path="./elysium/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False, rl_device = "cpu")
+env = CartpoleSb3Task(config_path="./tonian/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False, rl_device = "cpu")
 
 
 import gym

@@ -1,16 +1,16 @@
 from gym.spaces import space
-from elysium.tasks.base.command import Command
-from elysium.tasks.base.vec_task import MultiSpace, VecTask
+from tonian.tasks.base.command import Command
+from tonian.tasks.base.vec_task import MultiSpace, VecTask
 import gym
 from gym import spaces
 import numpy as np
 
 import torch
 
-from elysium.tasks.walking.walking_task import WalkingTask
+from tonian.tasks.walking.walking_task import WalkingTask
 
  
-env = WalkingTask(config_path="./elysium/tasks/walking/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
+env = WalkingTask(config_path="./tonian/tasks/walking/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.reset()
 
