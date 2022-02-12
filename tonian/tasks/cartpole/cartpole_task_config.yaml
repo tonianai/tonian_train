@@ -1,0 +1,52 @@
+# Configuaration file for the walking task
+# There are no universal "episodes" since every actor can terminate an episode prematurely
+
+name: 00_cartpole
+
+physics_engine: physx
+
+env: 
+  num_envs: 1200
+  env_spacing: 5
+  max_episode_length: 1000
+  powerscale: 1.0
+  resetDist: 3.0
+  maxEffort: 400.0
+
+
+  clipObservations: 5.0
+  clipActions: 1.0
+
+  gen_averaged_episodes : 100 # refering to local episodes, global episodes do not exist
+
+
+  generational_goals: # average reward achived by the best actor within a generation
+    - 100 # generation 1 goes up to 100 in average reward
+    - 200 # [100- 200 ] -> generation 2
+    - 400 # [400, inf] -> generation 3
+
+
+
+  reward_weighting:
+    directional_factor: 10
+    death_cost:   # by generatiopns
+      1: -1
+      2: -2
+      3: -4
+    energy_cost: 20
+    matching_speed_factor: 20
+
+
+    
+    
+
+
+sim: # the sim can deal with domain randomizazion on the given variables
+  dt: 0.0166 # 1/60 s
+  substeps: 2
+  up_axis: "z"
+  use_gpu_pipeline: True
+  gravity: [0.0, 0.0, -9.81]
+
+task: 
+  randomize: False
