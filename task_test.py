@@ -32,8 +32,7 @@ import yaml
 env = Cartpole(config_path="./tonian/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
-
-
+ 
 config_path = "./tonian/algorithms/ppo_config.yaml"
 
 # opfen the config file 

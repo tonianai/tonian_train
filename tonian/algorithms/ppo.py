@@ -1,4 +1,4 @@
-from typing import Dict, Union, List, Tuple, Type, Optional
+from typing import Callable, Dict, Union, List, Tuple, Type, Optional
 
 import torch 
 import torch.nn as nn
@@ -10,14 +10,13 @@ from collections import deque
 
 from tonian.algorithms.base_algorithm import BaseAlgorithm
 from tonian.common.buffers import DictRolloutBuffer
-from tonian.common.schedule import Schedule
+from tonian.common.schedule import Schedule, schedule_or_callable
 from tonian.tasks.base.vec_task import VecTask
 
 from tonian.algorithms.policies import ActorCriticPolicy
 
 import numpy as np
 
- 
 
 import time
 
@@ -78,7 +77,11 @@ class PPO(BaseAlgorithm):
         """
         
         self.gamma = config['gamma']
-        self.lr = config['lr']
+        self.lr : Callable() = schedule_or_callable(config['lr'])
+        
+        
+        print(self.lr(0))
+        print(type(self.lr(0)))
         self.n_epochs = config['n_epochs']
         self.batch_size = config['batch_size']
         self.n_steps = config['n_steps']

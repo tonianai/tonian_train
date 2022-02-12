@@ -6,8 +6,13 @@ n_steps: 200 # the amount of steps taken per env between training and update
 batch_size: 1000
 target_kl: 0.008
 gae_lamda: 0.5
-entropy_coef: 0.0001
+entropy_coef: 0
 value_f_coef: 1
 
-
-
+action_std: # the maximum of standard deviation 
+  schedule_type: 'steps'
+  interpolation: 'none'
+  schedule: 
+    10e6: 1e-4
+    20e6: 1e-5
+    30e6: 8e-5

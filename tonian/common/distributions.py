@@ -149,6 +149,8 @@ class DiagGaussianDistribution(Distribution):
         :return:
         """
         action_std = torch.ones_like(mean_actions) * log_std.exp()
+        
+        print(log_std)
          
         self.distribution = Normal(mean_actions, action_std)
         return self

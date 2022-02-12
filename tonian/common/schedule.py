@@ -1,5 +1,6 @@
  
-from typing import Union, Dict, List, Tuple
+from typing import Callable, Union, Dict, List, Tuple
+from numbers import Number
 
 class Schedule: 
     def __init__(self, schedule: Union[Dict, float]) -> None:
@@ -65,3 +66,20 @@ class Schedule:
                 if self.schedule[i][0] <= query and self.schedule[i+1][0] >= query:
                     return self.schedule[i][1]
                     # Todo: add interpolation
+                    
+ScheduleOrValue = Union[Schedule, Callable]
+
+def schedule_or_callable(input: Union[int, float, dict, str]) -> ScheduleOrValue:
+    
+    if isinstance(input, Dict):
+        print("I am a Dic")
+        return Schedule(input)
+    elif isinstance(input, str):
+        val = float(input)
+        return lambda _ : val
+    elif isinstance(input, float) or isinstance(input, int):
+        return lambda _ : input
+    else:
+        raise Exception('any value in the config schould either be a value or a schedule')
+    
+    
