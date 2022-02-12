@@ -8,7 +8,7 @@ import gym
 import numpy as np
 
 from tonian.algorithms.ppo import PPO
-from tonian.algorithms.policies import SimpleActorCriticPolicy
+from tonian.policies.policies import SimpleActorCriticPolicy
 
 from gym.spaces import space
 from tonian.tasks.base.command import Command

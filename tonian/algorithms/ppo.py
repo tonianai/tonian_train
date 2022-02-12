@@ -13,7 +13,7 @@ from tonian.common.buffers import DictRolloutBuffer
 from tonian.common.schedule import Schedule, schedule_or_callable
 from tonian.tasks.base.vec_task import VecTask
 
-from tonian.algorithms.policies import ActorCriticPolicy
+from tonian.policies.policies import ActorCriticPolicy
 
 import numpy as np
 
