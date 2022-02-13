@@ -29,10 +29,8 @@ class WalkingTask(GenerationalVecTask):
     
     
     
-    def __init__(self, config_path: str, sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
-        config = self._fetch_config_params(config_path)
-        
-        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
+    def __init__(self, config_or_path: Union[str, Dict], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None: 
+        super().__init__(config_or_path, sim_device, graphics_device_id, headless, rl_device)
         
         if self.viewer != None:
             cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
@@ -48,33 +46,27 @@ class WalkingTask(GenerationalVecTask):
         
         self.heading_vector = to_torch([1,0,0], device= self.device).repeat((self.num_envs, 1))
         self.initial_heading_vector = self.heading_vector.clone()
-        
-    def _fetch_config_params(self, config_path: str) -> Dict:
-        """Fetches the config file and extracts config properties from it and sets important member variables
-        Args:
-            config_path (str): relative path to the config file
+         
+    
+    def _extract_params_from_config(self) -> None:
+        """
+        Extract local variables used in the sim from the config dict
         """
         
-        # opfen the config file 
-        with open(config_path, 'r') as stream:
-            try:
-                config = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:    
-                raise FileNotFoundError( f"File {config_path} not found")
+        assert self.config["sim"] is not None, "The sim config must be set on the task config file"
+        assert self.config["env"] is not None, "The env config must be set on the task config file"
         
         #extract params from config 
-        self.randomize = config["task"]["randomize"]
+        assert self.config["env"]["powerscale"]
+        self.power_scale = self.config["env"]["powerscale"]
         
-        self.power_scale = config["env"]["powerscale"]
-        
-        
-        self.dt = config["sim"]["dt"]
+        #extract params from config 
+        self.randomize = self.config["task"]["randomize"]
         
         # The reward weighting dict is located in the config.yaml file and determines how much each reward contributes to the total reward function
-        self.reward_weighting = config["env"]["reward_weighting"]
-        
-        return config
-            
+        self.reward_weighting = self.config["env"]["reward_weighting"]
+             
+    
     def _get_gpu_gym_state_tensors(self) -> None:
         """Retreive references to the gym tensors for the environment, that are on the gpu
         """

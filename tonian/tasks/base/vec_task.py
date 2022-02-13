@@ -16,8 +16,9 @@ import torch
 import torch.nn as nn
 
 import time
-
 import sys
+import yaml
+
 
 from tonian.common.spaces import MultiSpace
 
@@ -30,7 +31,7 @@ class VecTask(BaseEnv, ABC):
     """
     
     
-    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str)  -> None:
+    def __init__(self, config_or_path: Union[Dict[str, Any], str], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str)  -> None:
         """Initialise the `VecTask`.
 
         Args:
@@ -39,7 +40,16 @@ class VecTask(BaseEnv, ABC):
             graphics_device_id (int): The device id to render with
             headless (bool): determines whether the scene is rendered
         """
+        
+        if isinstance(config_or_path, str):
+            config = self._config_path_to_config(config_or_path)
+        else:
+            config = config_or_path
+            assert isinstance(config_or_path, Dict), "The config_or_path must eighter be a string to a config file or the contents of a content dict itself"
+            
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
+        
+        self._extract_params_from_config()
         
         # if the actor is symmetric only the actor_obs space will be regarded, the critic_obs space will not exist
         self.is_symmetric = self._is_symmetric()
@@ -81,7 +91,23 @@ class VecTask(BaseEnv, ABC):
         # These are the extras that will be returned on the step function
         self.extras = {}
         
-    
+    def _config_path_to_config(self, config_path: str) -> Dict:
+        """Fetches the config file and returns config dict 
+        Args:
+            config_path (str): relative path to the config file
+        Result:
+            config (Dict): The resulting config dict, that will be used to cinfigure the task
+        """
+        
+        # open the config file 
+        with open(config_path, 'r') as stream:
+            try:
+                config = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"File {config_path} not found")
+        
+        
+        return config
     
         
     def allocate_buffers(self):
@@ -130,7 +156,6 @@ class VecTask(BaseEnv, ABC):
         
         # the cumulative rewards, but only the envs in terminal states are not hidden
         self.masked_cumulative_rewards = torch.zeros(self.num_envs, device= self.device, dtype= torch.float32)
-        
         
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
         """Create an Isaac Gym sim object.
@@ -211,6 +236,11 @@ class VecTask(BaseEnv, ABC):
 
             else:
                 self.gym.poll_viewer_events(self.viewer)
+    
+    @abstractmethod
+    def _extract_params_from_config(self) -> None:
+        """Extract important parameters from the config"""
+        pass
     
     @abstractmethod
     def _create_envs(self, num_envs: int, spacing: float, num_per_row: int)->None:

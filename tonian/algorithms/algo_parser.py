@@ -12,6 +12,7 @@ class AlogParser:
         
         if isinstance(config, str):
             
+            
         elif isinstance(config, Dict):
             
         else:

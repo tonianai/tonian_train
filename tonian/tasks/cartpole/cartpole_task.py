@@ -29,11 +29,8 @@ from tonian.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 class Cartpole(VecTask):
 
-    def __init__(self, config_path, sim_device, graphics_device_id, headless, rl_device: str = "cuda:0"):
-    
-        config = self._fetch_config_params(config_path)
-        
-        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
+    def __init__(self, config_or_path, sim_device, graphics_device_id, headless, rl_device: str = "cuda:0"):
+        super().__init__(config_or_path, sim_device, graphics_device_id, headless, rl_device)
         
         if self.viewer != None:
             cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
@@ -56,24 +53,20 @@ class Cartpole(VecTask):
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         
-    def _fetch_config_params(self, config_path: str) -> Dict:
-        """Fetches the config file and extracts config properties from it and sets important member variables
-        Args:
-            config_path (str): relative path to the config file
+    
+    
+    def _extract_params_from_config(self) -> None:
+        """
+        Extract local variables used in the sim from the config dict
         """
         
-        # opfen the config file 
-        with open(config_path, 'r') as stream:
-            try:
-                config = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:    
-                raise FileNotFoundError( f"File {config_path} not found")
+        assert self.config["sim"] is not None, "The sim config must be set on the task config file"
+        assert self.config["env"] is not None, "The env config must be set on the task config file"
         
         #extract params from config 
-        self.power_scale = config["env"]["powerscale"]
-        self.dt = config["sim"]["dt"]
-        
-        return config
+        assert self.config["env"]["powerscale"]
+        self.power_scale = self.config["env"]["powerscale"]
+           
  
 
     def _create_envs(self, spacing, num_per_row):
