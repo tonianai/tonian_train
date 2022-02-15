@@ -52,6 +52,8 @@ class PPO(BaseAlgorithm):
         
         self.policy = policy.to(self.device)
         
+        self.lr = self.policy.lr_schedule
+        
         # the step when the last save was made
         self.last_save = 0
         
@@ -69,6 +71,7 @@ class PPO(BaseAlgorithm):
         
         
         
+        
     def _fetch_config_params(self, config):
         """Fetćh hyperparameters from the configuration dict and set them to member variables
         
@@ -77,11 +80,6 @@ class PPO(BaseAlgorithm):
         """
         
         self.gamma = config['gamma']
-        self.lr : Callable() = schedule_or_callable(config['lr'])
-        
-        
-        print(self.lr(0))
-        print(type(self.lr(0)))
         self.n_epochs = config['n_epochs']
         self.batch_size = config['batch_size']
         self.n_steps = config['n_steps']

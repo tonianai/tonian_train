@@ -87,7 +87,7 @@ class SimpleDynamicForwardNet(BaseNet):
             # add the first linear linear layer starting with the combined obs size
             layers.append(nn.Linear(self.combined_obs_size, hidden_layer_sizes[0]))
             
-            for i , size in enumerate(layers):
+            for i , size in enumerate(hidden_layer_sizes):
                 
                 if i == 0:
                     continue
@@ -104,7 +104,10 @@ class SimpleDynamicForwardNet(BaseNet):
            
         # the asterix is unpacking all layers_actor items and passing them into the nn.Sequential
         self.network = nn.Sequential(*layers).to(self.device)
-         
+        
+        print("Layers:")
+        print(layers)
+        print(self.network)
         
         
     def forward(self, obs: Observation) -> torch.Tensor:
