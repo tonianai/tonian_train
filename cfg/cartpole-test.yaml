@@ -37,7 +37,9 @@ algo:
   gae_lamda: 0.5
   entropy_coef: 0
   value_f_coef: 1
-  action_std: # the maximum of standard deviation 
+
+  action_std: # hard set the std -> if this is not set, or set to 'auto' the action_std becomes a parameter
+  
     schedule_type: 'steps'
     interpolation: 'none'
     schedule: 

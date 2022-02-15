@@ -122,6 +122,7 @@ if __name__ == "__main__":
     
     
     task = task_from_config(config["task"])
+    task.is_symmetric = False
     policy = policy_from_config(config["policy"], task)
     print(policy)
     algo = algo_from_config(config["algo"], task, policy, device)
