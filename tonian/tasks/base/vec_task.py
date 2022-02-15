@@ -22,6 +22,39 @@ import yaml
 
 from tonian.common.spaces import MultiSpace
 
+
+def join_configs(base_config: Dict, config: Dict) -> Dict:
+    """Joins two configuration files into one
+
+    Args:
+        base_config (Dict): The base config
+        config (Dict): This config can override values of the base config
+
+    Returns:
+        Dict: [description]
+    """
+    # idea go through all the values and join or override if the value is not a dict
+    # if the value is a dict recursevely call this function
+    
+    final_dict = base_config.copy()
+    
+    for key, value in config.items():
+        
+        if isinstance(value, Dict):
+            
+            # check if it is in the base
+            if key in final_dict.keys():
+                # join the dicts using a recursive call
+                final_dict[key] = join_configs(final_dict[key], value)
+            else:
+                final_dict[key] = value
+            
+        else:
+            final_dict[key] = value
+        
+    
+    return final_dict
+
 class VecTask(BaseEnv, ABC):
     """
     Vectorized Environments are a method for stacking multiple independent environments into a single environment.
@@ -41,12 +74,21 @@ class VecTask(BaseEnv, ABC):
             headless (bool): determines whether the scene is rendered
         """
         
-        if isinstance(config_or_path, str):
+        # load the s
+        base_config = self._get_standard_config()
+        
+        if config_or_path is not None and isinstance(config_or_path, str):
             config = self._config_path_to_config(config_or_path)
         else:
             config = config_or_path
             assert isinstance(config_or_path, Dict), "The config_or_path must eighter be a string to a config file or the contents of a content dict itself"
-            
+        
+        print(base_config)
+        config = join_configs(base_config, config)
+        
+        print("Done config")
+        print(config)
+        
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         self._extract_params_from_config()
@@ -91,6 +133,7 @@ class VecTask(BaseEnv, ABC):
         # These are the extras that will be returned on the step function
         self.extras = {}
         
+        
     def _config_path_to_config(self, config_path: str) -> Dict:
         """Fetches the config file and returns config dict 
         Args:
@@ -108,7 +151,6 @@ class VecTask(BaseEnv, ABC):
         
         
         return config
-    
         
     def allocate_buffers(self):
         """initialize the tensors on the gpu
@@ -242,6 +284,16 @@ class VecTask(BaseEnv, ABC):
         """Extract important parameters from the config"""
         pass
     
+    @abstractmethod
+    def _get_standard_config(self) -> Dict:
+        """Get the dict of the standard configuration
+
+        Returns:
+            Dict: Standard configuration
+        """
+        
+        
+            
     @abstractmethod
     def _create_envs(self, num_envs: int, spacing: float, num_per_row: int)->None:
         pass

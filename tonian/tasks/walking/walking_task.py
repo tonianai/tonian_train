@@ -11,7 +11,7 @@ from tonian.common.spaces import MultiSpace
 from gym import spaces
 import gym
 
-from typing import Dict, Any, Tuple, Union
+from typing import Dict, Any, Tuple, Union, Optional
 
 from isaacgym import gymtorch, gymapi
 from isaacgym.torch_utils import to_torch
@@ -29,7 +29,7 @@ class WalkingTask(GenerationalVecTask):
     
     
     
-    def __init__(self, config_or_path: Union[str, Dict], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None: 
+    def __init__(self, config_or_path: Optional[Union[str, Dict]], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None: 
         super().__init__(config_or_path, sim_device, graphics_device_id, headless, rl_device)
         
         if self.viewer != None:
@@ -65,7 +65,22 @@ class WalkingTask(GenerationalVecTask):
         
         # The reward weighting dict is located in the config.yaml file and determines how much each reward contributes to the total reward function
         self.reward_weighting = self.config["env"]["reward_weighting"]
-             
+    
+    def _get_standard_config(self) -> Dict:
+        """Get the dict of the standard configuration
+
+        Returns:
+            Dict: Standard configuration
+        """
+        dirname = os.path.dirname(__file__)
+        base_config_path = os.path.join(dirname, 'config.yaml')
+        
+          # open the config file 
+        with open(base_config_path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"Base Config : {base_config_path} not found")
     
     def _get_gpu_gym_state_tensors(self) -> None:
         """Retreive references to the gym tensors for the environment, that are on the gpu
@@ -162,10 +177,6 @@ class WalkingTask(GenerationalVecTask):
             directional_factor= 1.0,
             energy_cost= 1.0
         )
-        
-        
-        
-        
         
     def reset_envs(self, env_ids):
         # Randomization can only happen at reset time, since it can reset actor positions on GPU
@@ -320,7 +331,6 @@ class WalkingTask(GenerationalVecTask):
     def _is_symmetric(self):
         return False
     
-
     def reward_range(self):
         return (-1e100, 1e100)
         

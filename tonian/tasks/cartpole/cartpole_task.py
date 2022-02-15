@@ -29,7 +29,7 @@ from tonian.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 class Cartpole(VecTask):
 
-    def __init__(self, config_or_path, sim_device, graphics_device_id, headless, rl_device: str = "cuda:0"):
+    def __init__(self, config_or_path: Optional[Union[str, Dict]], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0"):
         super().__init__(config_or_path, sim_device, graphics_device_id, headless, rl_device)
         
         if self.viewer != None:
@@ -53,6 +53,21 @@ class Cartpole(VecTask):
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         
+    def _get_standard_config(self) -> Dict:
+        """Get the dict of the standard configuration
+
+        Returns:
+            Dict: Standard configuration
+        """
+        dirname = os.path.dirname(__file__)
+        base_config_path = os.path.join(dirname, 'config.yaml')
+        
+          # open the config file 
+        with open(base_config_path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"Base Config : {base_config_path} not found")
     
     
     def _extract_params_from_config(self) -> None:
