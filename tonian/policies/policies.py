@@ -16,7 +16,7 @@ from gym import spaces
 import collections
 import warnings
 
-from tonian.common.distributions import DiagGaussianDistribution, Distribution
+from tonian.common.distributions import DiagGaussianDistributionStdParam, Distribution
 from tonian.common.spaces import MultiSpace
 from tonian.common.schedule import Schedule
 from tonian.common.networks import BaseNet, SimpleDynamicForwardNet
@@ -419,7 +419,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         """
         mean_actions = self.action_latent_net(latent_pi)
 
-        if isinstance(self.action_dist, DiagGaussianDistribution):
+        if isinstance(self.action_dist, DiagGaussianDistributionStdParam):
             return self.action_dist.proba_distribution(mean_actions, self.log_std)
         else:
             raise ValueError("Invalid action distribution")
@@ -563,7 +563,17 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
             "optimizer_class": self.optimizer_class,
             "optimizer_kwargs": self.optimizer_kwargs
         }
-        
+
+
+class SimpleActorCriticFixedStdPolicy(ActorCriticPolicy):
+    
+    
+    def __init__(self, actor_obs_space: Union[spaces.Space, MultiSpace],
+                 critic_obs_space: Optional[Union[spaces.Space, MultiSpace]], 
+                 action_space: spaces.Space, 
+                 lr_schedule: Schedule, init_log_std: float = 0, device: Union[torch.device, str] = "cuda:0", squash_actions: bool = False, ortho_init: bool = True, optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam, optimizer_kwargs: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(actor_obs_space, critic_obs_space, action_space, lr_schedule, init_log_std, device, squash_actions, ortho_init, optimizer_class, optimizer_kwargs)
+                
 
 def make_proba_distribution(
     action_space: spaces.Space, use_sde: bool = False, dist_kwargs: Optional[Dict[str, Any]] = None
@@ -582,7 +592,7 @@ def make_proba_distribution(
 
     if isinstance(action_space, spaces.Box):
         assert len(action_space.shape) == 1, "Error: the action space must be a vector"
-        return DiagGaussianDistribution(int(np.prod(action_space.shape)), **dist_kwargs) 
+        return DiagGaussianDistributionStdParam(int(np.prod(action_space.shape)), **dist_kwargs) 
     else:
         raise NotImplementedError(
             "Error: probability distribution, not implemented for action space"

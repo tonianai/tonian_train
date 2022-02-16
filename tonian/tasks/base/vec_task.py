@@ -82,12 +82,9 @@ class VecTask(BaseEnv, ABC):
         else:
             config = config_or_path
             assert isinstance(config_or_path, Dict), "The config_or_path must eighter be a string to a config file or the contents of a content dict itself"
-        
-        print(base_config)
+         
         config = join_configs(base_config, config)
-        
-        print("Done config")
-        print(config)
+         
         
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         

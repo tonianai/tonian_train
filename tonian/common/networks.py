@@ -104,11 +104,7 @@ class SimpleDynamicForwardNet(BaseNet):
            
         # the asterix is unpacking all layers_actor items and passing them into the nn.Sequential
         self.network = nn.Sequential(*layers).to(self.device)
-        
-        print("Layers:")
-        print(layers)
-        print(self.network)
-        
+         
         
     def forward(self, obs: Observation) -> torch.Tensor:
         """Takes in an observation (either, dict or tensor)
