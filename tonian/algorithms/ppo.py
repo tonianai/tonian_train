@@ -3,8 +3,7 @@ from typing import Callable, Dict, Union, List, Tuple, Type, Optional
 import torch 
 import torch.nn as nn
 from torch.nn import functional as F
-
-from torch.distributions import MultivariateNormal
+ 
 
 from collections import deque
 
@@ -24,7 +23,7 @@ import time
 
 class PPO(BaseAlgorithm):
     
-    def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device], log_compute_rewards: bool = True) -> None:
+    def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device]) -> None:
         super().__init__(env, config, device)
         self._fetch_config_params(config)
         

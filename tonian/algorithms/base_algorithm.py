@@ -5,8 +5,7 @@ from typing import Dict, Optional, Type
 from tonian.tasks.base.vec_task import VecTask
 
 import torch 
-import torch.nn as nn
-from torch.distributions import MultivariateNormal
+import torch.nn as nn 
 from tonian.tasks.base.base_env import BaseEnv
 from tonian.common.logger import BaseLogger, TensorboardLogger
 
