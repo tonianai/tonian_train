@@ -25,9 +25,9 @@ import yaml
 
 
  
-env = WalkingTask(config_or_path="./tonian/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=False)
+#env = WalkingTask(config_or_path="./tonian/tasks/walking/config.yaml", sim_device="gpu" , graphics_device_id=0 , headless=False)
  
-#env = Cartpole(config_or_path="./tonian/tasks/cartpole/config.yaml", sim_device="gpu", graphics_device_id=0, headless=False)
+env = Cartpole(config_or_path={'env': {'num_envs': 12}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = True
 

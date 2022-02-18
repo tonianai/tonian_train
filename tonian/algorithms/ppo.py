@@ -82,7 +82,10 @@ class PPO(BaseAlgorithm):
         self.n_epochs = config['n_epochs']
         self.batch_size = config['batch_size']
         self.n_steps = config['n_steps']
-        self.target_kl = config['target_kl']
+        if 'tarket_kl' in config:
+            self.target_kl = config['target_kl']
+        else:
+            self.target_kl = None
         self.gae_lambda = config['gae_lamda']
         self.eps_clip = config['eps_clip']
         self.value_f_coef = config['value_f_coef']
