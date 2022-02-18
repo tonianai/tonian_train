@@ -147,3 +147,9 @@ class BaseEnv(ABC):
             gym.Space: [description]
         """
         raise NotImplementedError()
+    
+    @abstractmethod
+    def close(self) -> None:
+        """Close the environment properly
+        """
+        

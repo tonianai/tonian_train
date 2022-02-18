@@ -415,7 +415,6 @@ class VecTask(BaseEnv, ABC):
         if not self.is_symmetric:
             return self.actor_obs, self.critic_obs 
         if self.rl_device == 'cpu':
-            print(dict_to_cpu(self.actor_obs))
             return dict_to_cpu(self.actor_obs)
         return self.actor_obs
         
@@ -502,7 +501,7 @@ class GenerationalVecTask(VecTask, ABC):
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         
-        self.generational_goal = config["env"]["generational_goals"]
+        #self.generational_goal = config["env"]["generational_goals"]
         
         # The gerneration changes when a predefines gernaational goal is achived
         # differnt generations can have different degrees of domain randomisation and different reward functions

@@ -227,6 +227,9 @@ class Cartpole(VecTask):
     
     def reward_range(self):
         return (-1e100, 1e100)
+    
+    def close(self):
+        pass
 
 #####################################################################
 ###=========================jit functions=========================###

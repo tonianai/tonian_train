@@ -333,7 +333,9 @@ class WalkingTask(GenerationalVecTask):
     
     def reward_range(self):
         return (-1e100, 1e100)
-        
+    
+    def close(self):
+        pass
         
 
 @torch.jit.script
