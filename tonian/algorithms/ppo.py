@@ -317,9 +317,9 @@ class PPO(BaseAlgorithm):
                     
                 # Optimization Step
                 self.policy.optimizer.zero_grad()
-                loss.backward()
+                loss.backward() 
                 # Clip grad norm
-                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+                #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.policy.optimizer.step()
                 
         
