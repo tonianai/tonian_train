@@ -29,7 +29,7 @@ import yaml
  
 #env = WalkingTask(config_or_path={"env": {"num_envs": 1200}}, sim_device="gpu" , graphics_device_id=0 , headless=True)
  
-env = Cartpole(config_or_path={"env": {"num_envs": 1000}}, sim_device="gpu", graphics_device_id=0, headless=False)
+env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
  
@@ -49,9 +49,10 @@ policy = SimpleActorCriticPolicy(actor_obs_space=env.actor_observation_spaces,
                                  critic_obs_space=env.critic_observation_spaces,
                                  action_space= env.action_space,
                                  lr_schedule=lr_schedule,
-                                 init_log_std = -0.5,
-                                 actor_hidden_layer_sizes=( 128, 128, 128),
-                                 critic_hiddent_layer_sizes=(128, 128, 128) )
+                                 init_log_std = 0.0,
+                                 actor_hidden_layer_sizes=( 64, 64),
+                                 critic_hiddent_layer_sizes=(64, 64) )
+ 
 
 
 algo = PPO(env, config, policy=policy, device="cuda:0")

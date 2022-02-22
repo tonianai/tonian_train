@@ -274,6 +274,9 @@ class PPO(BaseAlgorithm):
                 # Normalize advantage
                 advantages = rollout_data.advantages
                 advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+                
+                # print(self.batch_size)
+                # print(advantages)
         
                 # ratio between old and new policy, should be one at the first iteration
                 ratio = torch.exp(log_prob - rollout_data.old_log_prob)

@@ -150,6 +150,24 @@ class DictRolloutBuffer(BaseBuffer):
         :param log_prob: log probability of the action
             following the current policy.
         """
+        
+        '''
+        print("OBS Shape")
+        print(actor_obs['linear'].shape)
+        
+        print("OBS critic Shape")
+        print(critic_obs['linear'].shape)
+            
+        print("Actions Shape")
+        print(action.shape)
+    
+        print("Reward SHape")
+        print(reward.shape)
+        
+        print("Value Shape")
+        print(value.shape)
+        '''
+        
         if len(log_prob.shape) == 0:
             # Reshape 0-d tensor to avoid error
             log_prob = log_prob.reshape(-1, 1)
@@ -221,10 +239,10 @@ class DictRolloutBuffer(BaseBuffer):
             critic_obs={key: obs[batch_inds] for (key, obs) in self.critic_obs.items()},
             actor_obs={key: obs[batch_inds] for (key, obs) in self.actor_obs.items()},
             actions= self.actions[batch_inds],
-            old_values= self.values[batch_inds],
-            old_log_prob= self.log_probs[batch_inds],
-            advantages= self.advantages[batch_inds],
-            returns= self.returns[batch_inds]
+            old_values= self.values[batch_inds].squeeze(),
+            old_log_prob= self.log_probs[batch_inds].squeeze(),
+            advantages= self.advantages[batch_inds].squeeze(),
+            returns= self.returns[batch_inds].squeeze()
         )
          
     def size(self) -> int:
@@ -258,7 +276,9 @@ class DictRolloutBuffer(BaseBuffer):
         
         last_gae_lam = 0
         
-        
+        print(last_values.shape)
+        last_values = last_values.clone().flatten()
+        print(last_values.shape)
         
         for step in reversed(range(self.buffer_size)):
             if step == self.buffer_size - 1:

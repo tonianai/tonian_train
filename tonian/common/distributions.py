@@ -109,6 +109,7 @@ def sum_independent_dims(tensor: torch.Tensor) -> torch.Tensor:
     """
     if len(tensor.shape) > 1:
         tensor = tensor.sum(dim=1)
+        
     else:
         print("Go to distributions tensors and check if sum_independent is desired")
         tensor = tensor.sum()
@@ -152,7 +153,7 @@ class DiagGaussianDistributionStdParam(Distribution):
         """
         #TODO: Change back
         #action_std = torch.ones_like(mean_actions) * log_std.exp()
-        action_std = torch.ones_like(mean_actions) * log_std.exp()
+        action_std = torch.ones_like(mean_actions) * 0.1
         self.distribution = Normal(mean_actions, action_std)
         return self
         

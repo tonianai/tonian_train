@@ -25,9 +25,9 @@ import yaml
 
 
  
-env = WalkingTask(config_or_path={'env': {'num_envs': 12}}, sim_device="gpu" , graphics_device_id=0 , headless=False)
+#env = WalkingTask(config_or_path={'env': {'num_envs': 10}}, sim_device="gpu" , graphics_device_id=0 , headless=False)
  
-#env = Cartpole(config_or_path={'env': {'num_envs': 12}}, sim_device="gpu", graphics_device_id=0, headless=False)
+env = Cartpole(config_or_path={'env': {'num_envs': 12}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = True
 
@@ -35,5 +35,7 @@ env.is_symmetric = True
 sb3_env = Sb3VecEnvWrapper(env)
 
 model = PPO("MultiInputPolicy", sb3_env, verbose=1)
+
+print(model.policy)
  
 model.learn(total_timesteps=200000000)
