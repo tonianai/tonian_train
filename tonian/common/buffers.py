@@ -20,6 +20,21 @@ class BaseBuffer(ABC):
     def __init__(self) -> None:
         super().__init__()
         
+    @staticmethod
+    def swap_and_flatten(arr: torch.Tensor) -> torch.Tensor:
+        """
+        Swap and then flatten axes 0 (buffer_size) and 1 (n_envs)
+        to convert shape from [n_steps, n_envs, ...] (when ... is the shape of the features)
+        to [n_steps * n_envs, ...] (which maintain the order)
+
+        :param arr:
+        :return:
+        """
+        shape = arr.shape
+        if len(shape) < 3:
+            shape = shape + (1,)
+        return arr.swapaxes(0, 1).reshape(shape[0] * shape[1], *shape[2:])
+        
 
 class DictRolloutBufferSamples(NamedTuple):
     critic_obs: Dict[Union[int, str], torch.Tensor]
@@ -79,6 +94,7 @@ class DictRolloutBuffer(BaseBuffer):
         self.actor_obs_space = actor_obs_space
         self.action_space = action_space
         self.action_size = action_space.shape[0]
+        self.generator_ready = False
 
         print(self.buffer_size)
     
@@ -119,6 +135,8 @@ class DictRolloutBuffer(BaseBuffer):
         self.values = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
         self.log_probs = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
         self.advantages = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
+        
+        self.generator_ready = False
         
         # critic obs and actor obs must be dicts, because this enables multispace environments
         self.critic_obs = {}
@@ -207,18 +225,23 @@ class DictRolloutBuffer(BaseBuffer):
         
         # prepare the data by flattening the n_envs 
         # use view, because we don't want contigous tensors for performance reasons (no flatten or reshape)
-        self.actions = self.actions.view((self.buffer_size * self.n_envs, -1))
-        self.rewards = self.rewards.view((self.buffer_size * self.n_envs, -1))
-        self.values = self.values.view((self.buffer_size * self.n_envs, -1))
-        self.log_probs = self.log_probs.view((self.buffer_size * self.n_envs, -1))
-        self.advantages = self.advantages.view((self.buffer_size * self.n_envs, -1))
-        self.returns = self.returns.view((self.buffer_size* self.n_envs, -1))
         
-        for key in self.actor_obs:
-            self.actor_obs[key] = self.actor_obs[key].view((self.buffer_size * self.n_envs, -1))
+        if not self.generator_ready: 
+            
+            self.actions = self.swap_and_flatten(self.actions)
+            self.rewards = self.swap_and_flatten(self.rewards)
+            self.values = self.swap_and_flatten(self.values)
+            self.log_probs = self.swap_and_flatten(self.log_probs)
+            self.advantages = self.swap_and_flatten(self.advantages)
+            self.returns = self.swap_and_flatten(self.returns)
+            
+            self.generator_ready = True
+        
+        for key, obs in self.actor_obs.items():
+            self.actor_obs[key] = self.swap_and_flatten(obs)
          
         for key in self.critic_obs:
-            self.critic_obs[key] = self.critic_obs[key].view((self.buffer_size * self.n_envs, -1))
+            self.critic_obs[key] = self.swap_and_flatten(obs)
             
         
         # Return everything, don't create minibatches
@@ -228,6 +251,7 @@ class DictRolloutBuffer(BaseBuffer):
         
         indices = np.random.permutation(self.buffer_size * self.n_envs)
         
+        #indices = np.arange(stop= self.buffer_size * self.n_envs)
         start_idx = 0
         while start_idx < self.buffer_size * self.n_envs:
             yield self._get_samples(indices[start_idx : start_idx + batch_size])

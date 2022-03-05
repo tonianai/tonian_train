@@ -89,19 +89,28 @@ class Cartpole(VecTask):
         lower = gymapi.Vec3(0.5 * -spacing, -spacing, 0.0)
         upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
 
+
         asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../assets")
         asset_file = "urdf/cartpole.urdf"
 
+        print(asset_root)
 
 
         asset_path = os.path.join(asset_root, asset_file)
         asset_root = os.path.dirname(asset_path)
         asset_file = os.path.basename(asset_path)
-
+        
+        
+        print(asset_path)
+        print(asset_root)
+        print(asset_file)
+        
         asset_options = gymapi.AssetOptions()
         asset_options.fix_base_link = True
         cartpole_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(cartpole_asset)
+        
+        print(cartpole_asset)
 
         pose = gymapi.Transform()
         pose.p.z = 2.0
