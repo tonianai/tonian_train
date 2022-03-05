@@ -375,6 +375,8 @@ class ActorCriticPolicy(BasePolicy, ABC):
             log_likelihood (torch.Tensor)
             entropy (torch.Tensor)
         """
+        
+        print(actor_obs['linear'].shape)
         latent_pi = self.actor_net(actor_obs)
         latent_vf = self.critic_net(critic_obs)
         

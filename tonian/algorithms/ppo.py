@@ -269,6 +269,11 @@ class PPO(BaseAlgorithm):
 
                 values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
                 
+                print('new Log prob')
+                print(log_prob)
+                print('old log prob')
+                print(rollout_data.old_log_prob)
+                
                 values = values.flatten()
                 
                 # Normalize advantage
@@ -280,6 +285,9 @@ class PPO(BaseAlgorithm):
         
                 # ratio between old and new policy, should be one at the first iteration
                 ratio = torch.exp(log_prob - rollout_data.old_log_prob)
+                
+                print("ratio")
+                print(ratio)
 
                 # clipped surrogate loss
                 policy_loss_1 = advantages * ratio

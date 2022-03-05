@@ -169,7 +169,6 @@ class DictRolloutBuffer(BaseBuffer):
             following the current policy.
         """
         
-        '''
         print("OBS Shape")
         print(actor_obs['linear'].shape)
         
@@ -184,25 +183,34 @@ class DictRolloutBuffer(BaseBuffer):
         
         print("Value Shape")
         print(value.shape)
-        '''
         
         if len(log_prob.shape) == 0:
             # Reshape 0-d tensor to avoid error
             log_prob = log_prob.reshape(-1, 1)
             
+        print("------------------")
             
-        for key in self.actor_obs:
+        for key in self.actor_obs:          
+            print(self.actor_obs[key].shape)
             self.actor_obs[key][self.pos] = actor_obs[key].detach().clone()
-        
+  
+            
         for key in self.critic_obs:
             self.critic_obs[key][self.pos] = critic_obs[key].detach().clone()
         
+        
+        print("actions shape")
+        print(self.actions.shape)
+        print("rewards shape")
+        print(self.rewards.shape)
         
         self.actions[self.pos] = action.detach().clone()
         self.rewards[self.pos] = reward.detach().clone()
         self.is_epidsode_start[self.pos] = is_epidsode_start.detach().clone()
         self.values[self.pos] = value.detach().clone().squeeze()
         self.log_probs[self.pos] = log_prob.detach().clone().squeeze()
+        
+        
         
         
         self.pos += 1
@@ -237,11 +245,11 @@ class DictRolloutBuffer(BaseBuffer):
             
             self.generator_ready = True
         
-        for key, obs in self.actor_obs.items():
-            self.actor_obs[key] = self.swap_and_flatten(obs)
+            for key, obs in self.actor_obs.items():
+                self.actor_obs[key] = self.swap_and_flatten(obs)
          
-        for key in self.critic_obs:
-            self.critic_obs[key] = self.swap_and_flatten(obs)
+            for key in self.critic_obs:
+                self.critic_obs[key] = self.swap_and_flatten(obs)
             
         
         # Return everything, don't create minibatches
