@@ -1,4 +1,5 @@
 from matplotlib.font_manager import is_opentype_cff_font
+from numpy import roll
 from tonian.common.buffers import DictRolloutBuffer
 from tonian.common.spaces import MultiSpace
 from gym import spaces
@@ -28,12 +29,11 @@ buffer = DictRolloutBuffer(buffer_size=buffer_size,
 for i in range(buffer_size):
     
     obs = torch.ones(size = (n_envs, n_obs)) *  torch.arange(start = i * n_envs, end = (i+1) *n_envs).view(n_envs, 1)
-    print(obs)
     
     critic_obs = {'linear': obs.clone()}
     actor_obs = {'linear': obs.clone()}
     actions = torch.ones(size = (n_envs, n_actions)) *  torch.arange(start = i * n_envs, end = (i+1) *n_envs).view(n_envs, 1)
-    reward = torch.ones(size= (n_envs, ))
+    reward = torch.arange(start = i * n_envs, end = (i+1) *n_envs).view(n_envs)
     log_probs = torch.arange(start = i * n_envs, end = (i+1) *n_envs).view(n_envs, 1)
     is_episode_start = torch.zeros(size = (n_envs, ))
     values = torch.ones( size = (n_envs , 1))
@@ -48,11 +48,40 @@ for i in range(buffer_size):
         log_prob=log_probs
         
     )
+ 
+log_prob_error = False
+actor_observation_error = False
+critic_observation_error = False
+reward_error = False
 
-print(buffer.size())
+
+for rollout_data in buffer.get(batch_size):   
     
-for rollout_data in buffer.get(batch_size): 
-    print("log probs")
-    print(rollout_data.old_log_prob)
-    print("actions")
-    print(rollout_data.actions)
+    # measure everything aigainst the action
+    if (rollout_data.old_log_prob[0] != rollout_data.actions[0][0] ):
+        log_prob_error = True
+        
+    if(rollout_data.actor_obs["linear"][0][0] != rollout_data.actions[0][0] ):
+        actor_observation_error = True
+        
+    if(rollout_data.critic_obs["linear"][0][0] != rollout_data.actions[0][0] ):
+        critic_observation_error = True
+
+if log_prob_error:
+    print("Log prob does not correspond to action")
+else:
+    print("Log prob does correspond to action")
+    
+    
+if actor_observation_error:
+    print("Actor obs does not correspond to action")
+else:
+    print("Actor obs does correspond to action")
+    
+    
+if critic_observation_error:
+    print("Critic obs does not correspond to action")
+else:
+    print("Critic obs does correspond to action")
+
+        
