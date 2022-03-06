@@ -1,4 +1,5 @@
   
+from numpy import roll
 from tonian.common.buffers import DictRolloutBuffer
 from tonian.common.spaces import MultiSpace
 from gym import spaces
@@ -36,6 +37,7 @@ for i in range(buffer_size):
     log_probs = torch.arange(start = i * n_envs, end = (i+1) *n_envs).view(n_envs, 1)
     is_episode_start = torch.zeros(size = (n_envs, ))
     values = torch.ones( size = (n_envs , 1))
+     
     
     buffer.add(
         actor_obs=actor_obs,
@@ -59,15 +61,16 @@ buffer.compute_returns_and_advantages(values.squeeze(), dones)
 
 for rollout_data in buffer.get(batch_size):   
     
-    # measure everything aigainst the action
-    print(rollout_data.actions)
-    print(rollout_data.old_log_prob)
+    # measure everything aigainst the action 
     if (rollout_data.old_log_prob[0] != rollout_data.actions[0][0] ):
         log_prob_error = True
         
     if(rollout_data.actor_obs["linear"][0][0] != rollout_data.actions[0][0] ):
         actor_observation_error = True
-        
+    
+    print(rollout_data.actor_obs["linear"])
+    print(rollout_data.actions)
+    
     if(rollout_data.critic_obs["linear"][0][0] != rollout_data.actions[0][0] ):
         critic_observation_error = True
 

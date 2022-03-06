@@ -32,26 +32,17 @@ policy = SimpleActorCriticPolicy(actor_obs_space=actor_obs_space,
                                  critic_hiddent_layer_sizes=(64, 64),
                                  device = "cpu")
 
-
-dummy_action = torch.rand(batch_size, n_actions)
+ 
 dummy_obs_tensor = torch.rand(batch_size, n_obs)
 dummy_obs_critic = {"linear": dummy_obs_tensor}
 dummy_obs_actor = {"linear": dummy_obs_tensor.clone()}
 
 action, value, log_prob = policy.forward(actor_obs=dummy_obs_actor, critic_obs=dummy_obs_critic)
-
-print("action")
-print(action)
-
-print("value")
-print(value)
-
-print("log_prob")
-print(log_prob)
+ 
 
 
 # reshape the actions of and observations
-action = dummy_action[ 0: int(batch_size/2),: ]
+action = action[ 0: int(batch_size/2),: ]
 dummy_obs_tensor = dummy_obs_actor['linear'][0: int(batch_size/2), :]
 dummy_obs_actor = {'linear': dummy_obs_tensor}
 
@@ -59,15 +50,6 @@ dummy_obs_tensor = dummy_obs_critic['linear'][0: int(batch_size/2), :]
 dummy_obs_critic = {'linear': dummy_obs_tensor}
 
 values, log_prob, entropy = policy.evaluate_actions(dummy_obs_actor, dummy_obs_critic, action)
-
-print("values")
-print(values)
-
-print("log_prob")
-print(log_prob)
-
-print("entropy")
-print(entropy)
 
 
 

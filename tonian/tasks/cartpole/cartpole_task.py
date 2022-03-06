@@ -1,3 +1,13 @@
+
+
+from isaacgym.torch_utils import to_torch
+from isaacgym import gymutil, gymtorch, gymapi
+
+
+from stable_baselines3.common.vec_env import VecEnv, DummyVecEnv
+
+from tonian.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
+
 import numpy
 import os
 import torch
@@ -18,14 +28,6 @@ from typing import Dict, Optional, Any, Union
 
 from tonian.common.spaces import MultiSpace
 
-
-from isaacgym.torch_utils import to_torch
-from isaacgym import gymutil, gymtorch, gymapi
-
-
-from stable_baselines3.common.vec_env import VecEnv, DummyVecEnv
-
-from tonian.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 class Cartpole(VecTask):
 

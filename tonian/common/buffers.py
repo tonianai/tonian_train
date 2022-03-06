@@ -96,7 +96,6 @@ class DictRolloutBuffer(BaseBuffer):
         self.action_size = action_space.shape[0]
         self.generator_ready = False
 
-        print(self.buffer_size)
     
     
         assert self.action_size, "Action size must not be zero"
@@ -302,9 +301,9 @@ class DictRolloutBuffer(BaseBuffer):
         
         last_gae_lam = 0
         
-        print(last_values.shape)
+        #print(last_values.shape)
         last_values = last_values.clone().flatten()
-        print(last_values.shape)
+        #print(last_values.shape)
         
         for step in reversed(range(self.buffer_size)):
             if step == self.buffer_size - 1:

@@ -128,8 +128,7 @@ class SimpleDynamicForwardNet(BaseNet):
                     concat_obs = obs[key]
         else:
             concat_obs = obs
-            
-        print(concat_obs.shape)
+             
         
         return self.network(concat_obs)
     

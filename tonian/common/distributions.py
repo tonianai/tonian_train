@@ -152,8 +152,10 @@ class DiagGaussianDistributionStdParam(Distribution):
         :return:
         """
         #TODO: Change back
-        #action_std = torch.ones_like(mean_actions) * log_std.exp()
-        action_std = torch.ones_like(mean_actions) * 0.1
+        #print("means actions internal")
+        #print(mean_actions)
+        action_std = torch.ones_like(mean_actions) * log_std.exp()
+        #action_std = torch.ones_like(mean_actions) * 0.1
         self.distribution = Normal(mean_actions, action_std)
         return self
         
@@ -165,7 +167,11 @@ class DiagGaussianDistributionStdParam(Distribution):
         :param actions:
         :return:
         """
+        #print("actions internal")
+        #print(actions)
         log_prob = self.distribution.log_prob(actions)
+        #print("log_prob internal")
+        #print(log_prob)
         return sum_independent_dims(log_prob)
     
     def entropy(self) -> torch.Tensor:

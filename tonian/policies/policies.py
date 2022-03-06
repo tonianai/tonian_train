@@ -380,6 +380,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         latent_pi = self.actor_net(actor_obs)
         latent_vf = self.critic_net(critic_obs)
         
+         
         distribution = self._get_action_dist_from_latent(latent_pi)
         log_prob = distribution.log_prob(action)
          

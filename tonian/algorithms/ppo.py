@@ -220,7 +220,7 @@ class PPO(BaseAlgorithm):
                 reward = rewards, 
                 is_epidsode_start= self._last_episode_starts, 
                 value = values, 
-                log_prob = log_probs)
+                log_prob =log_probs)
             
             
             self._last_obs = new_obs
@@ -274,11 +274,10 @@ class PPO(BaseAlgorithm):
             for rollout_data in self.rollout_buffer.get(self.batch_size):
                 
                 actions = rollout_data.actions
-
-                values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
                 
-                print("action")
-                print(actions)
+                
+                values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
+                 
                 
                 print('new Log prob')
                 print(log_prob)
@@ -296,10 +295,7 @@ class PPO(BaseAlgorithm):
         
                 # ratio between old and new policy, should be one at the first iteration
                 ratio = torch.exp(log_prob - rollout_data.old_log_prob)
-                
-                print("ratio")
-                print(ratio)
-
+                 
                 # clipped surrogate loss
                 policy_loss_1 = advantages * ratio
                 policy_loss_2 = advantages * torch.clamp(ratio, 1 - clip_range, 1 + clip_range)
