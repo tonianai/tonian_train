@@ -188,8 +188,7 @@ class DictRolloutBuffer(BaseBuffer):
             # Reshape 0-d tensor to avoid error
             log_prob = log_prob.reshape(-1, 1)
             
-            
-        for key in self.actor_obs:          
+        for key in self.actor_obs:   
             self.actor_obs[key][self.pos] = actor_obs[key].detach().clone()
   
             
