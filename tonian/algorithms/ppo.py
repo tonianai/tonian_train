@@ -269,6 +269,9 @@ class PPO(BaseAlgorithm):
 
                 values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
                 
+                print("action")
+                print(actions)
+                
                 print('new Log prob')
                 print(log_prob)
                 print('old log prob')

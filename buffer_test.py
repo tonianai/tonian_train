@@ -1,5 +1,4 @@
-from matplotlib.font_manager import is_opentype_cff_font
-from numpy import roll
+  
 from tonian.common.buffers import DictRolloutBuffer
 from tonian.common.spaces import MultiSpace
 from gym import spaces
@@ -53,6 +52,9 @@ log_prob_error = False
 actor_observation_error = False
 critic_observation_error = False
 reward_error = False
+
+dones = torch.zeros(size= (n_envs, ))
+buffer.compute_returns_and_advantages(values.squeeze(), dones)
 
 
 for rollout_data in buffer.get(batch_size):   

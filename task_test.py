@@ -29,7 +29,7 @@ import yaml
  
 #env = WalkingTask(config_or_path={"env": {"num_envs": 1200}}, sim_device="gpu" , graphics_device_id=0 , headless=True)
  
-env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="gpu", graphics_device_id=0, headless=True)
+env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
  

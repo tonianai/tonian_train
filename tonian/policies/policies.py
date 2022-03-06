@@ -324,11 +324,14 @@ class ActorCriticPolicy(BasePolicy, ABC):
         if critic_obs is None:
             critic_obs = actor_obs
         
+        
         # pass the actor observations troguh the actor net
         latent_pi = self.actor_net(actor_obs)
          
         # pass the critic observations trough the critic net 
         latent_vf = self.critic_net(critic_obs)
+        
+        print(latent_vf.device)
         
         # Evaluate values
         values = self.value_latent_net(latent_vf)
