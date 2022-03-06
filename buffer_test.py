@@ -4,10 +4,10 @@ from tonian.common.spaces import MultiSpace
 from gym import spaces
 import torch 
 
-n_envs = 10
+n_envs = 100
 n_actions = 5
 n_obs = 4
-batch_size = 100
+batch_size = 64
 buffer_size = 10000
 
 n_steps = int(buffer_size / n_envs)
@@ -60,6 +60,8 @@ buffer.compute_returns_and_advantages(values.squeeze(), dones)
 for rollout_data in buffer.get(batch_size):   
     
     # measure everything aigainst the action
+    print(rollout_data.actions)
+    print(rollout_data.old_log_prob)
     if (rollout_data.old_log_prob[0] != rollout_data.actions[0][0] ):
         log_prob_error = True
         

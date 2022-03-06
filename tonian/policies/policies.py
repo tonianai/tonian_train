@@ -330,9 +330,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
          
         # pass the critic observations trough the critic net 
         latent_vf = self.critic_net(critic_obs)
-        
-        print(latent_vf.device)
-        
+         
         # Evaluate values
         values = self.value_latent_net(latent_vf)
          
@@ -378,8 +376,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
             log_likelihood (torch.Tensor)
             entropy (torch.Tensor)
         """
-        
-        print(actor_obs['linear'].shape)
+         
         latent_pi = self.actor_net(actor_obs)
         latent_vf = self.critic_net(critic_obs)
         

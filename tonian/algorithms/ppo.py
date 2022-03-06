@@ -213,7 +213,15 @@ class PPO(BaseAlgorithm):
             # refer to stable-baselines on_policy_alorgithm.py line 196 
             
             
-            self.rollout_buffer.add(self._last_obs[0], self._last_obs[1], actions, rewards, self._last_episode_starts, values, log_probs)
+            self.rollout_buffer.add(
+                actor_obs = self._last_obs[0], 
+                critic_obs = self._last_obs[1], 
+                action = actions, 
+                reward = rewards, 
+                is_epidsode_start= self._last_episode_starts, 
+                value = values, 
+                log_prob = log_probs)
+            
             
             self._last_obs = new_obs
             self._last_episode_starts = dones
@@ -334,7 +342,7 @@ class PPO(BaseAlgorithm):
                 loss.backward() 
                 # Clip grad norm
                 #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-                self.policy.optimizer.step()
+                #self.policy.optimizer.step()
                 
         
         self.logger.log("train/entropy_loss", np.mean(entropy_losses), self.num_timesteps)       

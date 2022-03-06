@@ -118,6 +118,7 @@ class SimpleDynamicForwardNet(BaseNet):
         
         concat_obs = None
         
+        
         if type(obs) is dict:
             # the dict has to be concatinated before it can be used as an 
             for key in obs:
@@ -127,6 +128,8 @@ class SimpleDynamicForwardNet(BaseNet):
                     concat_obs = obs[key]
         else:
             concat_obs = obs
+            
+        print(concat_obs.shape)
         
         return self.network(concat_obs)
     
