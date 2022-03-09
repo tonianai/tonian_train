@@ -11,7 +11,7 @@ from gym import spaces
 time.sleep(1.0)
 import torch 
 
-n_envs = 100
+n_envs = 10
 batch_size = 10
 buffer_size = 1000
 
@@ -62,6 +62,8 @@ for i in range(buffer_size):
      
     action, value, log_prob = policy.forward(actor_obs=obs[0], critic_obs=obs[1])
     
+    print(log_prob)
+    
     next_obs, rewards, do_reset, _ = env.step(actions= action)
     
     actor_obs = {'linear': obs[0]['linear'].detach().cpu()}
@@ -79,6 +81,10 @@ for i in range(buffer_size):
     )
     
     
+    
+    
+    
+    
     if i == 70:
         # save the logprob of this random point in a numpy array
         np_actor_obs=obs[0]['linear'][0].cpu().detach().numpy()
@@ -88,6 +94,20 @@ for i in range(buffer_size):
         np_is_epidsode_start= do_reset[0].cpu().detach().numpy()
         np_value = value[0].cpu().detach().numpy()
         np_log_prob=log_prob[0].cpu().detach().numpy()
+        
+        
+        actor_obs = {'linear': obs[0]['linear'].detach().to(device)}
+        crititc_obs = {'linear': obs[1]['linear'].detach().to(device)}
+        
+        actor_obs_1 = actor_obs['linear']
+        
+        values_old_1, log_prob_old_1, entropy_old_1 = policy.evaluate_actions(actor_obs, crititc_obs, action.to(device))
+        
+        values_old_1, log_prob_old_2, entropy_old_1 = policy.evaluate_actions(actor_obs, crititc_obs, action.to(device))
+        
+        values_old_1, log_prob_old_3, entropy_old_1 = policy.evaluate_actions(actor_obs, crititc_obs, action.to(device))
+        
+        log_prob_old_1 = log_prob_old_1[0]
 
     
     obs = next_obs
@@ -122,11 +142,17 @@ for rollout_data in buffer.get(batch_size):
         if np.array_equal(np_action, actions[i].cpu().detach().numpy()):
             print("Found the action")
             
+            print("action")
+            print(np_action)
+            print(actions[i].detach().cpu().numpy())
+            
+            
             print("log prob")
-
             print(f"old {rollout_data.old_log_prob[i].cpu().numpy()}")
             print(f"old_numpy {np_log_prob}")
+            print(f"old eval numpy 1 {log_prob_old_1.detach().cpu().numpy()}")
             print(f"new {log_prob[i].detach().cpu().numpy()}")
+            
             
             print("Observations")
             print(f"actor old {rollout_data.actor_obs['linear'].detach().cpu().numpy()[i]}")

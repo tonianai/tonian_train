@@ -377,9 +377,6 @@ class ActorCriticPolicy(BasePolicy, ABC):
             entropy (torch.Tensor)
         """
         
-        print(actor_obs)
-        print(critic_obs)
-         
         latent_pi = self.actor_net(actor_obs)
         latent_vf = self.critic_net(critic_obs)
         
