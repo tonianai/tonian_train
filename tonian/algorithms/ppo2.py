@@ -71,7 +71,8 @@ class PPO(BaseAlgorithm):
             self.critic_obs_spaces,
             self.actor_obs_spaces,
             self.action_space,
-            self.device,
+            store_device = 'cuda:0',
+            out_device = self.device ,
             gamma= self.gamma,
             gae_lambda=self.gae_lambda,
             n_envs=self.n_envs

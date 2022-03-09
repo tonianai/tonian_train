@@ -123,9 +123,10 @@ class DiagGaussianDistributionStdParam(Distribution):
         Distribution ([type]): [description]
     """
     
-    def __init__(self, action_size: int) -> None:
+    def __init__(self, action_size: int, device: str) -> None:
         super().__init__()
         self.action_size = action_size
+        self.device = device
         self.mean_actions = None
         self.log_std = None
     
@@ -139,7 +140,7 @@ class DiagGaussianDistributionStdParam(Distribution):
         :param log_std_init: Initial value for the log standard deviation
         :return:
         """
-        mean_actions = nn.Linear(latent_dim, self.action_size)
+        mean_actions = nn.Linear(latent_dim, self.action_size, device= self.device)
         log_std = nn.Parameter(torch.ones(self.action_size) * log_std_init, requires_grad=True)
         return mean_actions, log_std
     
@@ -154,7 +155,7 @@ class DiagGaussianDistributionStdParam(Distribution):
         #TODO: Change back
         #print("means actions internal")
         #print(mean_actions)
-        action_std = torch.ones_like(mean_actions) * log_std.exp()
+        action_std = torch.ones_like(mean_actions, device= self.device) * log_std.exp().to(self.device)
         #action_std = torch.ones_like(mean_actions) * 0.1
         self.distribution = Normal(mean_actions, action_std)
         return self

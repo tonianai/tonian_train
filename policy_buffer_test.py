@@ -1,7 +1,7 @@
 import time
 from warnings import resetwarnings
 
-from numpy import roll
+import numpy as np
 from tonian.tasks.cartpole.cartpole_task import Cartpole
 from tonian.common.buffers import DictRolloutBuffer
 from tonian.policies.policies import SimpleActorCriticPolicy
@@ -12,12 +12,13 @@ time.sleep(1.0)
 import torch 
 
 n_envs = 100
-batch_size = 64
+batch_size = 10
 buffer_size = 1000
 
-n_steps = int(buffer_size / n_envs)
+device = "cuda"
+
  
-env = Cartpole(config_or_path={"env": {"num_envs": n_envs}}, sim_device="cpu", graphics_device_id=0, headless=False)
+env = Cartpole(config_or_path={"env": {"num_envs": n_envs}}, sim_device=device, graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
 
@@ -32,7 +33,8 @@ buffer = DictRolloutBuffer(buffer_size=buffer_size,
                            critic_obs_space=critic_obs_space, 
                            actor_obs_space= actor_obs_space,
                            action_space= actions_space,
-                           device= "cpu",
+                           store_device= "cpu",
+                           out_device = device,
                            n_envs=n_envs)
 
     
@@ -45,9 +47,14 @@ policy = SimpleActorCriticPolicy(actor_obs_space=actor_obs_space,
                                  init_log_std = 0.0,
                                  actor_hidden_layer_sizes=( 64, 64),
                                  critic_hiddent_layer_sizes=(64, 64),
-                                 device = "cpu")
+                                 device = device)
 
 obs = env.reset()
+
+
+
+
+
 
 # fill the rollout buffer 
 for i in range(buffer_size):
@@ -56,11 +63,14 @@ for i in range(buffer_size):
     action, value, log_prob = policy.forward(actor_obs=obs[0], critic_obs=obs[1])
     
     next_obs, rewards, do_reset, _ = env.step(actions= action)
+    
+    actor_obs = {'linear': obs[0]['linear'].detach().cpu()}
+    crititc_obs = {'linear': obs[1]['linear'].detach().cpu()}
 
     buffer.add(
-        actor_obs=obs[0],
-        critic_obs=obs[1],
-        action = action,
+        actor_obs=actor_obs,
+        critic_obs=crititc_obs,
+        action = action.detach().cpu(),
         reward = rewards,
         is_epidsode_start= do_reset,
         value = value,
@@ -68,7 +78,21 @@ for i in range(buffer_size):
         
     )
     
+    
+    if i == 70:
+        # save the logprob of this random point in a numpy array
+        np_actor_obs=obs[0]['linear'][0].cpu().detach().numpy()
+        np_critic_obs=obs[1]['linear'][0].cpu().detach().numpy()
+        np_action = action[0].cpu().detach().numpy()
+        np_reward = rewards[0].cpu().detach().numpy()
+        np_is_epidsode_start= do_reset[0].cpu().detach().numpy()
+        np_value = value[0].cpu().detach().numpy()
+        np_log_prob=log_prob[0].cpu().detach().numpy()
+
+    
     obs = next_obs
+        
+print(np_actor_obs)
  
 log_prob_error = False
 actor_observation_error = False
@@ -84,11 +108,38 @@ buffer.compute_returns_and_advantages(values.squeeze(), dones)
 for rollout_data in buffer.get(batch_size):   
     
     actions = rollout_data.actions
+    
+
                 
                 
     values, log_prob, entropy = policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
     
-    print("log_prog")
-    print(log_prob)
-    print("old log prob")
-    print(rollout_data.old_log_prob)
+    for i in range(batch_size):
+        
+        #print(actions.shape)
+        
+        
+        if np.array_equal(np_action, actions[i].cpu().detach().numpy()):
+            print("Found the action")
+            
+            print("log prob")
+
+            print(f"old {rollout_data.old_log_prob[i].cpu().numpy()}")
+            print(f"old_numpy {np_log_prob}")
+            print(f"new {log_prob[i].detach().cpu().numpy()}")
+            
+            print("Observations")
+            print(f"actor old {rollout_data.actor_obs['linear'].detach().cpu().numpy()[i]}")
+            print(f"actor old numpy {np_actor_obs}")
+            
+            
+            print("Observations")
+            print(f"critic old {rollout_data.critic_obs['linear'].detach().cpu().numpy()[i]}")
+            print(f"critic old numpy {np_critic_obs}")
+            
+            break;
+    
+    #print("log_prog")
+    #print(log_prob)
+    #print("old log prob")
+    #print(rollout_data.old_log_prob)

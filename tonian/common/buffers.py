@@ -82,7 +82,8 @@ class DictRolloutBuffer(BaseBuffer):
                  critic_obs_space: MultiSpace,
                  actor_obs_space: MultiSpace,
                  action_space: spaces.Space,
-                 device: Union[str, torch.device] = "cuda:0",
+                 store_device: Union[str, torch.device] = "cuda:0",
+                 out_device: Union[str, torch.device] = "cuda:0",
                  gae_lambda: float = 1,
                  gamma: float = 0.99,
                  n_envs: int = 1
@@ -100,7 +101,9 @@ class DictRolloutBuffer(BaseBuffer):
     
         assert self.action_size, "Action size must not be zero"
             
-        self.device = device
+        self.store_device = store_device
+        self.out_device = out_device
+        
         
         self.gae_lambda = gae_lambda
         self.gamma = gamma
@@ -127,13 +130,13 @@ class DictRolloutBuffer(BaseBuffer):
         self.full = False
         
         # store everything in torch tensors on the gpu
-        self.actions = torch.zeros((self.buffer_size, self.n_envs, self.action_size), dtype=torch.float32, device=self.device)
-        self.rewards = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
-        self.returns = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
-        self.is_epidsode_start = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.int8, device=self.device)
-        self.values = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
-        self.log_probs = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
-        self.advantages = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.device)
+        self.actions = torch.zeros((self.buffer_size, self.n_envs, self.action_size), dtype=torch.float32, device=self.store_device)
+        self.rewards = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
+        self.returns = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
+        self.is_epidsode_start = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.int8, device=self.store_device)
+        self.values = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
+        self.log_probs = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
+        self.advantages = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
         
         self.generator_ready = False
         
@@ -142,10 +145,10 @@ class DictRolloutBuffer(BaseBuffer):
         self.actor_obs = {}
         
         for key, obs_shape in self.actor_obs_dict_shape.items():
-            self.actor_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.device)
+            self.actor_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.store_device)
         
         for key, obs_shape in self.critic_obs_dict_shape.items():
-            self.critic_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.device)
+            self.critic_obs[key] = torch.zeros((self.buffer_size, self.n_envs) + obs_shape, dtype=torch.float32, device= self.store_device)
         
     def add(
         self, 
@@ -189,18 +192,18 @@ class DictRolloutBuffer(BaseBuffer):
             log_prob = log_prob.reshape(-1, 1)
             
         for key in self.actor_obs:   
-            self.actor_obs[key][self.pos] = actor_obs[key].detach().clone()
+            self.actor_obs[key][self.pos] = actor_obs[key].detach().clone().to(self.store_device)
   
             
         for key in self.critic_obs:
-            self.critic_obs[key][self.pos] = critic_obs[key].detach().clone()
+            self.critic_obs[key][self.pos] = critic_obs[key].detach().clone().to(self.store_device)
         
         
-        self.actions[self.pos] = action.detach().clone()
-        self.rewards[self.pos] = reward.detach().clone()
-        self.is_epidsode_start[self.pos] = is_epidsode_start.detach().clone()
-        self.values[self.pos] = value.detach().clone().squeeze()
-        self.log_probs[self.pos] = log_prob.detach().clone().squeeze()
+        self.actions[self.pos] = action.detach().clone().to(self.store_device)
+        self.rewards[self.pos] = reward.detach().clone().to(self.store_device)
+        self.is_epidsode_start[self.pos] = is_epidsode_start.detach().clone().to(self.store_device)
+        self.values[self.pos] = value.detach().clone().squeeze().to(self.store_device)
+        self.log_probs[self.pos] = log_prob.detach().clone().squeeze().to(self.store_device)
         
         
         
@@ -228,20 +231,20 @@ class DictRolloutBuffer(BaseBuffer):
         
         if not self.generator_ready: 
             
-            self.actions = self.swap_and_flatten(self.actions)
-            self.rewards = self.swap_and_flatten(self.rewards)
-            self.values = self.swap_and_flatten(self.values)
-            self.log_probs = self.swap_and_flatten(self.log_probs)
-            self.advantages = self.swap_and_flatten(self.advantages)
-            self.returns = self.swap_and_flatten(self.returns)
+            self.actions = self.swap_and_flatten(self.actions).to(self.out_device)
+            self.rewards = self.swap_and_flatten(self.rewards).to(self.out_device)
+            self.values = self.swap_and_flatten(self.values).to(self.out_device)
+            self.log_probs = self.swap_and_flatten(self.log_probs).to(self.out_device)
+            self.advantages = self.swap_and_flatten(self.advantages).to(self.out_device)
+            self.returns = self.swap_and_flatten(self.returns).to(self.out_device)
             
             self.generator_ready = True
         
             for key, obs in self.actor_obs.items():
-                self.actor_obs[key] = self.swap_and_flatten(obs)
+                self.actor_obs[key] = self.swap_and_flatten(obs).to(self.out_device)
          
             for key in self.critic_obs:
-                self.critic_obs[key] = self.swap_and_flatten(obs)
+                self.critic_obs[key] = self.swap_and_flatten(obs).to(self.out_device)
             
         
         # Return everything, don't create minibatches
@@ -250,7 +253,6 @@ class DictRolloutBuffer(BaseBuffer):
             
         
         indices = np.random.permutation(self.buffer_size * self.n_envs)
-        
         #indices = np.arange(stop= self.buffer_size * self.n_envs)
         start_idx = 0
         while start_idx < self.buffer_size * self.n_envs:
@@ -259,9 +261,12 @@ class DictRolloutBuffer(BaseBuffer):
         
     def _get_samples(self, batch_inds: np.ndarray) -> DictRolloutBufferSamples:
         
+        critic_obs = {key: obs[batch_inds] for (key, obs) in self.critic_obs.items()}
+        actor_obs = {key: obs[batch_inds] for (key, obs) in self.actor_obs.items()}
+        
         return DictRolloutBufferSamples (
-            critic_obs={key: obs[batch_inds] for (key, obs) in self.critic_obs.items()},
-            actor_obs={key: obs[batch_inds] for (key, obs) in self.actor_obs.items()},
+            critic_obs= critic_obs,
+            actor_obs= actor_obs,
             actions= self.actions[batch_inds],
             old_values= self.values[batch_inds].squeeze(),
             old_log_prob= self.log_probs[batch_inds].squeeze(),
@@ -301,7 +306,8 @@ class DictRolloutBuffer(BaseBuffer):
         last_gae_lam = 0
         
         #print(last_values.shape)
-        last_values = last_values.clone().flatten()
+        last_values = last_values.clone().flatten().to(self.store_device)
+        dones = dones.detach().clone().to(self.store_device)
         #print(last_values.shape)
         
         for step in reversed(range(self.buffer_size)):

@@ -239,7 +239,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
             if optimizer_class == torch.optim.Adam:
                 optimizer_kwargs["eps"] = 1e-5
         
-        self.action_dist = make_proba_distribution(action_space)
+        self.action_dist = make_proba_distribution(action_space, device= self.device)
         self.build(lr_schedule(1))
         
     
@@ -267,7 +267,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         )
         
         # value latent net combines the output of the value net to a single dim
-        self.value_latent_net = nn.Linear(self.latent_dim_vf, 1)
+        self.value_latent_net = nn.Linear(self.latent_dim_vf, 1, device= self.device)
         
         # Init weights: use orthogonal initialization
         # with small initial weight for the output
@@ -323,14 +323,14 @@ class ActorCriticPolicy(BasePolicy, ABC):
         """
         if critic_obs is None:
             critic_obs = actor_obs
-        
+         
         
         # pass the actor observations troguh the actor net
         latent_pi = self.actor_net(actor_obs)
          
         # pass the critic observations trough the critic net 
         latent_vf = self.critic_net(critic_obs)
-         
+          
         # Evaluate values
         values = self.value_latent_net(latent_vf)
          
@@ -376,6 +376,9 @@ class ActorCriticPolicy(BasePolicy, ABC):
             log_likelihood (torch.Tensor)
             entropy (torch.Tensor)
         """
+        
+        print(actor_obs)
+        print(critic_obs)
          
         latent_pi = self.actor_net(actor_obs)
         latent_vf = self.critic_net(critic_obs)
@@ -580,7 +583,7 @@ class SimpleActorCriticFixedStdPolicy(ActorCriticPolicy):
                 
 
 def make_proba_distribution(
-    action_space: spaces.Space, use_sde: bool = False, dist_kwargs: Optional[Dict[str, Any]] = None
+    action_space: spaces.Space, device: str,  use_sde: bool = False, dist_kwargs: Optional[Dict[str, Any]] = None
 ) -> Distribution:
     """
     Return an instance of Distribution for the correct type of action space
@@ -596,7 +599,7 @@ def make_proba_distribution(
 
     if isinstance(action_space, spaces.Box):
         assert len(action_space.shape) == 1, "Error: the action space must be a vector"
-        return DiagGaussianDistributionStdParam(int(np.prod(action_space.shape)), **dist_kwargs) 
+        return DiagGaussianDistributionStdParam(int(np.prod(action_space.shape)), device , **dist_kwargs) 
     else:
         raise NotImplementedError(
             "Error: probability distribution, not implemented for action space"

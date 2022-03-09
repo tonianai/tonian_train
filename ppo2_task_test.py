@@ -30,7 +30,7 @@ device = "cuda:0"
  
 #env = WalkingTask(config_or_path={"env": {"num_envs": 1200}}, sim_device="gpu" , graphics_device_id=0 , headless=True)
  
-env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device=device, graphics_device_id=0, headless=False)
+env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="cpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
  
