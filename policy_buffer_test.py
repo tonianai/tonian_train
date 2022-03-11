@@ -12,8 +12,8 @@ time.sleep(1.0)
 import torch 
 
 n_envs = 10
-batch_size = 10
-buffer_size = 1000
+batch_size = 1
+buffer_size = 1
 
 device = "cuda"
 
@@ -62,13 +62,34 @@ for i in range(buffer_size):
      
     action, value, log_prob = policy.forward(actor_obs=obs[0], critic_obs=obs[1])
     
+    
+    print("IN ACTION forward log prob 1")
     print(log_prob)
     
-    next_obs, rewards, do_reset, _ = env.step(actions= action)
+    print("OBS 0 . 1")
+    print(obs[0]['linear'])
+    
+    values_old, log_prob_old, entropy_old = policy.evaluate_actions(obs[0], obs[1], action)
+    print("IN ACTION eval log prob 0")
+    print(log_prob_old)
+    
+    
     
     actor_obs = {'linear': obs[0]['linear'].detach().cpu()}
     crititc_obs = {'linear': obs[1]['linear'].detach().cpu()}
 
+    
+    next_obs, rewards, do_reset, _ = env.step(actions= action)
+    
+    
+    print("OBS 0 . 2")
+    print(obs[0]['linear'])
+    
+    
+    values_old, log_prob_old, entropy_old = policy.evaluate_actions(obs[0], obs[1], action)
+    print("IN ACTION eval log prob 1")
+    print(log_prob_old)
+    
     buffer.add(
         actor_obs=actor_obs,
         critic_obs=crititc_obs,
@@ -85,7 +106,7 @@ for i in range(buffer_size):
     
     
     
-    if i == 70:
+    if i == 0:
         # save the logprob of this random point in a numpy array
         np_actor_obs=obs[0]['linear'][0].cpu().detach().numpy()
         np_critic_obs=obs[1]['linear'][0].cpu().detach().numpy()
@@ -101,11 +122,14 @@ for i in range(buffer_size):
         
         actor_obs_1 = actor_obs['linear']
         
-        values_old_1, log_prob_old_1, entropy_old_1 = policy.evaluate_actions(actor_obs, crititc_obs, action.to(device))
+        values_old_1, log_prob_old_1, entropy_old_1 = policy.evaluate_actions(actor_obs, crititc_obs, action)
         
-        values_old_1, log_prob_old_2, entropy_old_1 = policy.evaluate_actions(actor_obs, crititc_obs, action.to(device))
         
-        values_old_1, log_prob_old_3, entropy_old_1 = policy.evaluate_actions(actor_obs, crititc_obs, action.to(device))
+        print("IN ACTION forward log prob")
+        print(log_prob)
+        
+        print("IN ACTION eval log prob 3")
+        print(log_prob_old_1)
         
         log_prob_old_1 = log_prob_old_1[0]
 
@@ -147,8 +171,13 @@ for rollout_data in buffer.get(batch_size):
             print(actions[i].detach().cpu().numpy())
             
             
+            #print("log prob")
+            #print(f"old {rollout_data.old_log_prob[i].cpu().numpy()}")
+            #print(f"old_numpy {np_log_prob}")
+            #print(f"old eval numpy 1 {log_prob_old_1.detach().cpu().numpy()}")
+            #print(f"new {log_prob[i].detach().cpu().numpy()}")            
             print("log prob")
-            print(f"old {rollout_data.old_log_prob[i].cpu().numpy()}")
+            print(f"old {rollout_data.old_log_prob.cpu().numpy()}")
             print(f"old_numpy {np_log_prob}")
             print(f"old eval numpy 1 {log_prob_old_1.detach().cpu().numpy()}")
             print(f"new {log_prob[i].detach().cpu().numpy()}")
