@@ -189,11 +189,14 @@ class PPO(BaseAlgorithm):
             with torch.no_grad():
                 actions, values, log_probs = self.policy.forward(self._last_obs[0], self._last_obs[1])
                 
+                actor_obs = { key : tensor_obs.detach().clone() for (key, tensor_obs) in self._last_obs[0].items()}
+                
+                critic_obs = { key : tensor_obs.detach().clone() for (key, tensor_obs) in self._last_obs[1].items()}
             
             # clamp the action space using pytorch
-            clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
+            #clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
             
-            new_obs, rewards, dones, info = self.env.step(clipped_actions)
+            new_obs, rewards, dones, info = self.env.step(actions)
              
             # add all the episodes that were completed whitin the last time step to the counter
             n_completed_episodes +=  torch.sum(dones).item()
@@ -214,8 +217,8 @@ class PPO(BaseAlgorithm):
             
             
             self.rollout_buffer.add(
-                actor_obs = self._last_obs[0], 
-                critic_obs = self._last_obs[1], 
+                actor_obs = actor_obs, 
+                critic_obs = critic_obs, 
                 action = actions, 
                 reward = rewards, 
                 is_epidsode_start= self._last_episode_starts, 
@@ -278,11 +281,7 @@ class PPO(BaseAlgorithm):
                 
                 values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
                  
-                
-                print('new Log prob')
-                print(log_prob)
-                print('old log prob')
-                print(rollout_data.old_log_prob)
+                 
                 
                 values = values.flatten()
                 
@@ -338,7 +337,7 @@ class PPO(BaseAlgorithm):
                 loss.backward() 
                 # Clip grad norm
                 #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-                #self.policy.optimizer.step()
+                self.policy.optimizer.step()
                 
         
         self.logger.log("train/entropy_loss", np.mean(entropy_losses), self.num_timesteps)       
