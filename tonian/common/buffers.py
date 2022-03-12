@@ -169,23 +169,7 @@ class DictRolloutBuffer(BaseBuffer):
             following the current policy.
         :param log_prob: log probability of the action
             following the current policy.
-        """
-        
-        """
-        print("OBS Shape")
-        print(actor_obs['linear'].shape)
-        
-        print("OBS critic Shape")
-        print(critic_obs['linear'].shape)
-            
-        print("Actions Shape")
-        print(action.shape)
-    
-        print("Reward SHape")
-        print(reward.shape)
-        
-        print("Value Shape")
-        print(value.shape)"""
+        """ 
         
         if len(log_prob.shape) == 0:
             # Reshape 0-d tensor to avoid error
@@ -197,8 +181,7 @@ class DictRolloutBuffer(BaseBuffer):
             
         for key in self.critic_obs:
             self.critic_obs[key][self.pos] = critic_obs[key].detach().clone().to(self.store_device)
-        
-        
+         
         self.actions[self.pos] = action.detach().clone().to(self.store_device)
         self.rewards[self.pos] = reward.detach().clone().to(self.store_device)
         self.is_epidsode_start[self.pos] = is_epidsode_start.detach().clone().to(self.store_device)
@@ -243,7 +226,7 @@ class DictRolloutBuffer(BaseBuffer):
             for key, obs in self.actor_obs.items():
                 self.actor_obs[key] = self.swap_and_flatten(obs).to(self.out_device)
          
-            for key in self.critic_obs:
+            for key, obs in self.critic_obs.items():
                 self.critic_obs[key] = self.swap_and_flatten(obs).to(self.out_device)
             
         
@@ -263,7 +246,7 @@ class DictRolloutBuffer(BaseBuffer):
         
         critic_obs = {key: obs[batch_inds] for (key, obs) in self.critic_obs.items()}
         actor_obs = {key: obs[batch_inds] for (key, obs) in self.actor_obs.items()}
-        
+         
         return DictRolloutBufferSamples (
             critic_obs= critic_obs,
             actor_obs= actor_obs,
@@ -304,11 +287,9 @@ class DictRolloutBuffer(BaseBuffer):
         """
         
         last_gae_lam = 0
-        
-        #print(last_values.shape)
+         
         last_values = last_values.clone().flatten().to(self.store_device)
-        dones = dones.detach().clone().to(self.store_device)
-        #print(last_values.shape)
+        dones = dones.detach().clone().to(self.store_device) 
         
         for step in reversed(range(self.buffer_size)):
             if step == self.buffer_size - 1:

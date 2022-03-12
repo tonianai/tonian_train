@@ -36,6 +36,9 @@ class PPO(BaseAlgorithm):
         # set the action and obervation space to member variables
         self.critic_obs_spaces = env.critic_observation_spaces
         self.actor_obs_spaces = env.actor_observation_spaces
+        
+        print(str(self.critic_obs_spaces))
+        print(str(self.actor_obs_spaces))
         self.action_space = env.action_space
         
         # the torch tensor for the min action values
@@ -192,6 +195,7 @@ class PPO(BaseAlgorithm):
                 actor_obs = { key : tensor_obs.detach().clone() for (key, tensor_obs) in self._last_obs[0].items()}
                 
                 critic_obs = { key : tensor_obs.detach().clone() for (key, tensor_obs) in self._last_obs[1].items()}
+                 
             
             # clamp the action space using pytorch
             #clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
@@ -276,22 +280,17 @@ class PPO(BaseAlgorithm):
             # Do a complete pass on the rollout buffer
             for rollout_data in self.rollout_buffer.get(self.batch_size):
                 
-                actions = rollout_data.actions
-                
+                actions = rollout_data.actions  
                 
                 values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.actor_obs, rollout_data.critic_obs, actions)
-                 
-                 
+                  
                 
                 values = values.flatten()
                 
                 # Normalize advantage
                 advantages = rollout_data.advantages
                 advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-                
-                # print(self.batch_size)
-                # print(advantages)
-        
+                 
                 # ratio between old and new policy, should be one at the first iteration
                 ratio = torch.exp(log_prob - rollout_data.old_log_prob)
                  

@@ -378,6 +378,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         """
         
         latent_pi = self.actor_net(actor_obs)
+        
         latent_vf = self.critic_net(critic_obs)
         
          
