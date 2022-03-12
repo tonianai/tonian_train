@@ -7,3 +7,5 @@ batch_size: 10
 gae_lamda: 0.95
 entropy_coef: 0.0001
 value_f_coef: 0.5
+
+seed: 01

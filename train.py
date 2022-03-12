@@ -17,6 +17,7 @@ from gym.spaces import space
 from tonian.tasks.base.command import Command
 from tonian.tasks.base.vec_task import MultiSpace, VecTask
 from tonian.common.schedule import Schedule
+from tonian.common.utils.utils import set_random_seed
 
 import gym
 from gym import spaces
@@ -27,6 +28,8 @@ import torch
 import torch.nn as nn
 
 import yaml
+
+import argparse
 
 device = "cuda:0"
 
@@ -107,11 +110,17 @@ def algo_from_config(config: Dict, env: VecTask, policy: ActorCriticPolicy, devi
 
 if __name__ == "__main__":
     
-    device = "cuda:0"
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-seed", required=False, help="Seed for running the env")
+    ap.add_argument("-cfg", required= True, help="path to the config")
     
-    assert len(sys.argv) >= 2, "Usage python3 train.py <path_to_config>"
-        
-    config_path = sys.argv[1]
+    args = vars(ap.parse_args())
+    
+    args_seed = int(args['seed'])
+    
+    device = "cuda:0"
+
+    config_path = args['cfg']
     
     # open the config file 
     with open(config_path, 'r') as stream:
@@ -119,6 +128,12 @@ if __name__ == "__main__":
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:    
             raise FileNotFoundError( f"File {config_path} not found")
+    
+    if args_seed is not None:
+        set_random_seed(args_seed)
+    elif "seed" in config:   
+        set_random_seed(config["seed"])
+    
     
     
     task = task_from_config(config["task"])

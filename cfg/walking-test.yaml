@@ -1,3 +1,6 @@
+
+seed: 42
+
 task:
   name: "01_walking"
   physics_engine: physx

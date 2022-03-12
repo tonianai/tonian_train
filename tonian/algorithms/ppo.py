@@ -11,6 +11,7 @@ from tonian.algorithms.base_algorithm import BaseAlgorithm
 from tonian.common.buffers import DictRolloutBuffer
 from tonian.common.schedule import Schedule, schedule_or_callable
 from tonian.tasks.base.vec_task import VecTask
+from tonian.common.utils.utils import set_random_seed
 
 from tonian.policies.policies import ActorCriticPolicy
 
@@ -99,6 +100,7 @@ class PPO(BaseAlgorithm):
     def _setup_model(self) -> None:
         """Setup the model
                 - setup schedules
+                - set seed
                 - initialize buffer
         """
         self.rollout_buffer = DictRolloutBuffer(
@@ -113,6 +115,14 @@ class PPO(BaseAlgorithm):
             n_envs=self.n_envs
         )
         
+        if "seed" in self.config:
+            # set the seed of random, torch, the env and numpy
+            seed = self.config["seed"]
+            
+            print(f"Seed: {seed}")
+            set_random_seed(seed=seed, using_cuda=  "cuda" in self.device)
+            self.action_space.seed(seed)
+            
         
     def _setup_learn(
         self, 

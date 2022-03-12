@@ -1,3 +1,6 @@
+
+seed: 42
+
 task:
   name: "00_cartpole"
   physics_engine: physx

@@ -19,12 +19,14 @@ import gym
 from gym import spaces
 import numpy as np
 from tonian.tasks.cartpole.cartpole_task import Cartpole
-
+from tonian.common.utils.utils import set_random_seed
 import torch
 
 import yaml
 
 
+
+set_random_seed(40, True)
 
  
 #env = WalkingTask(config_or_path={"env": {"num_envs": 1000}}, sim_device="gpu" , graphics_device_id=0 , headless=False)
