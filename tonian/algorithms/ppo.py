@@ -16,9 +16,7 @@ from tonian.common.utils.utils import set_random_seed
 from tonian.policies.policies import ActorCriticPolicy
 
 import numpy as np
-
-
-import time
+import yaml, os, time
 
 
 
@@ -388,4 +386,19 @@ class PPO(BaseAlgorithm):
         """
         self.policy.load(path)
     
+    def _get_standard_config(self) -> Dict:
+        """Get the standard configuration for the ppo algorithm
+
+        Returns:
+            Dict: _description_
+        """
+        dirname = os.path.dirname(__file__)
+        base_config_path = os.path.join(dirname, 'ppo_config.yaml')
+        
+          # open the config file 
+        with open(base_config_path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"Base Config : {base_config_path} not found")
     
