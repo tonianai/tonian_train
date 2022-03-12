@@ -169,24 +169,25 @@ class DictRolloutBuffer(BaseBuffer):
             following the current policy.
         :param log_prob: log probability of the action
             following the current policy.
-        """ 
+        """
         
         if len(log_prob.shape) == 0:
             # Reshape 0-d tensor to avoid error
             log_prob = log_prob.reshape(-1, 1)
             
         for key in self.actor_obs:   
-            self.actor_obs[key][self.pos] = actor_obs[key].detach().clone().to(self.store_device)
+            self.actor_obs[key][self.pos] = actor_obs[key].detach().to(self.store_device)
   
             
         for key in self.critic_obs:
-            self.critic_obs[key][self.pos] = critic_obs[key].detach().clone().to(self.store_device)
+            self.critic_obs[key][self.pos] = critic_obs[key].detach().to(self.store_device)
          
-        self.actions[self.pos] = action.detach().clone().to(self.store_device)
-        self.rewards[self.pos] = reward.detach().clone().to(self.store_device)
-        self.is_epidsode_start[self.pos] = is_epidsode_start.detach().clone().to(self.store_device)
-        self.values[self.pos] = value.detach().clone().squeeze().to(self.store_device)
-        self.log_probs[self.pos] = log_prob.detach().clone().squeeze().to(self.store_device)
+        
+        self.actions[self.pos] = action.detach().to(self.store_device)
+        self.rewards[self.pos] = reward.detach().to(self.store_device)
+        self.is_epidsode_start[self.pos] = is_epidsode_start.detach().to(self.store_device)
+        self.values[self.pos] = value.detach().squeeze().to(self.store_device)
+        self.log_probs[self.pos] = log_prob.detach().squeeze().to(self.store_device)
         
         
         

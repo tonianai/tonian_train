@@ -106,7 +106,8 @@ class PPO(BaseAlgorithm):
             self.critic_obs_spaces,
             self.actor_obs_spaces,
             self.action_space,
-            self.device,
+            store_device= self.device,
+            out_device= self.device,
             gamma= self.gamma,
             gae_lambda=self.gae_lambda,
             n_envs=self.n_envs
@@ -152,7 +153,7 @@ class PPO(BaseAlgorithm):
                 
         while self.num_timesteps < total_timesteps:
             
-            continue_training = self.collect_rollouts(n_rollout_steps=self.n_steps)
+            self.collect_rollouts(n_rollout_steps=self.n_steps)
             
             iteration += 1
             
@@ -266,13 +267,11 @@ class PPO(BaseAlgorithm):
         
         clip_fractions = []
         
-        continue_training = True
-        
         
         clip_range = self.eps_clip
         # todo introduce schedule
         
-        for epoch in range(self.n_epochs):
+        for _ in range(self.n_epochs):
             # train for each epoch
             
             approx_kl_divs = []
@@ -337,6 +336,7 @@ class PPO(BaseAlgorithm):
                 # Clip grad norm
                 #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.policy.optimizer.step()
+                
                 
         
         self.logger.log("train/entropy_loss", np.mean(entropy_losses), self.num_timesteps)       
