@@ -36,8 +36,6 @@ class PPO(BaseAlgorithm):
         self.critic_obs_spaces = env.critic_observation_spaces
         self.actor_obs_spaces = env.actor_observation_spaces
         
-        print(str(self.critic_obs_spaces))
-        print(str(self.actor_obs_spaces))
         self.action_space = env.action_space
         
         # the torch tensor for the min action values

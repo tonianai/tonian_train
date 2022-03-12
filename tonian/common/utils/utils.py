@@ -1,10 +1,8 @@
 import gym
-import torch
-import torch.nn as nn
 import random
 import numpy as np
-import torch as th
 
+import torch
 
 from typing import Dict, Iterable, Optional, Tuple, Union, List
 
@@ -53,7 +51,7 @@ def set_random_seed(seed: int, using_cuda: bool = False) -> None:
     # Seed numpy RNG
     np.random.seed(seed)
     # seed the RNG for all devices (both CPU and CUDA)
-    th.manual_seed(seed)
+    torch.manual_seed(seed)
 
     if using_cuda:
         # Deterministic operations for CuDNN, it may impact performances
@@ -95,8 +93,7 @@ def join_configs(base_config: Dict, config: Dict) -> Dict:
     return final_dict
 
 
-                    
-                     
+             
             
             
         

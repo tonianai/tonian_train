@@ -2,6 +2,7 @@
 
 
 from typing import Dict, Optional, Type
+from tonian.policies.policies import ActorCriticPolicy
 from tonian.tasks.base.vec_task import VecTask
 
 import torch 
@@ -20,14 +21,17 @@ import yaml
 class BaseAlgorithm(ABC):
     
     
-    def __init__(self, env: BaseEnv, config: Dict = {}, device: Union[str, torch.device] = "cuda:0", logger: Optional[BaseLogger] = None) -> None:
+    def __init__(self, env: BaseEnv,  
+                 config: Dict = {}, 
+                 device: Union[str, torch.device] = "cuda:0", 
+                 logger: Optional[BaseLogger] = None) -> None:
         super().__init__()
         
         
         # merge the config with the standard condfig
         base_config = self._get_standard_config()
             
-        self.env = env
+        self.env = env 
         self.config = join_configs(base_config=base_config, config=config)
         self.device = device
 
@@ -72,12 +76,13 @@ class BaseAlgorithm(ABC):
         """
             Save the config of the env and the algorithm in the folder of the run
         """
-        
-        with  open(f"{self.run_folder_name}/config.yaml", "w") as outfile:
+        with  open(f"{self.run_folder_name}/algo_config.yaml", "w") as outfile:
             yaml.dump(self.config, outfile, default_flow_style=True)
         
         with  open(f"{self.run_folder_name}/env_config.yaml", "w") as outfile:
             yaml.dump(self.env.config, outfile, default_flow_style=True)
+            
+        
         
         
     
