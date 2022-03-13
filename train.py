@@ -8,7 +8,8 @@ import yaml
 import sys
 
 from tonian.common.utils.utils import set_random_seed
-from tonian.common.utils.config_utils import task_from_config, algo_from_config, policy_from_config
+from tonian.common.utils.config_utils import task_from_config, algo_from_config, policy_from_config, create_new_run_directory
+from tonian.common.logger import TensorboardLogger
 
 import gym
 from gym import spaces
@@ -17,11 +18,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import yaml
-
-import argparse
-
-device = "cuda:0"
+import yaml, argparse
+ 
 
 
 if __name__ == "__main__":
@@ -37,7 +35,6 @@ if __name__ == "__main__":
     if args['seed'] is not None:
         args_seed = int(args['seed'])
      
-    
     device = "cuda:0"
 
     config_path = args['cfg']
@@ -55,14 +52,16 @@ if __name__ == "__main__":
     elif "seed" in config:   
         set_random_seed(config["seed"])
     
-    # create the run folder here and not in the 
+    # create the run folder here
+    run_folder_name = create_new_run_directory(config)
     
+    logger = TensorboardLogger(run_folder_name)
     
     task = task_from_config(config["task"])
     task.is_symmetric = False
     policy = policy_from_config(config["policy"], task)
     print(policy)
-    algo = algo_from_config(config["algo"], task, policy, device)
+    algo = algo_from_config(config["algo"], task, policy, device, logger)
     
     algo.learn(total_timesteps=1e10)
     

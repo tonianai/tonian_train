@@ -12,6 +12,7 @@ from tonian.common.buffers import DictRolloutBuffer
 from tonian.common.schedule import Schedule, schedule_or_callable
 from tonian.tasks.base.vec_task import VecTask
 from tonian.common.utils.utils import set_random_seed
+from tonian.common.logger import BaseLogger
 
 from tonian.policies.policies import ActorCriticPolicy
 
@@ -22,8 +23,8 @@ import yaml, os, time
 
 class PPO(BaseAlgorithm):
     
-    def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device]) -> None:
-        super().__init__(env, config, device)
+    def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device], logger: BaseLogger) -> None:
+        super().__init__(env, config, device, logger)
         self._fetch_config_params(config)
         
         #The maximim value for the gradient clipping 
@@ -372,7 +373,7 @@ class PPO(BaseAlgorithm):
     def save(self, path: Optional[str] = None):
         
         if path is None:
-            path = self.run_folder_name + "/saves/" + str(self.num_timesteps) + ".pth"
+            path = os.path.join( self.logger.save_folder ,  str(self.num_timesteps) + ".pth")
         
         self.policy.save(path)
 

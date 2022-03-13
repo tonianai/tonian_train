@@ -5,7 +5,7 @@ task:
   name: "00_cartpole"
   physics_engine: physx
   env:
-    num_envs: 5000
+    num_envs: 4096
     env_spacing: 5
     max_episode_length: 1000
     
@@ -42,10 +42,10 @@ policy:
 algo:
   name: "PPO" 
   gamma: 0.99
-  n_epochs: 5
+  n_epochs: 10
   eps_clip: 0.2
-  n_steps: 200 # the amount of steps taken per env between training and update
-  batch_size: 1000
+  n_steps: 128 # the amount of steps taken per env between training and update
+  batch_size: 2048
   target_kl: 0.008
   gae_lamda: 0.5
   entropy_coef: 0
