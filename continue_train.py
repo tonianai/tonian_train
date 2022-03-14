@@ -1,26 +1,27 @@
 """
-An Inference run is a run of a previous stored, without training
+Continue training on a previously stored run
     
 """
-from tonian.tasks.cartpole.cartpole_task import Cartpole
+from tonian.algorithms.ppo import PPO
+from tonian.tasks.cartpole.cartpole_task import Cartpole # import for 
 
 import yaml, os, argparse
 from tonian.common.logger import TensorboardLogger
-from tonian.common.utils.config_utils import  policy_from_config, task_from_config, get_run_index
+from tonian.common.utils.config_utils import get_run_index, policy_from_config, task_from_config, algo_from_config
 from tonian.common.utils.utils import set_random_seed
 
 import torch
 
-
-
 if __name__ == '__main__':    
     ap = argparse.ArgumentParser()
     ap.add_argument("-run", required=True, help="Name of the environment you want to run : optional run number eg. Cartpole:10")
-    ap.add_argument("-n_steps", required=False, help="The amount of steps the inference is shown", default=1e9)
+    ap.add_argument("-n_steps", required=False, help="The amount of steps the training should continue", default=1e9)
+    ap.add_argument("-device", required=False, help="The device used for training etc.", default="cuda:0")
     
     
     
     args = vars(ap.parse_args())
+    device = args['device']
     n_rollout_steps = args['n_steps']
     env_name = ''
     run_nr = ''
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     
     
     if len(saves_in_directory) == 0:
-        print("WARNING: The run has no saves policy!!!")
+        print("WARNING: The run has no saves policy ---- starting from 0!!!")
     elif len(saves_in_directory) == 1:
         # only one policy -> use that 
         policy.load(os.path.join(saves_folder, saves_in_directory[0]))
@@ -80,20 +81,13 @@ if __name__ == '__main__':
         file_name = str(step_nr) + '.pth'
         policy.load(os.path.join(saves_folder, file_name))
         
+    
+    logger = TensorboardLogger(run_folder)
         
-    
-    policy.eval()
-    
-    last_obs = task.reset()
-    
-    for i in range(int(n_rollout_steps)):
-        with torch.no_grad():
-            actions, values, log_probs = policy.forward(last_obs[0], last_obs[1])
-    
-        new_obs, rewards, dones, info = task.step(actions)
         
-        last_obs = new_obs
+    algo = algo_from_config(config["algo"], task, policy, device, logger)
+
+    algo.learn(total_timesteps=1e10)
+    task.close()
     
-    # get the policy 
     
-    print(run_folder)

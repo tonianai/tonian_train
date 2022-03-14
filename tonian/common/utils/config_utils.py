@@ -18,6 +18,17 @@ import torch
 import torch.nn as nn
 import os, yaml
 
+def get_run_index(base_folder_name: str) -> int:
+    """get the index of the run
+    Args:
+        base_folder_name (str): The base folder all the runs are stored in 
+    """
+    if not os.path.exists(base_folder_name):
+        raise FileNotFoundError()
+        
+    n_folders_in_base = len(os.listdir(base_folder_name))
+    
+    return n_folders_in_base
 
                     
 def parseActvationFunction(string: str):
