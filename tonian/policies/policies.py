@@ -161,8 +161,8 @@ class BasePolicy(nn.Module , ABC):
         torch.save(self.state_dict(), path)
         #torch.save({"state_dict": self.state_dict(), "data": self._get_constructor_parameters()}, path )
         
-    @classmethod
-    def load(cls, path: str, device: Union[torch.device, str] = "auto") -> "BasePolicy":
+        
+    def load(self, path: str) -> "BasePolicy":
         """
         Load model from path.
 
@@ -170,14 +170,7 @@ class BasePolicy(nn.Module , ABC):
         :param device: Device on which the policy should be loaded.
         :return:
         """
-        saved_variables = torch.load(path, map_location=device)
-
-        # Create policy object
-        model = cls(**saved_variables["data"])  # pytype: disable=not-instantiable
-        # Load weights
-        model.load_state_dict(saved_variables["state_dict"])
-        model.to(device)
-        return model
+        self.load_state_dict(torch.load(path))
     
     @abstractmethod
     def _get_constructor_parameters(self) -> Dict[str, Any]:

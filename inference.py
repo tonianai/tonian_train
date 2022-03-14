@@ -2,9 +2,14 @@
 An Inference run is a run of a previous stored 
     
 """
+from tonian.tasks.cartpole.cartpole_task import Cartpole
 
 import yaml, os, argparse
-from tonian.common.utils.config_utils import task_from_config
+from tonian.common.logger import TensorboardLogger
+from tonian.common.utils.config_utils import algo_from_config, policy_from_config, task_from_config
+from tonian.common.utils.utils import set_random_seed
+
+import torch
 
 
       
@@ -24,9 +29,12 @@ def get_run_index(base_folder_name: str) -> int:
 if __name__ == '__main__':    
     ap = argparse.ArgumentParser()
     ap.add_argument("-run", required=True, help="Name of the environment you want to run : optional run number eg. Cartpole:10")
+    ap.add_argument("-n_steps", required=False, help="The amount of steps the inference is shown", default=1e9)
+    
+    
     
     args = vars(ap.parse_args())
-    
+    n_rollout_steps = args['n_steps']
     env_name = ''
     run_nr = ''
     
@@ -50,27 +58,54 @@ if __name__ == '__main__':
     
     device = "cuda:0"
     
-    algo_cofig_path = run_folder + '/algo_config.yaml'
-    env_cofig_path = run_folder + '/algo_config.yaml'
+    config_path = run_folder + '/config.yaml'
     
     # open the config file 
-    with open(algo_cofig_path, 'r') as stream:
+    with open(config_path, 'r') as stream:
         try:
-            algo_config = yaml.safe_load(stream)
+            config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:    
-            raise FileNotFoundError( f"Algo Config File {algo_cofig_path} not found")
+            raise FileNotFoundError( f"Algo Config File {config_path} not found")
+    
+    if "seed" in config:   
+        set_random_seed(config["seed"])
     
     
-    # open the config file 
-    with open(env_cofig_path, 'r') as stream:
-        try:
-            env_config = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:    
-            raise FileNotFoundError( f"Algo Config File {algo_cofig_path} not found")
-    
-    
-    task = task_from_config(env_config)
+    task = task_from_config(config['task'])
     task.is_symmetric = False
+    
+    policy = policy_from_config(config['policy'], task)
+    
+    # get the highest step stored policy
+    
+    saves_folder = os.path.join(run_folder, 'saves')
+    saves_in_directory = os.listdir(saves_folder)
+    
+    
+    if len(saves_in_directory) == 0:
+        print("WARNING: The run has no saves policy!!!")
+    elif len(saves_in_directory) == 1:
+        # only one policy -> use that 
+        policy.load(os.path.join(saves_folder, saves_in_directory[0]))
+    else:
+        # multiple policies -> choose the last or the closest to the goal one    
+        step_nr = max([int(file_name.split('.')[0]) for file_name in saves_in_directory])
+        file_name = str(step_nr) + '.pth'
+        policy.load(os.path.join(saves_folder, file_name))
+        
+        
+    
+    policy.eval()
+    
+    last_obs = task.reset()
+    
+    for i in range(int(n_rollout_steps)):
+        with torch.no_grad():
+            actions, values, log_probs = policy.forward(last_obs[0], last_obs[1])
+    
+        new_obs, rewards, dones, info = task.step(actions)
+        
+        last_obs = new_obs
     
     # get the policy 
     
