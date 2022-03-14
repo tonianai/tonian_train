@@ -1,8 +1,9 @@
 
 
+from tonian.tasks.walking.walking_task import WalkingTask
 
 from warnings import resetwarnings
-from tonian.tasks.walking.walking_task import WalkingTask
+from tonian.common.logger import DummyLogger
 
 import gym 
 import numpy as np
@@ -29,9 +30,9 @@ import yaml
 set_random_seed(40, True)
 
  
-#env = WalkingTask(config_or_path={"env": {"num_envs": 1000}}, sim_device="gpu" , graphics_device_id=0 , headless=False)
+env = WalkingTask(config_or_path={"env": {"num_envs": 1000}}, sim_device="gpu" , graphics_device_id=0 , headless=False)
  
-env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="gpu", graphics_device_id=0, headless=False)
+#env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
 env.is_symmetric = False
  
@@ -58,7 +59,7 @@ policy = SimpleActorCriticPolicy(actor_obs_space=env.actor_observation_spaces,
  
 
 
-algo = PPO(env, config, policy=policy, device="cuda:0")
+algo = PPO(env, config, policy=policy, device="cuda:0", logger= DummyLogger() )
 
 # train for a million steps
 algo.learn(total_timesteps=1e10)

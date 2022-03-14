@@ -27,30 +27,34 @@ class BaseLogger(ABC):
         pass
      
 
-    
-    
     @abstractmethod
     def log(self, key: str, value: Union[int, float], step: int):
         pass
     
 
     
-    
+class DummyLogger(BaseLogger):
+    """A logger, that essentially does nothing. Used when a logger is required, but not needed e.g for tests
 
+    Args:
+        BaseLogger (_type_): 
+    """
+    def __init__(self) -> None:
+        super().__init__('')
+    
+    def log(self, key: str, value: Union[int, float], step: int):
+        pass
+        
     
      
 class TensorboardLogger(BaseLogger):
-    
+        
     def __init__(self, folder: str, print_to_console: bool = True) -> None:
         super().__init__(folder)
         self.folder = folder
         self.writer = SummaryWriter(log_dir=os.path.join(folder, "logs"))
         self.print_to_console = print_to_console
         
-        
-     
-
-           
 
     def log(self, key: str, value: Union[int, float], step: int, verbose: bool = False):
         self.writer.add_scalar(key, value, step)

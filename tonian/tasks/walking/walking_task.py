@@ -58,13 +58,21 @@ class WalkingTask(GenerationalVecTask):
         
         #extract params from config 
         assert self.config["env"]["powerscale"]
-        self.power_scale = self.config["env"]["powerscale"]
+        
+        
+        
         
         #extract params from config 
         self.randomize = self.config["task"]["randomize"]
         
         # The reward weighting dict is located in the config.yaml file and determines how much each reward contributes to the total reward function
-        self.reward_weighting = self.config["env"]["reward_weighting"]
+        reward_weight_dict = self.config["env"]["reward_weighting"]
+        
+        self.energy_cost = reward_weight_dict["energy_cost"]
+        self.directional_factor = reward_weight_dict["directional_factor"]
+        self.death_cost = reward_weight_dict["death_cost"]
+        self.alive_reward = reward_weight_dict["alive_reward"]
+   
     
     def _get_standard_config(self) -> Dict:
         """Get the dict of the standard configuration
@@ -171,11 +179,12 @@ class WalkingTask(GenerationalVecTask):
         
         self.rewards , self.do_reset = compute_robot_rewards(
             root_states= self.root_states,
+            actions= self.actions,
             sensor_states=self.vec_force_sensor_tensor,
-            alive_reward= 0.1,
-            death_cost= -1.0,
-            directional_factor= 1.0,
-            energy_cost= 1.0
+            alive_reward= self.alive_reward,
+            death_cost= self.death_cost,
+            directional_factor= self.directional_factor,
+            energy_cost= self.energy_cost
         )
         
     def reset_envs(self, env_ids):
@@ -340,14 +349,18 @@ class WalkingTask(GenerationalVecTask):
 
 @torch.jit.script
 def compute_robot_rewards(root_states: torch.Tensor,
+                          actions: torch.Tensor, 
                           sensor_states: torch.Tensor,
                           death_cost: float,
                           alive_reward: float, 
                           directional_factor: float,
                           energy_cost: float
                           )-> Tuple[torch.Tensor, torch.Tensor]:
-        
-        
+
+        print(root_states.shape)
+        print(actions.shape)
+        print(sensor_states.shape)
+
         #base reward for being alive  
         reward = torch.ones_like(root_states[:, 0]) * alive_reward
         
@@ -357,17 +370,22 @@ def compute_robot_rewards(root_states: torch.Tensor,
         
         # reward for being upright
         
+        # rcost of power
+        reward -= torch.sum(actions ** 2, dim=-1) * energy_cost
+        
+        # reward for runnign speed
+        
         
         # punish for having fallen
         terminations_height = 0.8
         # root_states[:, 2] defines the y positon of the root body 
-        reward = torch.where(root_states[:, 2] < terminations_height, torch.ones_like(reward) * death_cost, reward)
+        reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
         has_fallen = torch.zeros_like(reward, dtype=torch.int8)
         has_fallen = torch.where(root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
          
-        # reward for power effinecy
+
         
-        # reward for runnign speed 
+         
         return (reward, has_fallen)
 
 @torch.jit.script

@@ -8,6 +8,7 @@ task:
     num_envs: 1024
     env_spacing: 10
     max_episode_length: 1000
+    energy_cost: 0.05
     
   sim:
     substeps: 2
