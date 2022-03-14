@@ -55,12 +55,7 @@ class WalkingTask(GenerationalVecTask):
         
         assert self.config["sim"] is not None, "The sim config must be set on the task config file"
         assert self.config["env"] is not None, "The env config must be set on the task config file"
-        
-        #extract params from config 
-        assert self.config["env"]["powerscale"]
-        
-        
-        
+          
         
         #extract params from config 
         self.randomize = self.config["task"]["randomize"]
@@ -356,10 +351,9 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           directional_factor: float,
                           energy_cost: float
                           )-> Tuple[torch.Tensor, torch.Tensor]:
-
-        print(root_states.shape)
-        print(actions.shape)
-        print(sensor_states.shape)
+ 
+        
+        
 
         #base reward for being alive  
         reward = torch.ones_like(root_states[:, 0]) * alive_reward
@@ -367,6 +361,9 @@ def compute_robot_rewards(root_states: torch.Tensor,
         # Todo: Add other values to reward function and make the robots acceptable to command
         
         # reward for proper heading
+        # TODO: Validate, that this code is working 
+        heading_weight_tensor = torch.ones_like(root_states[:, 11]) * directional_factor
+        heading_reward = torch.where(root_states[:, 11] > 0.8, heading_weight_tensor, directional_factor * root_states[:, 11] / 0.8)
         
         # reward for being upright
         
