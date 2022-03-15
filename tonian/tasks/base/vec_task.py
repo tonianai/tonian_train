@@ -261,7 +261,7 @@ class VecTask(BaseEnv, ABC):
         """
         
     @abstractmethod
-    def _create_envs(self, num_envs: int, spacing: float, num_per_row: int)->None:
+    def _create_envs(self, spacing: float, num_per_row: int)->None:
         pass
     
     @abstractmethod

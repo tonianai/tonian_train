@@ -5,6 +5,7 @@ from typing import Dict
 from tonian.common.logger import BaseLogger
 from tonian.tasks.walking.walking_task import WalkingTask
 from tonian.tasks.cartpole.cartpole_task import Cartpole
+from tonian.tasks.mk1_walking.mk1_walking_task import Mk1WalkingTask
 from tonian.algorithms.base_algorithm import BaseAlgorithm
 from tonian.algorithms.ppo import PPO
 from tonian.policies.policies import SimpleActorCriticPolicy, ActorCriticPolicy
@@ -44,7 +45,8 @@ def task_from_config(config: Dict, headless: bool = False) -> VecTask:
     
     name_to_task_map=  {
      "00_cartpole": Cartpole,
-     "01_walking": WalkingTask
+     "01_walking": WalkingTask,
+     "02_mk1_walking": Mk1WalkingTask
     }
     return name_to_task_map[config["name"]](config, sim_device="gpu", graphics_device_id=0, headless= headless)
     
