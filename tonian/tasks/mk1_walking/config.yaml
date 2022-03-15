@@ -1,0 +1,34 @@
+# Configuaration file for the walking task
+# There are no universal "episodes" since every actor can terminate an episode prematurely
+# This is the standard configuration for the walking env
+# every value can be overwritten by the config in the constructor
+
+
+name: 02_mk1_walking
+
+physics_engine: physx
+
+env: 
+  num_envs: 1024
+  env_spacing: 16
+  max_episode_length: 1024 
+
+
+
+  reward_weighting:
+    directional_factor: 0.5
+    death_cost: 2
+    energy_cost: 0.5
+    alive_reward: 0.15
+
+
+
+sim: # the sim can deal with domain randomizazion on the given variables
+  dt: 0.0166 # 1/60 s
+  substeps: 2
+  up_axis: "z"
+  use_gpu_pipeline: True
+  gravity: [0.0, 0.0, -9.81]
+
+task: 
+  randomize: False

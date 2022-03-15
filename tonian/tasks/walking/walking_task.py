@@ -32,11 +32,6 @@ class WalkingTask(GenerationalVecTask):
     def __init__(self, config_or_path: Optional[Union[str, Dict]], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None: 
         super().__init__(config_or_path, sim_device, graphics_device_id, headless, rl_device)
         
-        if self.viewer != None:
-            cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
-            cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
-            self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
-    
 
         self._get_gpu_gym_state_tensors()
         

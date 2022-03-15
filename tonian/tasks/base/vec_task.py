@@ -215,6 +215,7 @@ class VecTask(BaseEnv, ABC):
 
             self.gym.viewer_camera_look_at(
                 self.viewer, None, cam_pos, cam_target)
+            
         
     def render(self):
         """Draw the frame to the viewer, and check for keyboard events."""
@@ -259,12 +260,9 @@ class VecTask(BaseEnv, ABC):
             Dict: Standard configuration
         """
         
-        
-            
     @abstractmethod
     def _create_envs(self, num_envs: int, spacing: float, num_per_row: int)->None:
         pass
-    
     
     @abstractmethod
     def pre_physics_step(self, actions: torch.Tensor):
@@ -367,7 +365,6 @@ class VecTask(BaseEnv, ABC):
             return dict_to_cpu(self.actor_obs), self.rewards.cpu(), self.do_reset.cpu(), self.extras
         return self.actor_obs, self.rewards, self.do_reset, self.extras
  
-        
     def reset(self) -> Tuple[Dict[str, torch.Tensor]]:
         """Reset the environment 
 
@@ -388,8 +385,6 @@ class VecTask(BaseEnv, ABC):
             return dict_to_cpu(self.actor_obs)
         return self.actor_obs
         
-
-    
     def _create_ground_plane(self, sim = None):
         if not sim:
             sim = self.sim
