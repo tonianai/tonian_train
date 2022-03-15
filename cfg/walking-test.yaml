@@ -8,7 +8,11 @@ task:
     num_envs: 1024
     env_spacing: 10
     max_episode_length: 1000
-    energy_cost: 0.05
+    reward_weighting:
+      directional_factor: 10
+      death_cost: 2
+      energy_cost: 0.005
+      alive_reward: 0.15
     
   sim:
     substeps: 2
@@ -31,10 +35,12 @@ policy:
     actor_hidden_layers:
       - 128
       - 256
+      - 256
       - 128
       - 64
     critic_hidden_layers:
       - 128
+      - 256
       - 256
       - 128
       - 64
@@ -46,9 +52,9 @@ policy:
 algo:
   name: "PPO" 
   gamma: 0.99
-  n_epochs: 5
+  n_epochs: 15
   eps_clip: 0.2
-  n_steps: 16 # the amount of steps taken per env between training and update
+  n_steps: 128 # the amount of steps taken per env between training and update
   batch_size: 2048
   target_kl: 0.008
   gae_lamda: 0.5
