@@ -29,10 +29,24 @@ class Mk1WalkingTask(GenerationalVecTask):
     
     def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
+        
+        # retreive pointers to simulation tensors
+        self._get_gpu_gym_state_tensors()
+        
             
     def _extract_params_from_config(self) -> None:
-        return super()._extract_params_from_config()
-    
+        """
+        Extract local variables used in the sim from the config dict
+        """
+        
+        assert self.config["sim"] is not None, "The sim config must be set on the task config file"
+        assert self.config["env"] is not None, "The env config must be set on the task config file"
+        
+        
+        
+        reward_weight_dict = self.config["env"]["reward_weighting"]  
+        
+        
     def _get_standard_config(self) -> Dict:
         """Get the dict of the standard configuration
 
@@ -48,6 +62,25 @@ class Mk1WalkingTask(GenerationalVecTask):
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:    
                 raise FileNotFoundError( f"Base Config : {base_config_path} not found")
+    
+    def _get_gpu_gym_state_tensors(self) -> None:
+        """
+        Retreive references to the gym tensors for the enviroment, that are on the gpu
+        """
+        # --- aquire tensor pointers
+        # the state of each root body is represented using 13 floats with the same layout as GymRigidBodyState: 3 floats for position, 4 floats for quaternion, 3 floats for linear velocity, and 3 floats for angular velocity.
+        actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
+        dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
+        dof_force_tensor = self.gym.acquire_dof_force_tensor(self.sim) 
+        sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
+      
+        # --- wrap pointers to torch tensors
+        self.root_states = gymtorch.wrap_tensor(actor_root_state)
+        self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
+        self.dof_force_tensor = gymtorch.wrap_tensor(dof_force_tensor).view(self.num_envs, self.num_dof)
+        
+        
+    
     
     def _create_envs(self, spacing: float, num_per_row: int) -> None:
         
@@ -70,7 +103,8 @@ class Mk1WalkingTask(GenerationalVecTask):
         
         pose = gymapi.Transform()
         
-         
+        self.robot_handles = []
+        self.envs = [] 
         for i in range(self.num_envs):
             # create env instance
             env_ptr = self.gym.create_env(
@@ -78,10 +112,16 @@ class Mk1WalkingTask(GenerationalVecTask):
             )
             robot_handle = self.gym.create_actor(env_ptr, mk1_robot_asset, pose, "mk1", i, 1, 0)
             
+            dof_probs = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+            
+            # TODO: Maybe change dof properties
+            #print(dof_probs)
+            
+            self.envs.append(env_ptr)
+            self.robot_handles.append(robot_handle)
+            
 
-        
-        
-        pass
+            
         
     
     def pre_physics_step(self, actions: torch.Tensor):
