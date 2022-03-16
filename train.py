@@ -19,17 +19,16 @@ import torch
 import torch.nn as nn
 
 import yaml, argparse
- 
 
 
-if __name__ == "__main__":
-    
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-seed", required=False, help="Seed for running the env")
-    ap.add_argument("-cfg", required= True, help="path to the config")
-    
-    args = vars(ap.parse_args())
-    
+def train(args: Dict):
+    """Train an environment given a config
+
+    Args:
+        args (Dict): arguments given via console
+            required args['cfg'] 
+
+    """
     args_seed = None
     
     if args['seed'] is not None:
@@ -60,12 +59,26 @@ if __name__ == "__main__":
     task = task_from_config(config["task"])
     task.is_symmetric = False
     policy = policy_from_config(config["policy"], task)
-    print(policy)
+    print(policy) 
     algo = algo_from_config(config["algo"], task, policy, device, logger)
     
     algo.learn(total_timesteps=1e10)
     
     task.close()
+    
+ 
+
+
+if __name__ == "__main__":
+    
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-seed", required=False, help="Seed for running the env")
+    ap.add_argument("-cfg", required= True, help="path to the config")
+    
+    args = vars(ap.parse_args())
+    train(args)
+    
+   
     
     
     

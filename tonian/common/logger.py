@@ -31,6 +31,7 @@ class BaseLogger(ABC):
     def log(self, key: str, value: Union[int, float], step: int):
         pass
     
+    
 
     
 class DummyLogger(BaseLogger):

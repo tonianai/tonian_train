@@ -101,7 +101,6 @@ class Cartpole(VecTask):
         cartpole_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(cartpole_asset)
         
-        print(cartpole_asset)
 
         pose = gymapi.Transform()
         pose.p.z = 2.0

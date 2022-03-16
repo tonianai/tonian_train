@@ -360,7 +360,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
         heading_weight_tensor = torch.ones_like(root_states[:, 11]) * directional_factor
         heading_reward = torch.where(root_states[:, 11] > 0.8, heading_weight_tensor, directional_factor * root_states[:, 11] / 0.8)
         
-        reward += heading_reward
+        #reward += heading_reward
         
         
         # reward for being upright

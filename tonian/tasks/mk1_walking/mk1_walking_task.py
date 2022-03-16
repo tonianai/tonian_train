@@ -49,7 +49,37 @@ class Mk1WalkingTask(GenerationalVecTask):
             except yaml.YAMLError as exc:    
                 raise FileNotFoundError( f"Base Config : {base_config_path} not found")
     
-    def _create_envs(self,spacing: float, num_per_row: int) -> None:
+    def _create_envs(self, spacing: float, num_per_row: int) -> None:
+        
+        # define plane on which environments are initialized
+        lower = gymapi.Vec3(0.5 * -spacing, -spacing, 0.0)
+        upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
+
+
+        asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../assets/urdf/mk-1/")
+        
+        mk1_robot_file = "robot.urdf"
+        
+        asset_options = gymapi.AssetOptions()
+        
+        asset_options.fix_base_link = False
+        
+        mk1_robot_asset = self.gym.load_asset(self.sim, asset_root, mk1_robot_file, asset_options)
+        
+        self.num_dof = self.gym.get_asset_dof_count(mk1_robot_asset)
+        
+        pose = gymapi.Transform()
+        
+         
+        for i in range(self.num_envs):
+            # create env instance
+            env_ptr = self.gym.create_env(
+                self.sim, lower, upper, num_per_row
+            )
+            robot_handle = self.gym.create_actor(env_ptr, mk1_robot_asset, pose, "mk1", i, 1, 0)
+            
+
+        
         
         pass
         
