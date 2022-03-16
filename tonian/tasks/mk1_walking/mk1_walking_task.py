@@ -70,15 +70,32 @@ class Mk1WalkingTask(GenerationalVecTask):
         # --- aquire tensor pointers
         # the state of each root body is represented using 13 floats with the same layout as GymRigidBodyState: 3 floats for position, 4 floats for quaternion, 3 floats for linear velocity, and 3 floats for angular velocity.
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
+        # Retrieves buffer for Actor root states. Buffer has shape (num_environments, num_actors * 13).
+        # State for each actor root contains position([0:3]), rotation([3:7]), linear velocity([7:10]), and angular velocity([10:13]).
+        
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
+        # Retrieves Degree-of-Freedom state buffer. Buffer has shape (num_environments, num_dofs * 2).
+        # Each DOF state contains position and velocity.
+        
         dof_force_tensor = self.gym.acquire_dof_force_tensor(self.sim) 
+        # Retrieves buffer for DOF forces. One force value per each DOF in simulation.
+        # shape (num_envs * dofs, ) WHYYY??? 
+        
         sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
+        # Retrieves buffer for force sensors. Buffer has shape (num_sensors,  6). 
+        # Each force sensor state has forces (3) and torques (3) data.
+        
       
-        # --- wrap pointers to torch tensors
+        # --- wrap pointers to torch tensors (The iaacgym simulation tensors must be wrapped to get a torch.Tensor)
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
+        
+        # view is necesary, because of the linear shape provided by the self.gym.acuire_dof_force_tensor
         self.dof_force_tensor = gymtorch.wrap_tensor(dof_force_tensor).view(self.num_envs, self.num_dof)
         
+        # the amount of sensors each env has
+        sensors_per_env = 2
+        self.vec_force_sensor_tensor = gymtorch.wrap_tensor(sensor_tensor).view(self.num_envs, 6 * sensors_per_env)
         
     
     
@@ -101,8 +118,18 @@ class Mk1WalkingTask(GenerationalVecTask):
         
         self.num_dof = self.gym.get_asset_dof_count(mk1_robot_asset)
         
-        pose = gymapi.Transform()
+        # --- add the force sensors for the arms torso, feet, head, knees
         
+        sensor_pose = gymapi.Transform()
+        
+        part_names_with_sensor = ['foot', 'foot_2']
+        parts_idx = [self.gym.find_asset_rigid_body_index(mk1_robot_asset, part_name) for part_name in part_names_with_sensor]
+
+        for part_idx in parts_idx:
+            self.gym.create_asset_force_sensor(mk1_robot_asset, part_idx, sensor_pose)
+        
+        
+        pose = gymapi.Transform()
         self.robot_handles = []
         self.envs = [] 
         for i in range(self.num_envs):
