@@ -33,6 +33,9 @@ class Mk1WalkingTask(GenerationalVecTask):
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
         
+        
+        self.heading_vector = to_torch([1,0,0], device= self.device).repeat((self.num_envs, 1))
+        self.initial_heading_vector = self.heading_vector.clone()
             
     def _extract_params_from_config(self) -> None:
         """
@@ -42,9 +45,12 @@ class Mk1WalkingTask(GenerationalVecTask):
         assert self.config["sim"] is not None, "The sim config must be set on the task config file"
         assert self.config["env"] is not None, "The env config must be set on the task config file"
         
-        
-        
         reward_weight_dict = self.config["env"]["reward_weighting"]  
+        
+        self.energy_cost = reward_weight_dict["energy_cost"]
+        self.directional_factor = reward_weight_dict["directional_factor"]
+        self.death_cost = reward_weight_dict["death_cost"]
+        self.alive_reward = reward_weight_dict["alive_reward"]
         
         
     def _get_standard_config(self) -> Dict:
@@ -94,10 +100,29 @@ class Mk1WalkingTask(GenerationalVecTask):
         self.dof_force_tensor = gymtorch.wrap_tensor(dof_force_tensor).view(self.num_envs, self.num_dof)
         
         # the amount of sensors each env has
-        sensors_per_env = 2
-        self.vec_force_sensor_tensor = gymtorch.wrap_tensor(sensor_tensor).view(self.num_envs, 6 * sensors_per_env)
+        sensors_per_env = len(self.parts_with_force_sensor)
+        self.vec_force_sensor_tensor = gymtorch.wrap_tensor(sensor_tensor).view(self.num_envs, sensors_per_env, 6)
         
+        self.refresh_tensors()
+        
+        # positions of the joints
+        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+        # velocities of the joints
+        self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
+        
+        # --- set initial tensors
+        self.initial_dof_pos = torch.zeros_like(self.dof_pos, device=self.device, dtype=torch.float)
+        self.initial_root_states = self.root_states.clone()
+        # 7:13 describe velocities
+        self.initial_root_states[:, 7:13] = 0
     
+    def refresh_tensors(self):
+        """Refreshes tensors, that are on the GPU
+        """
+        self.gym.refresh_dof_state_tensor(self.sim) # state tensor contains velocities and position for the jonts 
+        self.gym.refresh_actor_root_state_tensor(self.sim) # root state tensor contains ground truth information about the root link of the actor
+        self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
+        self.gym.refresh_dof_force_tensor(self.sim) # dof force tensor contains foces applied to the joints
     
     def _create_envs(self, spacing: float, num_per_row: int) -> None:
         
@@ -122,11 +147,12 @@ class Mk1WalkingTask(GenerationalVecTask):
         
         sensor_pose = gymapi.Transform()
         
-        part_names_with_sensor = ['foot', 'foot_2']
-        parts_idx = [self.gym.find_asset_rigid_body_index(mk1_robot_asset, part_name) for part_name in part_names_with_sensor]
+        self.parts_with_force_sensor = ['foot', 'foot_2', 'forearm', 'forearm_2']
+        parts_idx = [self.gym.find_asset_rigid_body_index(mk1_robot_asset, part_name) for part_name in self.parts_with_force_sensor]
 
         for part_idx in parts_idx:
             self.gym.create_asset_force_sensor(mk1_robot_asset, part_idx, sensor_pose)
+        
         
         
         pose = gymapi.Transform()
@@ -139,7 +165,8 @@ class Mk1WalkingTask(GenerationalVecTask):
             )
             robot_handle = self.gym.create_actor(env_ptr, mk1_robot_asset, pose, "mk1", i, 1, 0)
             
-            dof_probs = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+            dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+            self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
             
             # TODO: Maybe change dof properties
             #print(dof_probs)
@@ -147,18 +174,85 @@ class Mk1WalkingTask(GenerationalVecTask):
             self.envs.append(env_ptr)
             self.robot_handles.append(robot_handle)
             
+        # take the last one as an example (All should be the same)
+        dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+        
+        self.dof_limits_lower = []
+        self.dof_limits_upper = []
+        for j in range(self.num_dof):
+            if dof_prop['lower'][j] > dof_prop['upper'][j]:
+                self.dof_limits_lower.append(dof_prop['upper'][j])
+                self.dof_limits_upper.append(dof_prop['lower'][j])
+            else:
+                self.dof_limits_lower.append(dof_prop['lower'][j])
+                self.dof_limits_upper.append(dof_prop['upper'][j])
 
-            
+        self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
+        self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
         
     
     def pre_physics_step(self, actions: torch.Tensor):
-        return super().pre_physics_step(actions)
+        """Apply the action given to all the envs
+        Args:
+            actions (torch.Tensor): Expected Shape (num_envs, ) + self._get_action_space.shape
+
+        Returns:
+            [type]: [description]
+        """
+        self.actions = actions.to(self.device).clone()
+        forces = self.actions * 1000 # TODO: ADD Motor Efforts
+        force_tensor = gymtorch.unwrap_tensor(forces)
+        self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
     
     def post_physics_step(self):
-        return super().post_physics_step()
+        """Compute observations and calculate Reward
+        """
+        # the data in the tensors must be correct, before the observation and reward can be computed
+        self.refresh_tensors()
+        
+         # use jit script to compute the observations
+        self.actor_obs["linear"][:], self.critic_obs["linear"][:] = compute_linear_robot_observations(
+            root_states = self.root_states, 
+            sensor_states=self.vec_force_sensor_tensor,
+            dof_vel=self.dof_vel,
+            dof_pos= self.dof_pos,
+            dof_limits_lower=self.dof_limits_lower,
+            dof_limits_upper=self.dof_limits_upper,
+            dof_force= self.dof_force_tensor,
+            initial_heading= self.initial_heading_vector,
+            actions= self.actions
+        )
+        
+        
+        self.rewards , self.do_reset = compute_robot_rewards(
+            root_states= self.root_states,
+            actions= self.actions,
+            sensor_states=self.vec_force_sensor_tensor,
+            alive_reward= self.alive_reward,
+            death_cost= self.death_cost,
+            directional_factor= self.directional_factor,
+            energy_cost= self.energy_cost
+        )
+        
+        
     
-    def reset_envs(env_ids: torch.Tensor) -> None:
-        return super().reset_envs()
+    def reset_envs(self, env_ids: torch.Tensor) -> None:
+        positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
+        velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
+        
+        
+        self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
+        self.dof_vel[env_ids] = velocities
+        
+ 
+        env_ids_int32 = env_ids.to(dtype=torch.int32)
+        self.gym.set_actor_root_state_tensor_indexed(self.sim,
+                                                     gymtorch.unwrap_tensor(self.initial_root_states),
+                                                   gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+
+        self.gym.set_dof_state_tensor_indexed(self.sim,
+                                              gymtorch.unwrap_tensor(self.dof_state),
+                                              gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
     
     def _is_symmetric(self):
         return False
@@ -176,7 +270,7 @@ class Mk1WalkingTask(GenerationalVecTask):
         Returns:
             MultiSpace: [description]
         """
-        num_actor_obs = 103
+        num_actor_obs = 82
         return MultiSpace({
             "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
         })
@@ -195,7 +289,7 @@ class Mk1WalkingTask(GenerationalVecTask):
         Returns:
             MultiSpace: [description]
         """
-        num_critic_obs = 134
+        num_critic_obs = 92
         return MultiSpace({
             "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })
@@ -205,14 +299,119 @@ class Mk1WalkingTask(GenerationalVecTask):
         Returns:
             gym.Space: [description]
         """
-        num_actions = 21
+        num_actions = 17
         return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
     
     def reward_range(self):
         return (-1e100, 1e100)
     
-    
     def close(self):
         pass
+    
+
+@torch.jit.script
+def compute_robot_rewards(root_states: torch.Tensor,
+                          actions: torch.Tensor, 
+                          sensor_states: torch.Tensor,
+                          death_cost: float,
+                          alive_reward: float, 
+                          directional_factor: float,
+                          energy_cost: float
+                          )-> Tuple[torch.Tensor, torch.Tensor]:
+ 
+        
+        
+
+        #base reward for being alive  
+        reward = torch.ones_like(root_states[:, 0]) * alive_reward
+        
+        # Todo: Add other values to reward function and make the robots acceptable to command
+        
+        # reward for proper heading
+        # TODO: Validate, that this code is working 
+        heading_weight_tensor = torch.ones_like(root_states[:, 11]) * directional_factor
+        heading_reward = torch.where(root_states[:, 11] > 0.8, heading_weight_tensor, directional_factor * root_states[:, 11] / 0.8)
+        
+        #reward += heading_reward
+        
+        
+        # reward for being upright
+        
+        # rcost of power
+        reward -= torch.sum(actions ** 2, dim=-1) * energy_cost
+        
+        # reward for runnign speed
+        
+        
+        # punish for having fallen
+        terminations_height = -0.30
+        # root_states[:, 2] defines the y positon of the root body 
+        reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
+        has_fallen = torch.zeros_like(reward, dtype=torch.int8)
+        has_fallen = torch.where(root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
+         
+
+        return (reward, has_fallen)
+
+@torch.jit.script
+def compute_linear_robot_observations(root_states: torch.Tensor, 
+                                sensor_states: torch.Tensor, 
+                                dof_vel: torch.Tensor, 
+                                dof_pos: torch.Tensor, 
+                                dof_limits_lower: torch.Tensor,
+                                dof_limits_upper: torch.Tensor,
+                                dof_force: torch.Tensor,
+                                actions: torch.Tensor,
+                                initial_heading: torch.Tensor
+                                ):
+    
+    
+    """Calculate the observation tensors for the crititc and the actor for the humanoid robot
+    
+    Note: The resulting tensors must be in the same shape as the multispaces: 
+        - self.actor_observation_spaces
+        - self.critic_observatiom_spaces
+
+    Args:
+        root_states (torch.Tensor): Root states contain things like positions, velcocities, angular velocities and orientation of the root of the robot 
+        sensor_states (torch.Tensor): state of the sensors given 
+        dof_vel (torch.Tensor): velocity tensor of the dofs
+        dof_pos (torch.Tensor): position tensor of the dofs
+        dof_force (torch.Tensor): force tensor of the dofs
+        actions (torch.Tensor): actions of the previous 
+
+    Returns:
+        Tuple[Dict[torch.Tensor]]: (actor observation tensor, critic observation tensor)
+    """
+    
+    
+    torso_position = root_states[:, 0:3]
+    torso_rotation = root_states[:, 3:7]
+    velocity = root_states[:, 7:10]
+    ang_velocity = root_states[:, 10:13]
+    
+    print("Torso Position")
+    print(torso_position.shape)
+    print(torso_rotation.shape)
+    print(velocity.shape)
+    print(ang_velocity.shape)
+    print(sensor_states.shape)
+    
+    
+    
+    # todo add some other code to deal with initial information, that might be required
+    
+    
+    # todo: the actor still needs a couple of accelerometers
+    linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation), dim=-1)
+    
+    
+    print('actor_obs')
+    print(linear_actor_obs.shape)
+    linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position), dim=-1)
+    
+    print('critic_obs')
+    print(linear_critic_obs.shape)
+    return  linear_actor_obs,   linear_critic_obs
     
     

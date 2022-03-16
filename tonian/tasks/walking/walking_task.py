@@ -420,6 +420,13 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     velocity = root_states[:, 7:10]
     ang_velocity = root_states[:, 10:13]
     
+    print("Torso Position")
+    print(torso_position.shape)
+    print(torso_rotation.shape)
+    print(velocity.shape)
+    print(ang_velocity.shape)
+    print(sensor_states.shape)
+    
     
     # todo add some other code to deal with initial information, that might be required
     
@@ -427,7 +434,13 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     # todo: the actor still needs a couple of accelerometers
     linear_actor_obs = torch.cat((sensor_states, dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions), dim=-1)
     
+    print('actor_obs')
+    print(linear_actor_obs.shape)
     
     linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
+    
+    
+    print('critic_obs')
+    print(linear_critic_obs.shape)
     
     return  linear_actor_obs,   linear_critic_obs
