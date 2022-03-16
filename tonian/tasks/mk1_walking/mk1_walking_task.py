@@ -133,11 +133,11 @@ class Mk1WalkingTask(GenerationalVecTask):
 
         asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../assets/urdf/mk-1/")
         
-        mk1_robot_file = "robot.urdf"
+        mk1_robot_file = "robot_experimental.urdf"
         
         asset_options = gymapi.AssetOptions()
         
-        asset_options.fix_base_link = False
+        asset_options.fix_base_link = True
         
         mk1_robot_asset = self.gym.load_asset(self.sim, asset_root, mk1_robot_file, asset_options)
         
