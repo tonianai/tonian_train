@@ -1,7 +1,7 @@
 <robot name="onshape">
 <link name="upper_torso">
 <visual>
-<origin xyz="0.000209962 -0.0261252 -0.375722" rpy="0 -0 0" />
+<origin xyz="0.000209995 -0.0261251 -0.375722" rpy="0 -0 0" />
 <geometry>
 <mesh filename="package://upper_torso.stl"/>
 </geometry>
@@ -10,7 +10,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="0.000209962 -0.0261252 -0.375722" rpy="0 -0 0" />
+<origin xyz="0.000209995 -0.0261251 -0.375722" rpy="0 -0 0" />
 <geometry>
 <mesh filename="package://upper_torso.stl"/>
 </geometry>
@@ -19,7 +19,7 @@
 </material>
 </collision>
 <inertial>
-<origin xyz="0.000215444 -0.0343797 0.0714288" rpy="0 0 0"/>
+<origin xyz="0.000215477 -0.0343796 0.0714289" rpy="0 0 0"/>
 <mass value="191.467" />
 <inertia ixx="9.78331" ixy="-7.06362e-05"  ixz="0.000373258" iyy="12.116" iyz="0.251403" izz="3.73893" />
 </inertial>
@@ -33,7 +33,7 @@
 </inertial>
 </link>
 <joint name="torso_frame" type="fixed">
-<origin xyz="0.000209962 -0.181125 0.271472" rpy="-1.5708 -0 1.38778e-16" />
+<origin xyz="0.000209995 -0.181125 0.271472" rpy="-1.5708 -0 1.38778e-16" />
 <parent link="upper_torso" />
 <child link="torso" />
 <axis xyz="0 0 0"/>
@@ -41,7 +41,7 @@
 
 <link name="lower_torso">
 <visual>
-<origin xyz="3.18755e-17 -6.93889e-18 -0.1" rpy="0 1.50463e-36 -3.0446e-18" />
+<origin xyz="3.18755e-17 -3.46945e-18 -0.1" rpy="0 1.50463e-36 -3.0446e-18" />
 <geometry>
 <mesh filename="package://lower_torso.stl"/>
 </geometry>
@@ -50,7 +50,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="3.18755e-17 -6.93889e-18 -0.1" rpy="0 1.50463e-36 -3.0446e-18" />
+<origin xyz="3.18755e-17 -3.46945e-18 -0.1" rpy="0 1.50463e-36 -3.0446e-18" />
 <geometry>
 <mesh filename="package://lower_torso.stl"/>
 </geometry>
@@ -93,7 +93,7 @@
 
 <link name="upper_leg">
 <visual>
-<origin xyz="0 0.5 0.05" rpy="1.5708 1.5708 0" />
+<origin xyz="3.46945e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
 <geometry>
 <mesh filename="package://upper_leg.stl"/>
 </geometry>
@@ -102,7 +102,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="0 0.5 0.05" rpy="1.5708 1.5708 0" />
+<origin xyz="3.46945e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
 <geometry>
 <mesh filename="package://upper_leg.stl"/>
 </geometry>
@@ -137,7 +137,7 @@
 </material>
 </collision>
 <visual>
-<origin xyz="-3.46945e-18 -1.11022e-16 0" rpy="1.5708 -1.5708 0" />
+<origin xyz="-6.93889e-18 0 0" rpy="1.5708 -1.5708 0" />
 <geometry>
 <mesh filename="package://lower_leg_bolt.stl"/>
 </geometry>
@@ -146,7 +146,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="-3.46945e-18 -1.11022e-16 0" rpy="1.5708 -1.5708 0" />
+<origin xyz="-6.93889e-18 0 0" rpy="1.5708 -1.5708 0" />
 <geometry>
 <mesh filename="package://lower_leg_bolt.stl"/>
 </geometry>
@@ -215,7 +215,7 @@
 </joint>
 
 <joint name="left_knee" type="revolute">
-<origin xyz="0 0.5 0" rpy="-1.09538e-21 -4.34006e-22 -4.02109e-16" />
+<origin xyz="3.46945e-18 0.5 0" rpy="-1.09538e-21 -4.34006e-22 -4.02109e-16" />
 <parent link="upper_leg" />
 <child link="lower_leg" />
 <axis xyz="0 0 1"/>
@@ -233,7 +233,7 @@
 </joint>
 
 <joint name="left_hip_a" type="revolute">
-<origin xyz="-0.075 -2.08167e-17 -0.07" rpy="3.14159 -3.3777e-20 -1.53511" />
+<origin xyz="-0.075 -1.73472e-17 -0.07" rpy="3.14159 -3.3777e-20 -1.53511" />
 <parent link="lower_torso" />
 <child link="torso_leg_connector" />
 <axis xyz="0 0 1"/>
@@ -269,7 +269,7 @@
 
 <link name="upper_leg_2">
 <visual>
-<origin xyz="-1.73472e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
+<origin xyz="-3.46945e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
 <geometry>
 <mesh filename="package://upper_leg.stl"/>
 </geometry>
@@ -278,7 +278,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="-1.73472e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
+<origin xyz="-3.46945e-18 0.5 0.05" rpy="1.5708 1.5708 0" />
 <geometry>
 <mesh filename="package://upper_leg.stl"/>
 </geometry>
@@ -295,7 +295,7 @@
 
 <link name="lower_leg_2">
 <visual>
-<origin xyz="-6.93889e-18 1.11022e-16 -2.77556e-17" rpy="-1.5708 1.5708 0" />
+<origin xyz="3.46945e-18 0 -2.77556e-17" rpy="-1.5708 1.5708 0" />
 <geometry>
 <mesh filename="package://lower_leg_bolt.stl"/>
 </geometry>
@@ -304,7 +304,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="-6.93889e-18 1.11022e-16 -2.77556e-17" rpy="-1.5708 1.5708 0" />
+<origin xyz="3.46945e-18 0 -2.77556e-17" rpy="-1.5708 1.5708 0" />
 <geometry>
 <mesh filename="package://lower_leg_bolt.stl"/>
 </geometry>
@@ -391,7 +391,7 @@
 </joint>
 
 <joint name="right_knee" type="revolute">
-<origin xyz="-1.73472e-18 0.5 0" rpy="-1.94365e-15 1.84117e-15 3.14159" />
+<origin xyz="-3.46945e-18 0.5 -2.77556e-17" rpy="-1.94365e-15 1.84117e-15 3.14159" />
 <parent link="upper_leg_2" />
 <child link="lower_leg_2" />
 <axis xyz="0 0 1"/>
@@ -409,7 +409,7 @@
 </joint>
 
 <joint name="right_hip_a" type="revolute">
-<origin xyz="0.075 -2.08167e-17 -0.07" rpy="-3.14159 3.62558e-19 1.61597" />
+<origin xyz="0.075 -1.73472e-17 -0.07" rpy="-3.14159 3.62558e-19 1.61597" />
 <parent link="lower_torso" />
 <child link="torso_leg_connector_2" />
 <axis xyz="0 0 1"/>
@@ -418,7 +418,7 @@
 </joint>
 
 <joint name="torso" type="revolute">
-<origin xyz="0.000209962 -0.0261252 -0.395722" rpy="3.17888e-20 7.51828e-21 3.1059" />
+<origin xyz="0.000209995 -0.0261251 -0.395722" rpy="3.17888e-20 7.51828e-21 3.1059" />
 <parent link="upper_torso" />
 <child link="lower_torso" />
 <axis xyz="0 0 1"/>
@@ -498,7 +498,7 @@
 </material>
 </collision>
 <inertial>
-<origin xyz="-4.13471e-19 -1.36463e-17 -0.20755" rpy="0 0 0"/>
+<origin xyz="-4.13471e-19 -1.37753e-17 -0.20755" rpy="0 0 0"/>
 <mass value="8.86512" />
 <inertia ixx="0.134221" ixy="-1.40724e-05"  ixz="-1.47877e-18" iyy="0.13289" iyz="1.42787e-22" izz="0.0115204" />
 </inertial>
@@ -560,9 +560,9 @@
 </material>
 </collision>
 <inertial>
-<origin xyz="3.25334e-08 -0.0867606 -1.81965e-06" rpy="0 0 0"/>
-<mass value="4.07336" />
-<inertia ixx="0.0114497" ixy="6.45125e-07"  ixz="2.65039e-09" iyy="0.0156862" iyz="4.68722e-07" izz="0.0233896" />
+<origin xyz="2.24149e-08 -0.151821 -1.21719e-06" rpy="0 0 0"/>
+<mass value="6.10911" />
+<inertia ixx="0.0648192" ixy="6.37078e-07"  ixz="2.65046e-09" iyy="0.0203176" iyz="9.47846e-07" izz="0.0797619" />
 </inertial>
 </link>
 
@@ -594,7 +594,7 @@
 </joint>
 
 <joint name="left_shoulder_a" type="revolute">
-<origin xyz="0.193731 -0.0416859 0.390756" rpy="-2.35619 -1.58051e-14 1.5708" />
+<origin xyz="0.193731 -0.0416858 0.390756" rpy="-2.35619 -1.58051e-14 1.5708" />
 <parent link="upper_torso" />
 <child link="shoulder-connector" />
 <axis xyz="0 0 1"/>
@@ -656,7 +656,7 @@
 
 <link name="upper_arm_2">
 <visual>
-<origin xyz="1.11022e-16 -6.93889e-18 -0.35" rpy="-4.87304e-31 -1.01465e-17 -5.66499e-30" />
+<origin xyz="0 -6.93889e-18 -0.35" rpy="-4.87304e-31 -1.01465e-17 -5.66499e-30" />
 <geometry>
 <mesh filename="package://upper_arm.stl"/>
 </geometry>
@@ -665,7 +665,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="1.11022e-16 -6.93889e-18 -0.35" rpy="-4.87304e-31 -1.01465e-17 -5.66499e-30" />
+<origin xyz="0 -6.93889e-18 -0.35" rpy="-4.87304e-31 -1.01465e-17 -5.66499e-30" />
 <geometry>
 <mesh filename="package://upper_arm.stl"/>
 </geometry>
@@ -674,7 +674,7 @@
 </material>
 </collision>
 <inertial>
-<origin xyz="1.24683e-16 -1.36463e-17 -0.20755" rpy="0 0 0"/>
+<origin xyz="1.36603e-17 -1.37753e-17 -0.20755" rpy="0 0 0"/>
 <mass value="8.86512" />
 <inertia ixx="0.134221" ixy="-1.40724e-05"  ixz="1.20157e-17" iyy="0.13289" iyz="-1.24754e-21" izz="0.0115204" />
 </inertial>
@@ -700,7 +700,7 @@
 </material>
 </collision>
 <visual>
-<origin xyz="-6.93889e-18 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+<origin xyz="-6.93889e-18 0 0" rpy="-1.5708 -1.5708 0" />
 <geometry>
 <mesh filename="package://ellbow_bolt.stl"/>
 </geometry>
@@ -709,7 +709,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="-6.93889e-18 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+<origin xyz="-6.93889e-18 0 0" rpy="-1.5708 -1.5708 0" />
 <geometry>
 <mesh filename="package://ellbow_bolt.stl"/>
 </geometry>
@@ -718,7 +718,7 @@
 </material>
 </collision>
 <visual>
-<origin xyz="-6.93889e-18 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+<origin xyz="-6.93889e-18 0 0" rpy="-1.5708 -1.5708 0" />
 <geometry>
 <mesh filename="package://forearm.stl"/>
 </geometry>
@@ -727,7 +727,7 @@
 </material>
 </visual>
 <collision>
-<origin xyz="-6.93889e-18 5.55112e-17 0" rpy="-1.5708 -1.5708 0" />
+<origin xyz="-6.93889e-18 0 0" rpy="-1.5708 -1.5708 0" />
 <geometry>
 <mesh filename="package://forearm.stl"/>
 </geometry>
@@ -736,9 +736,9 @@
 </material>
 </collision>
 <inertial>
-<origin xyz="3.25334e-08 -0.0867606 -1.81965e-06" rpy="0 0 0"/>
-<mass value="4.07336" />
-<inertia ixx="0.0114497" ixy="6.45125e-07"  ixz="2.65039e-09" iyy="0.0156862" iyz="4.68722e-07" izz="0.0233896" />
+<origin xyz="2.24149e-08 -0.151821 -1.21719e-06" rpy="0 0 0"/>
+<mass value="6.10911" />
+<inertia ixx="0.0648192" ixy="6.37078e-07"  ixz="2.65046e-09" iyy="0.0203176" iyz="9.47846e-07" izz="0.0797619" />
 </inertial>
 </link>
 
@@ -770,7 +770,7 @@
 </joint>
 
 <joint name="right_shoulder_a" type="revolute">
-<origin xyz="-0.193311 -0.0416859 0.390756" rpy="2.35619 4.62008e-14 1.5708" />
+<origin xyz="-0.193311 -0.0416858 0.390756" rpy="2.35619 4.62008e-14 1.5708" />
 <parent link="upper_torso" />
 <child link="shoulder-connector_2" />
 <axis xyz="0 0 1"/>

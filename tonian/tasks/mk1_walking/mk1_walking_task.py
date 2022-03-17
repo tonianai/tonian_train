@@ -394,12 +394,12 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     velocity = root_states[:, 7:10]
     ang_velocity = root_states[:, 10:13]
     
-    print("Torso Position")
-    print(torso_position.shape)
-    print(torso_rotation.shape)
-    print(velocity.shape)
-    print(ang_velocity.shape)
-    print(sensor_states.shape)
+    # print("Torso Position")
+    # print(torso_position.shape)
+    # print(torso_rotation.shape)
+    # print(velocity.shape)
+    # print(ang_velocity.shape)
+    # print(sensor_states.shape)
     
     
     
@@ -410,12 +410,12 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation), dim=-1)
     
     
-    print('actor_obs')
-    print(linear_actor_obs.shape)
+    # print('actor_obs')
+    # print(linear_actor_obs.shape)
     linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position), dim=-1)
     
-    print('critic_obs')
-    print(linear_critic_obs.shape)
+    # print('critic_obs')
+    # print(linear_critic_obs.shape)
     return  linear_actor_obs,   linear_critic_obs
     
     

@@ -3,8 +3,7 @@ from typing import Callable, Dict, Union, List, Tuple, Type, Optional
 import torch 
 import torch.nn as nn
 from torch.nn import functional as F
- 
-
+  
 from collections import deque
 
 from tonian.algorithms.base_algorithm import BaseAlgorithm
@@ -151,7 +150,12 @@ class PPO(BaseAlgorithm):
         total_timesteps: int,
         reset_num_timesteps: bool = True
     )-> None:
-        
+        """Alternate between rollout and model optimization 
+
+        Args:
+            total_timesteps (int): The amount of timesteps all robots combined should take
+            reset_num_timesteps (bool, optional): 
+        """
         iteration = 0
         
         self._setup_learn(total_timesteps, reset_num_timesteps)
@@ -160,11 +164,19 @@ class PPO(BaseAlgorithm):
                 
         while self.num_timesteps < total_timesteps:
             
+            start_time = time.time()
+            
+                
             self.collect_rollouts(n_rollout_steps=self.n_steps)
             
+            end_rollout_time = time.time()
             iteration += 1
-            
+        
             self.train()
+            
+            end_time = time.time()
+            
+            print("Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(iteration, self.num_timesteps,(self.n_steps * self.n_envs)/ (end_time - start_time), ( end_rollout_time - start_time) / (end_time - start_time )))
             
     
     def collect_rollouts(self, 
@@ -176,8 +188,7 @@ class PPO(BaseAlgorithm):
         
         Return: True if function returned with at least `n_rollout_steps`
             collected, False if callback terminated rollout prematurely.
-        """
-        print("collect rollouts")
+        """ 
         
         assert self._last_obs is not None, "No previous obs was provided"
         self.policy.train(False)
@@ -262,8 +273,7 @@ class PPO(BaseAlgorithm):
         """        
         # switch to train mode
         self.policy.train(True)
-        # update schedules (like lr)
-        print("Train")
+        # update schedules (like lr) 
         
         self._update_schedules()        
         
@@ -358,10 +368,7 @@ class PPO(BaseAlgorithm):
         if self.num_timesteps - self.last_save > 1e7 or self.last_save == 0:
             self.save()
             self.last_save = self.num_timesteps
-        
-        
-        
-    pass
+         
 
     def _update_schedules(self):
         # todo add lr schedule and not a fixed rate

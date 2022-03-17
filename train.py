@@ -33,6 +33,8 @@ def train(args: Dict):
     
     if args['seed'] is not None:
         args_seed = int(args['seed'])
+        
+    headless = args['headless']
      
     device = "cuda:0"
 
@@ -56,7 +58,7 @@ def train(args: Dict):
     
     logger = TensorboardLogger(run_folder_name)
     
-    task = task_from_config(config["task"])
+    task = task_from_config(config["task"], headless= headless)
     task.is_symmetric = False
     policy = policy_from_config(config["policy"], task)
     print(policy) 
@@ -74,6 +76,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("-seed", required=False, help="Seed for running the env")
     ap.add_argument("-cfg", required= True, help="path to the config")
+    ap.add_argument('--headless', action='store_true')
+    ap.add_argument('--no-headless', action='store_false')
+    ap.set_defaults(feature= False)
     
     args = vars(ap.parse_args())
     train(args)
