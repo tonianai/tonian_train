@@ -155,15 +155,19 @@ class Mk1WalkingTask(GenerationalVecTask):
         
         
         
-        pose = gymapi.Transform()
+        start_pose = gymapi.Transform()
         self.robot_handles = []
         self.envs = [] 
+        
+        
+        start_pose.p = gymapi.Vec3(0.0,0.0, 1.80)
+        start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
         for i in range(self.num_envs):
             # create env instance
             env_ptr = self.gym.create_env(
                 self.sim, lower, upper, num_per_row
             )
-            robot_handle = self.gym.create_actor(env_ptr, mk1_robot_asset, pose, "mk1", i, 1, 0)
+            robot_handle = self.gym.create_actor(env_ptr, mk1_robot_asset, start_pose, "mk1", i, 1, 0)
             
             dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
             self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
@@ -344,7 +348,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
         
         
         # punish for having fallen
-        terminations_height = -0.30
+        terminations_height = 1.0
         # root_states[:, 2] defines the y positon of the root body 
         reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
         has_fallen = torch.zeros_like(reward, dtype=torch.int8)
