@@ -33,8 +33,10 @@ def train(args: Dict):
     
     if args['seed'] is not None:
         args_seed = int(args['seed'])
-        
-    headless = args['headless']
+    
+    
+    
+    headless =  'headless' in args and args['headless']
      
     device = "cuda:0"
 
