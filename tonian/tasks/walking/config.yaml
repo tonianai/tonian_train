@@ -16,10 +16,10 @@ env:
 
 
   reward_weighting:
-    directional_factor: 0.5
+    directional_factor: 10
     death_cost: 2
     energy_cost: 0.5
-    alive_reward: 0.15
+    alive_reward: 0.2
 
 
     

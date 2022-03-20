@@ -25,12 +25,7 @@ class PPO(BaseAlgorithm):
     def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device], logger: BaseLogger) -> None:
         super().__init__(env, config, device, logger)
         self._fetch_config_params(config)
-        
-        #The maximim value for the gradient clipping 
-        # TODO add to the config
-        
-        self.max_grad_norm = 0.5
-        
+         
         
         # set the action and obervation space to member variables
         self.critic_obs_spaces = env.critic_observation_spaces
@@ -90,6 +85,10 @@ class PPO(BaseAlgorithm):
         self.eps_clip = config['eps_clip']
         self.value_f_coef = config['value_f_coef']
         self.entropy_coef = config['entropy_coef']
+        
+        self.max_grad_norm = None
+        if 'max_grad_norm' in config:
+            self.max_grad_norm = config['max_grad_norm']
          
         
         
@@ -351,7 +350,9 @@ class PPO(BaseAlgorithm):
                 self.policy.optimizer.zero_grad()
                 loss.backward() 
                 # Clip grad norm
-                #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+                
+                if self.max_grad_norm is not None: 
+                    torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.policy.optimizer.step()
                 
                 

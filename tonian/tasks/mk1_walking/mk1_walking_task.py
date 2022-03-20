@@ -119,6 +119,8 @@ class Mk1WalkingTask(GenerationalVecTask):
     def refresh_tensors(self):
         """Refreshes tensors, that are on the GPU
         """
+        # The root state that was from last refresh
+        self.former_root_state = self.root_states.clone()
         self.gym.refresh_dof_state_tensor(self.sim) # state tensor contains velocities and position for the jonts 
         self.gym.refresh_actor_root_state_tensor(self.sim) # root state tensor contains ground truth information about the root link of the actor
         self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
@@ -230,6 +232,7 @@ class Mk1WalkingTask(GenerationalVecTask):
         
         self.rewards , self.do_reset = compute_robot_rewards(
             root_states= self.root_states,
+            former_root_states= self.former_root_states, 
             actions= self.actions,
             sensor_states=self.vec_force_sensor_tensor,
             alive_reward= self.alive_reward,
@@ -274,7 +277,7 @@ class Mk1WalkingTask(GenerationalVecTask):
         Returns:
             MultiSpace: [description]
         """
-        num_actor_obs = 82
+        num_actor_obs = 99
         return MultiSpace({
             "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
         })
@@ -293,7 +296,7 @@ class Mk1WalkingTask(GenerationalVecTask):
         Returns:
             MultiSpace: [description]
         """
-        num_critic_obs = 92
+        num_critic_obs = 126
         return MultiSpace({
             "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })
@@ -315,6 +318,7 @@ class Mk1WalkingTask(GenerationalVecTask):
 
 @torch.jit.script
 def compute_robot_rewards(root_states: torch.Tensor,
+                          former_root_states: torch.Tensor,
                           actions: torch.Tensor, 
                           sensor_states: torch.Tensor,
                           death_cost: float,
@@ -324,10 +328,15 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           )-> Tuple[torch.Tensor, torch.Tensor]:
  
         
+        former_torso_position = former_root_states[:,0:3]
+        torso_position = root_states[:, 0:3]
+        # Remember Z Axis is up x and y are horizontal
+        difference_in_x = former_torso_position[:, 0] - torso_position[:, 0] 
         
-
         #base reward for being alive  
-        reward = torch.ones_like(root_states[:, 0]) * alive_reward
+        reward = torch.ones_like(root_states[:, 0]) * alive_reward  
+
+        reward += torch.where(difference_in_x < 0, 0, difference_in_x * directional_factor)
         
         # Todo: Add other values to reward function and make the robots acceptable to command
         
@@ -336,7 +345,6 @@ def compute_robot_rewards(root_states: torch.Tensor,
         heading_weight_tensor = torch.ones_like(root_states[:, 11]) * directional_factor
         heading_reward = torch.where(root_states[:, 11] > 0.8, heading_weight_tensor, directional_factor * root_states[:, 11] / 0.8)
         
-        #reward += heading_reward
         
         
         # reward for having torso upright
@@ -409,12 +417,12 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     
     
     # todo: the actor still needs a couple of accelerometers
-    linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation), dim=-1)
+    linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions), dim=-1)
     
     
     # print('actor_obs')
     # print(linear_actor_obs.shape)
-    linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position), dim=-1)
+    linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
     
     # print('critic_obs')
     # print(linear_critic_obs.shape)

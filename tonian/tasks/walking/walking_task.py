@@ -121,6 +121,9 @@ class WalkingTask(GenerationalVecTask):
     
     def refresh_tensors(self):
         """Refreshes tensors, that are on the GPU        """
+        
+        self.former_root_states = self.root_states.clone()
+        
         self.gym.refresh_dof_state_tensor(self.sim) # state tensor contains velocities and position for the jonts 
         self.gym.refresh_actor_root_state_tensor(self.sim) # root state tensor contains ground truth information about the root link of the actor
         self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
@@ -169,6 +172,7 @@ class WalkingTask(GenerationalVecTask):
         
         self.rewards , self.do_reset = compute_robot_rewards(
             root_states= self.root_states,
+            former_root_states = self.former_root_states,
             actions= self.actions,
             sensor_states=self.vec_force_sensor_tensor,
             alive_reward= self.alive_reward,
@@ -339,6 +343,7 @@ class WalkingTask(GenerationalVecTask):
 
 @torch.jit.script
 def compute_robot_rewards(root_states: torch.Tensor,
+                          former_root_states: torch.Tensor,
                           actions: torch.Tensor, 
                           sensor_states: torch.Tensor,
                           death_cost: float,
@@ -348,10 +353,16 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           )-> Tuple[torch.Tensor, torch.Tensor]:
  
         
-        
+        former_torso_position = former_root_states[:,0:3]
+        torso_position = root_states[:, 0:3]
+        # Remember Z Axis is up x and y are horizontal
+        difference_in_x = former_torso_position[:, 0] - torso_position[:, 0]  
+
 
         #base reward for being alive  
         reward = torch.ones_like(root_states[:, 0]) * alive_reward
+        
+        reward += torch.where(difference_in_x < 0, torch.zeros_like(reward), difference_in_x * directional_factor)
         
         # Todo: Add other values to reward function and make the robots acceptable to command
         
