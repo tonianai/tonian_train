@@ -120,7 +120,7 @@ class Mk1WalkingTask(GenerationalVecTask):
         """Refreshes tensors, that are on the GPU
         """
         # The root state that was from last refresh
-        self.former_root_state = self.root_states.clone()
+        self.former_root_states = self.root_states.clone()
         self.gym.refresh_dof_state_tensor(self.sim) # state tensor contains velocities and position for the jonts 
         self.gym.refresh_actor_root_state_tensor(self.sim) # root state tensor contains ground truth information about the root link of the actor
         self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
@@ -138,8 +138,10 @@ class Mk1WalkingTask(GenerationalVecTask):
         mk1_robot_file = "robot.urdf"
         
         asset_options = gymapi.AssetOptions()
-        
+        asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
         asset_options.fix_base_link = False
+        asset_options.disable_gravity = False
+        # todo randomize and add other asset_options
         
         mk1_robot_asset = self.gym.load_asset(self.sim, asset_root, mk1_robot_file, asset_options)
         
@@ -336,7 +338,8 @@ def compute_robot_rewards(root_states: torch.Tensor,
         #base reward for being alive  
         reward = torch.ones_like(root_states[:, 0]) * alive_reward  
 
-        reward += torch.where(difference_in_x < 0, 0, difference_in_x * directional_factor)
+        # Todo: readd
+        #reward += torch.where(difference_in_x < 0, 0, difference_in_x * directional_factor)
         
         # Todo: Add other values to reward function and make the robots acceptable to command
         
