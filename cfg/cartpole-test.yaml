@@ -19,14 +19,6 @@ task:
 policy: 
     name: "SimpleActorCritic"
     
-    action_std: # hard set the std -> if this is not set, or set to 'auto' the action_std becomes a parameter
-      schedule_type: 'steps'
-      interpolation: 'none'
-      schedule: 
-        10e6: 1e-4
-        20e6: 1e-5
-        30e6: 8e-5
-    
     actor_hidden_layers:
       - 32
       - 32 
