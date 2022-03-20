@@ -28,13 +28,12 @@ policy:
         30e6: 8e-5
     
     actor_hidden_layers:
-      - 64
-      - 64
-      - 64
+      - 32
+      - 32 
     critic_hidden_layers:
-      - 64
-      - 64
-    lr: 1e-5
+      - 32
+      - 32
+    lr: 3e-4
 
     
 
@@ -42,12 +41,12 @@ policy:
 algo:
   name: "PPO" 
   gamma: 0.99
-  n_epochs: 10
+  n_epochs: 8
   eps_clip: 0.2
-  n_steps: 128 # the amount of steps taken per env between training and update
-  batch_size: 2048
+  n_steps: 16 # the amount of steps taken per env between training and update
+  batch_size: 8192
   target_kl: 0.008
-  gae_lamda: 0.5
+  gae_lamda: 0.95
   entropy_coef: 0
-  value_f_coef: 1
+  value_f_coef: 4
 
