@@ -61,7 +61,6 @@ def train(args: Dict):
     logger = TensorboardLogger(run_folder_name)
     
     task = task_from_config(config["task"], headless= headless)
-    task.is_symmetric = False
     policy = policy_from_config(config["policy"], task)
     print(policy) 
     algo = algo_from_config(config["algo"], task, policy, device, logger)

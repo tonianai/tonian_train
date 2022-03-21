@@ -20,8 +20,6 @@ device = "cuda"
  
 env = Cartpole(config_or_path={"env": {"num_envs": n_envs}}, sim_device=device, graphics_device_id=0, headless=False)
 
-env.is_symmetric = False
-
 critic_obs_space = env.critic_observation_spaces
 actor_obs_space = env.actor_observation_spaces
 

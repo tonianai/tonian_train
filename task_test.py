@@ -34,7 +34,6 @@ env = WalkingTask(config_or_path={"env": {"num_envs": 1000}}, sim_device="gpu" ,
  
 #env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
-env.is_symmetric = False
  
 config_path = "./tonian/algorithms/ppo_config.yaml"
 

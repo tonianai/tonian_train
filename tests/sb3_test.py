@@ -29,8 +29,6 @@ import yaml
  
 env = Cartpole(config_or_path={'env': {'num_envs': 12}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
-env.is_symmetric = True
-
 
 sb3_env = Sb3VecEnvWrapper(env)
 
