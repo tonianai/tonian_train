@@ -4,7 +4,7 @@ from isaacgym.torch_utils import to_torch
 from isaacgym import gymutil, gymtorch, gymapi
 
   
-from tonian.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
+from tonian.tasks.base.vec_task import VecTask
 
 import numpy
 import os

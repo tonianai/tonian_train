@@ -1,7 +1,7 @@
 from gym.spaces import space
 import numpy as np
 from tonian.tasks.base.command import Command
-from tonian.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
+from tonian.tasks.base.vec_task import VecTask
 
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
@@ -25,7 +25,7 @@ import torch
 from torch import nn 
 import torch.nn as nn
 
-class Mk1WalkingTask(GenerationalVecTask):
+class Mk1WalkingTask(VecTask):
     
     def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)

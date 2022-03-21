@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn 
 from tonian.tasks.base.base_env import BaseEnv
 from tonian.common.logger import BaseLogger, TensorboardLogger
-from tonian.common.utils.config_utils import join_configs
+from tonian.common.utils.utils import join_configs
 from typing import Union
 
 from abc import abstractmethod, ABC

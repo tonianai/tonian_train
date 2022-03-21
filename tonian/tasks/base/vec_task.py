@@ -8,8 +8,7 @@ from isaacgym import gymtorch, gymapi
 from isaacgym.torch_utils import to_torch
 from tonian.tasks.base.base_env import BaseEnv
 
-from tonian.common.utils.utils import dict_to, dict_to_cpu
-
+from tonian.common.utils.utils import dict_to, dict_to_cpu, join_configs
 import numpy as np
 
 import torch 
@@ -20,8 +19,7 @@ import sys
 import yaml
 
 
-from tonian.common.spaces import MultiSpace
-from tonian.common.utils.config_utils import join_configs
+from tonian.common.spaces import MultiSpace 
 
 
 
@@ -432,28 +430,4 @@ class VecTask(BaseEnv, ABC):
     
      
 
-
-class GenerationalVecTask(VecTask, ABC):
-    
-    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device) -> None:
-        """
-        Generational tasks are tasks, that have differing reward functions and domain randomization with changing generations.
-        Generations are defined within the given config dict.
-        
-        The gernerational_goals property of that dict, contains the information, when an generation changes and with it the reward function and the domain randomization.
-        The generation changes when the reward goal of the generation is achived.
-        
-        The reward goal get calculated, by averaging over a defined amount of episoded the complete episode rewards
-         
-        """
-        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
-        
-        
-        #self.generational_goal = config["env"]["generational_goals"]
-        
-        # The gerneration changes when a predefines gernaational goal is achived
-        # differnt generations can have different degrees of domain randomisation and different reward functions
-        self.current_gen = 1
-        
-        # Todo implement generational evolving
-        
+ 
