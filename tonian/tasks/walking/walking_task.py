@@ -331,9 +331,6 @@ class WalkingTask(GenerationalVecTask):
         num_actions = 21
         return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
     
-    def _is_symmetric(self):
-        return False
-    
     def reward_range(self):
         return (-1e100, 1e100)
     

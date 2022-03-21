@@ -3,9 +3,7 @@
 from isaacgym.torch_utils import to_torch
 from isaacgym import gymutil, gymtorch, gymapi
 
-
-from stable_baselines3.common.vec_env import VecEnv, DummyVecEnv
-
+  
 from tonian.tasks.base.vec_task import VecTask, BaseEnv, GenerationalVecTask
 
 import numpy
@@ -217,12 +215,6 @@ class Cartpole(VecTask):
         num_actions = 1
         return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
     
-    def _is_symmetric(self) -> bool:
-        """This is a symmetric environment, that means, that the actor and critic observation spaces are shared
-        Returns:
-            [bool]
-        """
-        return True
     
     def reward_range(self):
         return (-1e100, 1e100)

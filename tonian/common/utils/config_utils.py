@@ -156,3 +156,38 @@ def create_new_run_directory(config: Dict) -> str:
     return run_folder_name
     
     
+def join_configs(base_config: Dict, config: Dict) -> Dict:
+    """Joins two configuration files into one
+
+    Args:
+        base_config (Dict): The base config
+        config (Dict): This config can override values of the base config
+
+    Returns:
+        Dict: [description]
+    """
+    # idea go through all the values and join or override if the value is not a dict
+    # if the value is a dict recursevely call this function
+    
+    final_dict = base_config.copy()
+    
+    for key, value in config.items():
+        
+        if isinstance(value, Dict):
+            
+            # check if it is in the base
+            if key in final_dict.keys():
+                # join the dicts using a recursive call
+                final_dict[key] = join_configs(final_dict[key], value)
+            else:
+                final_dict[key] = value
+            
+        else:
+            final_dict[key] = value
+        
+    
+    return final_dict
+
+
+             
+            

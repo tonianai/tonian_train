@@ -263,9 +263,6 @@ class Mk1WalkingTask(GenerationalVecTask):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
     
-    def _is_symmetric(self):
-        return False
-    
     
     def _get_actor_observation_spaces(self) -> MultiSpace:
         """Define the different observation the actor of the agent
