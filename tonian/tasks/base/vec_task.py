@@ -1,25 +1,13 @@
 from typing import Dict, Any, Union, Tuple
-from abc import ABC, abstractmethod, abstractproperty
-
-import gym
-from gym import spaces
+from abc import ABC, abstractmethod
 
 from isaacgym import gymtorch, gymapi
-from isaacgym.torch_utils import to_torch
 from tonian.tasks.base.base_env import BaseEnv
-
-from tonian.common.utils.utils import dict_to, dict_to_cpu, join_configs
+from tonian.common.utils.utils import  join_configs
 import numpy as np
 
-import torch 
-import torch.nn as nn
+import torch, sys, yaml
 
-import time
-import sys
-import yaml
-
-
-from tonian.common.spaces import MultiSpace 
 
 
 
@@ -51,7 +39,6 @@ class VecTask(BaseEnv, ABC):
             assert isinstance(config_or_path, Dict), "The config_or_path must eighter be a string to a config file or the contents of a content dict itself"
          
         config = join_configs(base_config, config)
-         
         
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
@@ -75,6 +62,10 @@ class VecTask(BaseEnv, ABC):
         self.global_step = 0
         self.sim_initialized = False
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
+        
+        print("Gym and Sim types")
+        print(type(self.gym))
+        print(type(self.sim))
         
         # create the environments 
         print(f'num envs {self.num_envs} env spacing {self.config["env"]["env_spacing"]}')

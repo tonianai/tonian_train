@@ -12,16 +12,18 @@ class BaseAgents(ABC):
     BaseAgents class does include actor (and critic) observation calculation, becuase this is only subject to the agent.
     """
     
-    def __init__(self, num_agents: int):
+    def __init__(self, num_agents: int, gym , sim ):
+        self.num_agents = num_agents
+        self.gym = gym
+        self.sim = sim
         pass
     
     
     @abstractmethod
-    def create(self, num_agents: int, spacing: int, num_per_row: Optional[int]):
+    def create(self,  spacing: int, num_per_row: Optional[int]):
         """Create the agetns in the environment
 
-        Args:
-            num_agents (int): The number of tot
+        Args: 
             spacing (int): _description_
             num_per_row (Optional[int]): _description_
         """

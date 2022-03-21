@@ -6,7 +6,6 @@ from isaacgym import gymutil, gymtorch, gymapi
   
 from tonian.tasks.base.vec_task import VecTask
 
-import numpy
 import os
 import torch
 import torch.nn as nn
@@ -81,6 +80,8 @@ class Cartpole(VecTask):
 
     def _create_envs(self, spacing, num_per_row):
         # define plane on which environments are initialized
+        print("Envs were created")
+        
         lower = gymapi.Vec3(0.5 * -spacing, -spacing, 0.0)
         upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
 

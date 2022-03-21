@@ -12,8 +12,9 @@ from tonian.policies.policies import SimpleActorCriticPolicy, ActorCriticPolicy
 
 from gym.spaces import space
 from tonian.tasks.base.command import Command
-from tonian.tasks.base.vec_task import MultiSpace, VecTask
+from tonian.tasks.base.vec_task import  VecTask
 from tonian.common.schedule import Schedule 
+from tonian.common.spaces import MultiSpace
 
 import torch
 import torch.nn as nn
