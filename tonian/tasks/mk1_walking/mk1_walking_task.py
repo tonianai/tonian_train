@@ -151,20 +151,7 @@ class Mk1WalkingTask(VecTask):
             dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
             self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
             
-            # TODO: Maybe change dof properties
-            #
-            # 
-            # 
-            # 
-            # 
-            # 
-            # 
-            # 
-            # 
-            # 
-            # 
-            # 
-            # dof_probs)
+            # TODO: Maybe change dof properties dof_probs)
             
             self.envs.append(env_ptr)
             self.robot_handles.append(robot_handle)
