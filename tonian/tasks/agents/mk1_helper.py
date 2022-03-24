@@ -2,69 +2,12 @@
 
 from typing import Tuple, List
 from isaacgym import gymapi
+from tonian.common.spaces import MultiSpace
 
-import torch, os
-
-
-# The parts of the robot, that should get a force sensor    
-parts_with_force_sensor = ['foot', 'foot_2', 'forearm', 'forearm_2']
+import torch, os, gym
 
 
-def create_mk1_in_envs(gym, sim, env_ptrs: List) -> Tuple[List, List, List]:
-    """Create the mk1 robots in the environment with all sensors attached and activated 
 
-    Args:
-        gym (_type_): _description_
-        sim (_type_): _description_
-        env_ptrs (List): _description_
-
-    Returns:
-        Tuple[List, List, List]: (robot_handles, lower_limits, upper_limits)
-            - robot handles corresponds with index to env_ptrs  => len(robot_handles) == len(env_ptrs)
-            - upper and lower limit arrays correspons to the dof => len(upper_limits) == num_dof
-    """
-    
-    start_pose = gymapi.Transform()
-    start_pose.p = gymapi.Vec3(0.0,0.0, 1.80)
-    start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
-    
-
-    mk1_robot_asset = create_mk1_asset(gym, sim)
-
-        
-    num_dof = gym.get_asset_dof_count(mk1_robot_asset) 
-    
-    robot_handles = []
-                
-
-    for i, env_ptr in enumerate(env_ptrs):
-        
-        robot_handle = gym.create_actor(env_ptr, mk1_robot_asset, start_pose, "mk1", i, 1, 0)
-        
-        dof_prop = gym.get_actor_dof_properties(env_ptr, robot_handle)
-        gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
-            
-            # TODO: Maybe change dof properties dof_probs)
-            
-        
-        robot_handles.append(robot_handle)
-            
-        
-            
-        # take the last one as an example (All should be the same)
-        dof_prop = gym.get_actor_dof_properties(env_ptr, robot_handle)
-        
-        dof_limits_lower = []
-        dof_limits_upper = []
-        for j in range(num_dof):
-            if dof_prop['lower'][j] > dof_prop['upper'][j]:
-                dof_limits_lower.append(dof_prop['upper'][j])
-                dof_limits_upper.append(dof_prop['lower'][j])
-            else:
-                dof_limits_lower.append(dof_prop['lower'][j])
-                dof_limits_upper.append(dof_prop['upper'][j])
-    
-    return robot_handle, num_dof ,dof_limits_lower, dof_limits_upper
     
     
 
@@ -103,6 +46,12 @@ def create_mk1_asset(gym, sim):
     return mk1_robot_asset
 
 
+
+# The parts of the robot, that should get a force sensor    
+parts_with_force_sensor = ['foot', 'foot_2', 'forearm', 'forearm_2']
+
+
+
 @torch.jit.script
 def compute_linear_robot_observations(root_states: torch.Tensor, 
                                 sensor_states: torch.Tensor, 
@@ -111,8 +60,7 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
                                 dof_limits_lower: torch.Tensor,
                                 dof_limits_upper: torch.Tensor,
                                 dof_force: torch.Tensor,
-                                actions: torch.Tensor,
-                                initial_heading: torch.Tensor
+                                actions: torch.Tensor
                                 ):
     
     
@@ -163,3 +111,17 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     # print('critic_obs')
     # print(linear_critic_obs.shape)
     return  linear_actor_obs,   linear_critic_obs
+
+
+num_critic_obs = 126
+critic_obs_space = MultiSpace({
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
+        })
+    
+num_actor_obs = 99
+actor_obs_space =  MultiSpace({
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
+        })
+
+num_actions = 17
+action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
