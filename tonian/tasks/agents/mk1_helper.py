@@ -10,6 +10,9 @@ import torch, os, gym
 
     
     
+# The parts of the robot, that should get a force sensor    
+parts_with_force_sensor = ['upper_torso' , 'foot', 'foot_2', 'forearm', 'forearm_2' ]
+
 
 
 def create_mk1_asset(gym, sim):
@@ -26,8 +29,19 @@ def create_mk1_asset(gym, sim):
     mk1_robot_file = "robot.urdf"
         
     asset_options = gymapi.AssetOptions()
-    asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
+    # asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
+    # asset_options.fix_base_link = False
+    # asset_options.disable_gravity = False
+    
+    asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
+    asset_options.collapse_fixed_joints = True
+    asset_options.replace_cylinder_with_capsule = True
     asset_options.fix_base_link = False
+    asset_options.density = 0.001
+    asset_options.angular_damping = 0.0
+    asset_options.linear_damping = 0.0
+    asset_options.armature = 0.0
+    asset_options.thickness = 0.01
     asset_options.disable_gravity = False
     
     
@@ -40,15 +54,15 @@ def create_mk1_asset(gym, sim):
     
     
     parts_idx = [gym.find_asset_rigid_body_index(mk1_robot_asset, part_name) for part_name in parts_with_force_sensor]
+    
+    print(parts_idx)
+    
     for part_idx in parts_idx:
         gym.create_asset_force_sensor(mk1_robot_asset, part_idx, sensor_pose)
         
     return mk1_robot_asset
 
 
-
-# The parts of the robot, that should get a force sensor    
-parts_with_force_sensor = ['foot', 'foot_2', 'forearm', 'forearm_2']
 
 
 
@@ -113,12 +127,14 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     return  linear_actor_obs,   linear_critic_obs
 
 
+
+
 num_critic_obs = 126
 critic_obs_space = MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })
     
-num_actor_obs = 99
+num_actor_obs = 128
 actor_obs_space =  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
         })

@@ -110,8 +110,11 @@ def compute_robot_rewards(root_states: torch.Tensor,
         # reward for having torso upright
         
         
+        # punish for torque in torso
+        print(sensor_states[:][0].shape)
         
-        # rcost of power
+        
+        # cost of power
         reward -= torch.sum(actions ** 2, dim=-1) * energy_cost
         
         # reward for runnign speed

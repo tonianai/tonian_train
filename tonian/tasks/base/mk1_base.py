@@ -135,7 +135,6 @@ class Mk1BaseClass(VecTask, ABC):
             robot_handle = self.gym.create_actor(env_ptr, mk1_robot_asset, start_pose, "mk1", i, 1, 0)
             
             
-            
             dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
             self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
             

@@ -16,7 +16,8 @@ import torch
 if __name__ == '__main__':    
     ap = argparse.ArgumentParser()
     ap.add_argument("-run", required=True, help="Name of the environment you want to run : optional run number eg. Cartpole:10")
-    ap.add_argument("-n_steps", required=False, help="The amount of steps the inference is shown", default=1e9)
+    ap.add_argument("-at_n_trained_steps", required=False, help="The point of amount of steps at closest to which inference should start", default= None)
+    ap.add_argument("-n_steps", required=False, help="The amount of steps the inference is shown", default=1e7)
     
     
     
@@ -75,9 +76,27 @@ if __name__ == '__main__':
         # only one policy -> use that 
         policy.load(os.path.join(saves_folder, saves_in_directory[0]))
     else:
+        
+        if args['at_n_trained_steps'] is None:
         # multiple policies -> choose the last or the closest to the goal one    
-        step_nr = max([int(file_name.split('.')[0]) for file_name in saves_in_directory])
-        file_name = str(step_nr) + '.pth'
+            step_nr = max([int(file_name.split('.')[0]) for file_name in saves_in_directory])
+            file_name = str(step_nr) + '.pth'
+        else:
+            at_n_traines_steps = int(args['at_n_trained_steps'])
+            
+            minim_delta = 1e10
+            file_name_at_min_delta = ''
+            
+            for file_name in saves_in_directory:
+                step_nr = int(file_name.split('.')[0])
+                
+                if minim_delta >= abs(step_nr - at_n_traines_steps):
+                    minim_delta = abs(step_nr - at_n_traines_steps)
+                    file_name_at_min_delta = file_name 
+            
+            if file_name_at_min_delta != '':
+                file_name = file_name_at_min_delta
+                
         policy.load(os.path.join(saves_folder, file_name))
         
         
