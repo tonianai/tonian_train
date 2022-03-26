@@ -33,7 +33,7 @@ def create_mk1_asset(gym, sim):
     # asset_options.fix_base_link = False
     # asset_options.disable_gravity = False
     
-    asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
+    asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
     asset_options.collapse_fixed_joints = True
     asset_options.replace_cylinder_with_capsule = True
     asset_options.fix_base_link = False
