@@ -2,12 +2,12 @@
 Continue training on a previously stored run
     
 """
+from tonian.tasks.cartpole.cartpole_task import Cartpole # import for isaac gym import order
 from tonian.algorithms.ppo import PPO
-from tonian.tasks.cartpole.cartpole_task import Cartpole # import for 
 
 import yaml, os, argparse
 from tonian.common.logger import TensorboardLogger
-from tonian.common.utils.config_utils import get_run_index, policy_from_config, task_from_config, algo_from_config
+from tonian.common.utils.config_utils import get_run_index, policy_from_config, task_from_config, algo_from_config, create_new_run_directory
 from tonian.common.utils.utils import set_random_seed
 
 import torch
@@ -15,7 +15,8 @@ import torch
 if __name__ == '__main__':    
     ap = argparse.ArgumentParser()
     ap.add_argument("-run", required=True, help="Name of the environment you want to run : optional run number eg. Cartpole:10")
-    ap.add_argument("-n_steps", required=False, help="The amount of steps the training should continue", default=1e9)
+    ap.add_argument("-n_steps", required=False, help="The amount of steps the training should continue", default=1e10)
+    ap.add_argument("-mode", required=False, default = 'best' ,help="The type of policy to use (best, or recent)")
     ap.add_argument("-device", required=False, help="The device used for training etc.", default="cuda:0")
     
     
@@ -59,8 +60,11 @@ if __name__ == '__main__':
         set_random_seed(config["seed"])
     
     
+    run_folder_name, run_id = create_new_run_directory(config)
+    
     task = task_from_config(config['task'])
     task.is_symmetric = False
+    
     
     policy = policy_from_config(config['policy'], task)
     
@@ -72,17 +76,21 @@ if __name__ == '__main__':
     
     if len(saves_in_directory) == 0:
         print("WARNING: The run has no saves policy ---- starting from 0!!!")
-    elif len(saves_in_directory) == 1:
-        # only one policy -> use that 
-        policy.load(os.path.join(saves_folder, saves_in_directory[0]))
-    else:
-        # multiple policies -> choose the last or the closest to the goal one    
-        step_nr = max([int(file_name.split('.')[0]) for file_name in saves_in_directory])
-        file_name = str(step_nr) + '.pth'
+    if args['mode'] == 'recent':
+        if len(saves_in_directory) == 1:
+            # only one policy -> use that 
+            policy.load(os.path.join(saves_folder, saves_in_directory[0]))
+        else:
+            # multiple policies -> choose the last or the closest to the goal one    
+            step_nr = max( [ 0 if file_name  == 'best.pth' else int(file_name.split('.')[0]) for file_name in saves_in_directory])
+            file_name = str(step_nr) + '.pth'
+            policy.load(os.path.join(saves_folder, file_name))
+    elif args['mode'] == 'best':            
+        file_name = 'best.pth'
         policy.load(os.path.join(saves_folder, file_name))
         
-    
-    logger = TensorboardLogger(run_folder)
+        
+    logger = TensorboardLogger(run_folder_name, run_id)
         
         
     algo = algo_from_config(config["algo"], task, policy, device, logger)

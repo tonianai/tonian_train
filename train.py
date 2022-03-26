@@ -35,11 +35,9 @@ def train(args: Dict):
         args_seed = int(args['seed'])
     
     
-    
     headless =  'headless' in args and args['headless']
      
     device = "cuda:0"
-
     config_path = args['cfg']
     
     # open the config file 
@@ -57,7 +55,7 @@ def train(args: Dict):
     
     # create the run folder here
     run_folder_name, run_id = create_new_run_directory(config)
-    
+     
     logger = TensorboardLogger(run_folder_name, run_id)
     
     task = task_from_config(config["task"], headless= headless)
@@ -77,7 +75,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("-seed", required=False, help="Seed for running the env")
     ap.add_argument("-cfg", required= True, help="path to the config")
-    ap.add_argument("-model", required=False, help="the use of a previous model from a previous run i.e '02_mk1_walking:23'. By default it chooses the best model")
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--no-headless', action='store_false')
     ap.set_defaults(feature= False)

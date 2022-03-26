@@ -179,8 +179,13 @@ class PPO(BaseAlgorithm):
             
             end_time = time.time()
             
-            print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,iteration, self.num_timesteps,(self.n_steps * self.n_envs)/ (end_time - start_time), ( end_rollout_time - start_time) / (end_time - start_time )))
+            steps_per_second = (self.n_steps * self.n_envs)/ (end_time - start_time)
             
+            print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,iteration, self.num_timesteps,steps_per_second, ( end_rollout_time - start_time) / (end_time - start_time )))
+            
+            self.logger.log("z_speed/steps_per_second", steps_per_second, self.num_timesteps)
+            self.logger.log("z_speed/time_on_rollout", end_rollout_time - start_time, self.num_timesteps)
+            self.logger.log("z_speed/time_on_train", end_time - end_rollout_time, self.num_timesteps)
     
     def collect_rollouts(self, 
                          n_rollout_steps: int) -> bool:
@@ -255,16 +260,18 @@ class PPO(BaseAlgorithm):
             self._last_obs = new_obs
             self._last_episode_starts = dones
         
-
+ 
         # log the rollout information 
-        self.logger.log("run/episode_rewards", sum_ep_reward / n_completed_episodes, self.num_timesteps)
-        self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
+        if n_completed_episodes != 0:
+            self.logger.log("run/episode_rewards", sum_ep_reward / n_completed_episodes, self.num_timesteps)
+            self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
+        
+            self.current_avg_reward = sum_ep_reward / n_completed_episodes
         
         with torch.no_grad():
             # compute the value for the last timestep
             values = self.policy.predict_values(new_obs[1])
 
-        self.current_avg_reward = sum_ep_reward / n_completed_episodes
         
         self.rollout_buffer.compute_returns_and_advantages(values.squeeze(), dones)
         
@@ -370,7 +377,7 @@ class PPO(BaseAlgorithm):
         
         
         
-        if self.num_timesteps - self.last_save > 1e7 or self.last_save == 0:
+        if self.num_timesteps - self.last_save > self.save_freq or self.last_save == 0:
             self.save()
             self.last_save = self.num_timesteps
 
