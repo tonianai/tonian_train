@@ -77,6 +77,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("-seed", required=False, help="Seed for running the env")
     ap.add_argument("-cfg", required= True, help="path to the config")
+    ap.add_argument("-model", required=False, help="the use of a previous model from a previous run i.e '02_mk1_walking:23'. By default it chooses the best model")
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--no-headless', action='store_false')
     ap.set_defaults(feature= False)

@@ -24,7 +24,7 @@ class PPO(BaseAlgorithm):
     
     def __init__(self, env: VecTask, config: Dict, policy :ActorCriticPolicy, device: Union[str, torch.device], logger: BaseLogger) -> None:
         super().__init__(env, config, device, logger)
-        self._fetch_config_params(config)
+        self._fetch_config_params()
          
         
         # set the action and obervation space to member variables
@@ -55,6 +55,10 @@ class PPO(BaseAlgorithm):
         
         self._last_obs = None # Type Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]] # first dirct is critic obs last dice is actor obs
         
+        self.highest_avg_reward = -1e9
+        
+        self.current_avg_reward = -1e9 # the reward obtained most recently
+        
         assert self.batch_size > 1, "Batch size must be bigger than one"
         
         assert self.buffer_size > 1, "Buffer size must be bigger than one"
@@ -66,29 +70,29 @@ class PPO(BaseAlgorithm):
         
         
         
-    def _fetch_config_params(self, config):
+    def _fetch_config_params(self):
         """Fetćh hyperparameters from the configuration dict and set them to member variables
-        
-        Args:
-            config ([type]): [description]
+         
         """
         
-        self.gamma = config['gamma']
-        self.n_epochs = config['n_epochs']
-        self.batch_size = config['batch_size']
-        self.n_steps = config['n_steps']
-        if 'tarket_kl' in config:
-            self.target_kl = config['target_kl']
+        self.gamma = self.config['gamma']
+        self.n_epochs = self.config['n_epochs']
+        self.batch_size = self.config['batch_size']
+        self.n_steps = self.config['n_steps']
+        if 'tarket_kl' in self.config:
+            self.target_kl = self.config['target_kl']
         else:
             self.target_kl = None
-        self.gae_lambda = config['gae_lamda']
-        self.eps_clip = config['eps_clip']
-        self.value_f_coef = config['value_f_coef']
-        self.entropy_coef = config['entropy_coef']
+        self.gae_lambda = self.config['gae_lamda']
+        self.eps_clip = self.config['eps_clip']
+        self.value_f_coef = self.config['value_f_coef']
+        self.entropy_coef = self.config['entropy_coef']
+        self.save_freq = float(self.config['save_freq'])
         
+         
         self.max_grad_norm = None
-        if 'max_grad_norm' in config:
-            self.max_grad_norm = config['max_grad_norm']
+        if 'max_grad_norm' in self.config:
+            self.max_grad_norm = self.config['max_grad_norm']
          
         
         
@@ -260,9 +264,8 @@ class PPO(BaseAlgorithm):
             # compute the value for the last timestep
             values = self.policy.predict_values(new_obs[1])
 
-            
+        self.current_avg_reward = sum_ep_reward / n_completed_episodes
         
-            
         self.rollout_buffer.compute_returns_and_advantages(values.squeeze(), dones)
         
         return True        
@@ -365,11 +368,16 @@ class PPO(BaseAlgorithm):
         self.logger.log("train/policy_gradient_loss", np.mean(pg_losses), self.num_timesteps)
         self.logger.log("train/approx_kl_div", np.mean(approx_kl_div), self.num_timesteps)
         
-        # TODO: add explained variance
+        
+        
         if self.num_timesteps - self.last_save > 1e7 or self.last_save == 0:
             self.save()
             self.last_save = self.num_timesteps
-         
+
+            if self.highest_avg_reward < self.current_avg_reward:
+                self.highest_avg_reward = self.current_avg_reward
+                # save the run, that performed the best as such
+                self.save(save_as_best=True)
 
     def _update_schedules(self):
         # todo add lr schedule and not a fixed rate
@@ -378,10 +386,22 @@ class PPO(BaseAlgorithm):
         pass
      
     
-    def save(self, path: Optional[str] = None):
+    def save(self, path: Optional[str] = None, save_as_best: bool = False):
+        """Save the current policy in the run folder
+
+        Args:
+            path (Optional[str], optional): path at which the policy should be saved. If none use the default run folder. Defaults to None.
+            save_as_best (bool, optional): Determines whether this run should be saved as the best run. And therefore override the previous best run. Defaults to False.
+        """
+        
+        if not save_as_best:
+            file_name = str(self.num_timesteps) + ".pth"
+        else:
+            file_name = "best.pth"
+            
         
         if path is None:
-            path = os.path.join( self.logger.save_folder ,  str(self.num_timesteps) + ".pth")
+            path = os.path.join( self.logger.save_folder , file_name )
         
         self.policy.save(path)
 

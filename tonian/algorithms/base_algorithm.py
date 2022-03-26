@@ -28,6 +28,7 @@ class BaseAlgorithm(ABC):
         
         # merge the config with the standard condfig
         base_config = self._get_standard_config()
+        
         self.config = join_configs(base_config=base_config, config=config)
         
         self.logger = logger

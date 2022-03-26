@@ -2,8 +2,7 @@ from gym.spaces import space
 import numpy as np
 from tonian.tasks.base.command import Command
 from tonian.tasks.base.mk1_base import Mk1BaseClass
-from tonian.tasks.base.vec_task import VecTask
-from tonian.tasks.agents.mk1_helper import *
+from tonian.tasks.base.vec_task import VecTask 
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
