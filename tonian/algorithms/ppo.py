@@ -175,7 +175,7 @@ class PPO(BaseAlgorithm):
             
             end_time = time.time()
             
-            print("Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(iteration, self.num_timesteps,(self.n_steps * self.n_envs)/ (end_time - start_time), ( end_rollout_time - start_time) / (end_time - start_time )))
+            print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,iteration, self.num_timesteps,(self.n_steps * self.n_envs)/ (end_time - start_time), ( end_rollout_time - start_time) / (end_time - start_time )))
             
     
     def collect_rollouts(self, 

@@ -114,27 +114,21 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     # todo add some other code to deal with initial information, that might be required
     
     
-    # todo: the actor still needs a couple of accelerometers
     linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions), dim=-1)
     
-    
-    # print('actor_obs')
-    # print(linear_actor_obs.shape)
     linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
     
-    # print('critic_obs')
-    # print(linear_critic_obs.shape)
     return  linear_actor_obs,   linear_critic_obs
 
 
 
 
-num_critic_obs = 126
+num_critic_obs = 132
 critic_obs_space = MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })
     
-num_actor_obs = 128
+num_actor_obs = 105
 actor_obs_space =  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
         })

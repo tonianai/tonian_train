@@ -31,22 +31,7 @@ class Mk1BaseClass(VecTask, ABC):
         self._get_gpu_gym_state_tensors()
         
             
-    def _extract_params_from_config(self) -> None:
-        """
-        Extract local variables used in the sim from the config dict
-        """
-        
-        assert self.config["sim"] is not None, "The sim config must be set on the task config file"
-        assert self.config["env"] is not None, "The env config must be set on the task config file"
-        
-        reward_weight_dict = self.config["env"]["reward_weighting"]  
-        
-        self.energy_cost = reward_weight_dict["energy_cost"]
-        self.directional_factor = reward_weight_dict["directional_factor"]
-        self.death_cost = reward_weight_dict["death_cost"]
-        self.alive_reward = reward_weight_dict["alive_reward"]
-        
-        
+
 
     
     def _get_gpu_gym_state_tensors(self) -> None:
@@ -125,7 +110,7 @@ class Mk1BaseClass(VecTask, ABC):
         
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(0.0,0.0, 1.80)
-        start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        start_pose.r = gymapi.Quat(0.0, 0.0 , 0.0, 1.0)
         
         for i in range(self.num_envs):
             # create env instance

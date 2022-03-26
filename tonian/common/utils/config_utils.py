@@ -1,6 +1,6 @@
 
 
-from typing import Dict
+from typing import Dict, Tuple
 
 from tonian.common.logger import BaseLogger
 from tonian.tasks.walking.walking_task import WalkingTask
@@ -127,7 +127,7 @@ def get_run_index(base_folder_name: str) -> int:
         
     
 
-def create_new_run_directory(config: Dict) -> str:
+def create_new_run_directory(config: Dict) -> Tuple[str, int]:
     """Create a new run directory and store the given config in the directory
     Args:
         config (Dict): The config file, that contains all the important info to recreate, or continue this run
@@ -157,7 +157,7 @@ def create_new_run_directory(config: Dict) -> str:
     with  open(f"{run_folder_name}/config.yaml", "w") as outfile:
         yaml.dump(config, outfile, default_flow_style=True)
         
-    return run_folder_name
+    return (run_folder_name, run_index)
     
 
              

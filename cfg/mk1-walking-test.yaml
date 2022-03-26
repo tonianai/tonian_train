@@ -8,11 +8,16 @@ task:
     num_envs: 1024
     env_spacing: 10
     max_episode_length: 1000
+
+    motor_strength_factor: 10
+
     reward_weighting:
       directional_factor: 10
-      death_cost: 8
+      death_cost: 10
       energy_cost: 0.0005
       alive_reward: 0.4
+      torso_torque_cost: 0.005
+      upright_punishment_factor: 2 # higher values punish the acotr more for bad posture
     
   sim:
     substeps: 2

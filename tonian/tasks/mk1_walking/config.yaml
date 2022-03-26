@@ -18,8 +18,9 @@ env:
   reward_weighting:
     directional_factor: 0.5
     death_cost: 2
-    energy_cost: 0.5
+    energy_cost: 0.05
     alive_reward: 0.15
+    torso_torque_cost: 0.05
 
 
 

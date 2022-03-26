@@ -56,9 +56,9 @@ def train(args: Dict):
         set_random_seed(config["seed"])
     
     # create the run folder here
-    run_folder_name = create_new_run_directory(config)
+    run_folder_name, run_id = create_new_run_directory(config)
     
-    logger = TensorboardLogger(run_folder_name)
+    logger = TensorboardLogger(run_folder_name, run_id)
     
     task = task_from_config(config["task"], headless= headless)
     policy = policy_from_config(config["policy"], task)

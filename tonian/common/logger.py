@@ -18,8 +18,9 @@ class BaseLogger(ABC):
     
     """
     
-    def __init__(self, folder: str) -> None:
+    def __init__(self, folder: str, identifier: Union[int, str], ) -> None:
         # determines whether the run has been set to create a new run or to continue a run
+        self.identifier = identifier
         self.run_assigned : bool = False 
         self.folder = folder
         self.save_folder = os.path.join(folder, 'saves')
@@ -50,8 +51,8 @@ class DummyLogger(BaseLogger):
      
 class TensorboardLogger(BaseLogger):
         
-    def __init__(self, folder: str, print_to_console: bool = True) -> None:
-        super().__init__(folder)
+    def __init__(self, folder: str, identifier: Union[int, str], print_to_console: bool = True) -> None:
+        super().__init__(folder, identifier)
         self.folder = folder
         self.writer = SummaryWriter(log_dir=os.path.join(folder, "logs"))
         self.print_to_console = print_to_console
