@@ -3,8 +3,7 @@ import numpy as np
 from tonian.tasks.base.command import Command
 from tonian.tasks.base.mk1_base import Mk1BaseClass
 from tonian.tasks.base.vec_task import VecTask 
-
-from isaacgym.torch_utils import torch_rand_float, tensor_clamp
+from tonian.common.utils.torch_jit_utils import batch_dot_product
 
 from tonian.common.spaces import MultiSpace
 
@@ -14,9 +13,8 @@ import gym
 from typing import Dict, Any, Tuple, Union, Optional
 
 from isaacgym import gymtorch, gymapi
-from isaacgym.torch_utils import to_torch
 
-import yaml, os, torch
+import yaml, os, torch, math
 
 
 class Mk1WalkingTask(Mk1BaseClass):
@@ -139,10 +137,10 @@ def compute_robot_rewards(root_states: torch.Tensor,
     heading_weight_tensor = torch.ones_like(root_states[:, 11]) * directional_factor
     heading_reward = torch.where(root_states[:, 11] > 0.8, heading_weight_tensor, directional_factor * root_states[:, 11] / 0.8)
     
-    
-    
-    # reward for an upright torse
+     
     quat_rotation = root_states[: , 3:7]
+    
+    #  -------------- reward for an upright torso -------------- 
     
     # The upright value ranges from 0 to 1, where 0 is completely horizontal and 1 is completely upright
     # Calulation explanation: 
@@ -153,12 +151,35 @@ def compute_robot_rewards(root_states: torch.Tensor,
     
     reward += upright_punishment
     
+    #  -------------- reward for right heading and running speed -------------- 
+    
+    linear_velocity_x_y = root_states[: , 7:9]
+    
+    # direction_in_deg base is -> neg x Axis
+    direction_in_deg_to_x = torch.acos(quat_rotation[:, 0]) * 2
+    
+    # unit vecor of heading when seen from above 
+    # this unit vector makes little sense, when the robot is highly non vertical
+    two_d_heading_direction = torch.transpose(torch.cat((torch.unsqueeze(torch.sin(direction_in_deg_to_x), dim=0), torch.unsqueeze(torch.cos(direction_in_deg_to_x),dim=0) ), dim = 0), 0, 1)
+    
+    # compare the two_d_heading_direction with the linear_velocity_x_y using the angle between them
+    # magnitude of the velocity (2 norm)
+    vel_norm = torch.linalg.vector_norm(linear_velocity_x_y, dim=1)
+     
+        
+    #heading_to_velocity_angle = torch.arccos( torch.dot(two_d_heading_direction, linear_velocity_x_y)  / vel_norm )
+    heading_to_velocity_angle = torch.arccos( batch_dot_product(two_d_heading_direction, linear_velocity_x_y) / vel_norm)
+     
+       
+    
+    direction_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_norm * directional_factor, torch.zeros_like(reward))
+     
+   
+    reward += direction_reward  
     
     # punish for torque in torso 
     torso_torqe = torch.sum(force_sensor_states[:, 0, :3] ** 2, dim=1)  / 1e8
  
-    
-    
     
     # cost of power
     reward -= torch.sum(actions ** 2, dim=-1) * energy_cost

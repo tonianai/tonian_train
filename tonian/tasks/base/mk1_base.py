@@ -34,6 +34,7 @@ class Mk1BaseClass(VecTask, ABC):
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
         
+    
             
     def _get_gpu_gym_state_tensors(self) -> None:
         """
@@ -81,6 +82,8 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_root_states = self.root_states.clone()
         # 7:13 describe velocities
         self.initial_root_states[:, 7:13] = 0
+        self.initial_root_states[: , 8] = 0 # vel in -x axis
+        self.initial_root_states[: , 7] = 0 # vel in -y axis
     
     def refresh_tensors(self):
         """Refreshes tensors, that are on the GPU
@@ -242,6 +245,7 @@ class Mk1BaseClass(VecTask, ABC):
         
     def reset_envs(self, env_ids: torch.Tensor) -> None:
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
+        
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
         
         
