@@ -13,6 +13,12 @@ env:
   env_spacing: 16
   max_episode_length: 1024 
 
+
+  initial_velocities: 
+    - 0
+    - -1
+    - 0
+
   randomize: False # if randomize true sample from the given distributions - if randomize false only take the mean
 
   randomizazion:
@@ -33,6 +39,7 @@ env:
     energy_cost: 0.05
     alive_reward: 0.15
     torso_torque_cost: 0.05
+    jitter_cost: 0.25
 
 
 

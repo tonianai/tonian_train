@@ -42,6 +42,9 @@ class VecTask(BaseEnv, ABC):
         
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
+        # The sum of all action dimensions        
+        self._action_size = None
+        
         self._extract_params_from_config()
         
         self.sim_params = self.__parse_sim_params(self.config["physics_engine"], self.config["sim"])
@@ -56,6 +59,8 @@ class VecTask(BaseEnv, ABC):
         # optimization flags for pytorch JIT
         # torch._C._jit_set_profiling_mode(False)
         # torch._C._jit_set_profiling_executor(False)
+        
+
         
         self.gym = gymapi.acquire_gym()
          
@@ -84,6 +89,8 @@ class VecTask(BaseEnv, ABC):
         
         # These are the extras that will be returned on the step function
         self.extras = {}
+        
+        
         
         
     def _config_path_to_config(self, config_path: str) -> Dict:
@@ -146,6 +153,10 @@ class VecTask(BaseEnv, ABC):
         
         # the cumulative rewards, but only the envs in terminal states are not hidden
         self.masked_cumulative_rewards = torch.zeros(self.num_envs, device= self.device, dtype= torch.float32)
+        
+        self.former_actions = torch.zeros((self.num_envs, ) + self.action_space.shape ).to(self.device)
+        
+        
         
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
         """Create an Isaac Gym sim object.
@@ -319,6 +330,7 @@ class VecTask(BaseEnv, ABC):
         
         # Calculate obs and reward in the post pyhsics step (in the concrete implementation)
         self.post_physics_step()
+        self.former_actions = actions.detach().clone()
         
         # add the rewards to the cumulative rewards
         self.cumulative_rewards += self.rewards
@@ -339,6 +351,7 @@ class VecTask(BaseEnv, ABC):
         
         
         self.global_step += 1
+        
         
         return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, self.extras 
         
@@ -419,6 +432,15 @@ class VecTask(BaseEnv, ABC):
         # return the configured params
         return sim_params
     
-     
+    @property
+    def action_size(self):
+        """The sum over all the action dimension 
+        """
+        if not self._action_size:
+             self._action_size =  self.action_space.sample().reshape(-1).shape[0]
+        
+        return self._action_size
+             
+             
 
  

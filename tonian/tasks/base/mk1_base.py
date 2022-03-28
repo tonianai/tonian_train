@@ -82,7 +82,7 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_root_states = self.root_states.clone()
         # 7:13 describe velocities
         self.initial_root_states[:, 7:13] = 0
-        self.initial_root_states[: , 8] = 0 # vel in -x axis
+        self.initial_root_states[: , 8] = -1 # vel in -x axis
         self.initial_root_states[: , 7] = 0 # vel in -y axis
     
     def refresh_tensors(self):
@@ -239,8 +239,7 @@ class Mk1BaseClass(VecTask, ABC):
             dof_force= self.dof_force_tensor, 
             actions= self.actions
         )
-        
-        
+         
         self.rewards , self.do_reset = self._compute_robot_rewards()
         
     def reset_envs(self, env_ids: torch.Tensor) -> None:
