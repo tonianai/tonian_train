@@ -192,12 +192,24 @@ def compute_robot_rewards(root_states: torch.Tensor,
     has_fallen = torch.zeros_like(reward, dtype=torch.int8)
     has_fallen = torch.where(root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
     
+    
+    # average rewards per step
+    
+    alive_reward = float(alive_reward)
+    upright_punishment = - float(torch.mean(upright_punishment).item())
+    direction_reward = float(torch.mean(direction_reward).item())
+    jitter_punishment = - float(torch.mean(jitter_punishment).item())
+    energy_punishment = - float(torch.mean(energy_punishment).item())
+    
+    total_avg_reward = alive_reward + upright_punishment + direction_reward + jitter_punishment + energy_punishment
+    
     reward_constituents = {
-                            'alive_reward': float(alive_reward),
-                            'upright_punishment': - float(torch.mean(upright_punishment).item()),
-                            'direction_reward':  float(torch.mean(direction_reward).item()),
-                            'jitter_punishment': - float(torch.mean(jitter_punishment).item()),
-                            'energy_punishment': - float(torch.mean(energy_punishment).item())
+                            'alive_reward': alive_reward,
+                            'upright_punishment':  upright_punishment,
+                            'direction_reward':    direction_reward,
+                            'jitter_punishment':   jitter_punishment,
+                            'energy_punishment':   energy_punishment,
+                            'total_reward': total_avg_reward
                            }
     
     return (reward, has_fallen, reward_constituents)
