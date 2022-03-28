@@ -12,7 +12,7 @@ task:
 
     initial_velocities: 
       - 0
-      - -1
+      - -100
       - 0
 
 

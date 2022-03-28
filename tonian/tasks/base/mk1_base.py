@@ -83,7 +83,7 @@ class Mk1BaseClass(VecTask, ABC):
         # 7:13 describe velocities
         self.initial_root_states[:, 7:13] = 0
         
-        initial_velocities = self.config['env'].get("initial_velocities", [0 ,0 0])
+        initial_velocities = self.config['env'].get("initial_velocities", [0 ,0 , 0])
         self.initial_root_states[: , 7] = initial_velocities[0] # vel in -y axis
         self.initial_root_states[: , 8] = initial_velocities[1] # vel in -x axis
         self.initial_root_states[: , 9] = initial_velocities[2] # vel in -z axis
