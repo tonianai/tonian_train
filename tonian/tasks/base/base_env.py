@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, Tuple
+from typing import Dict, Any, Optional, Union, Tuple
 from abc import ABC, abstractmethod, abstractproperty
 
 import gym
@@ -87,15 +87,15 @@ class BaseEnv(ABC):
         
         
     @abstractmethod
-    def step(self, actions: torch.Tensor) -> Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]:
+    def step(self, actions: torch.Tensor) -> Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any], Optional[Dict[str, float]]]:
         """Step the physics sim of the environment and apply the given actions
 
         Args:
             actions (torch.Tensor): [description]
 
         Returns:
-            Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]: 
-            Observations(names in the dict correspond to those given in the multispace), rewards, resets, info
+            Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]], Optional[Dict[str, float]]: 
+            Observations(names in the dict correspond to those given in the multispace), rewards, resets, info, reward_constituents
         """
         
         

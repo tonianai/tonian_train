@@ -214,6 +214,10 @@ class PPO(BaseAlgorithm):
         # cumulative sum of all the steps taken in all the episodes
         sum_steps_per_episode = 0
         
+        # the cumulative reweard constituents, if they exist
+        sum_reward_consituents = {}
+        
+        
         while n_steps < n_rollout_steps:
             
             with torch.no_grad():
@@ -227,7 +231,7 @@ class PPO(BaseAlgorithm):
             # clamp the action space using pytorch
             #clipped_actions = torch.clamp(actions, self.action_low_torch, self.action_high_torch)
             
-            new_obs, rewards, dones, info = self.env.step(actions)
+            new_obs, rewards, dones, info, reward_constituents = self.env.step(actions)
              
             # add all the episodes that were completed whitin the last time step to the counter
             n_completed_episodes +=  torch.sum(dones).item()
@@ -243,6 +247,11 @@ class PPO(BaseAlgorithm):
             
             n_steps += 1
             
+            if not sum_reward_consituents:
+                sum_reward_consituents = reward_constituents
+            else:
+                for key, value in reward_constituents.items():
+                    sum_reward_consituents[key] += value    
             
             # refer to stable-baselines on_policy_alorgithm.py line 196 
             
@@ -267,6 +276,12 @@ class PPO(BaseAlgorithm):
             self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
         
             self.current_avg_reward = sum_ep_reward / n_completed_episodes
+        
+        
+            if sum_reward_consituents:
+                # log the reward constituents
+                for key, value in sum_reward_consituents.items():
+                    self.logger.log(f"run_rewards_per_step/{key}", value / n_steps, self.num_timesteps )
         
         with torch.no_grad():
             # compute the value for the last timestep
@@ -374,6 +389,7 @@ class PPO(BaseAlgorithm):
         self.logger.log("train/clip_fraction", np.mean(clip_fractions), self.num_timesteps)
         self.logger.log("train/policy_gradient_loss", np.mean(pg_losses), self.num_timesteps)
         self.logger.log("train/approx_kl_div", np.mean(approx_kl_div), self.num_timesteps)
+        
         
         
         

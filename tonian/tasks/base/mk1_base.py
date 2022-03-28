@@ -244,7 +244,7 @@ class Mk1BaseClass(VecTask, ABC):
             actions= self.actions
         )
          
-        self.rewards , self.do_reset = self._compute_robot_rewards()
+        self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
         
     def reset_envs(self, env_ids: torch.Tensor) -> None:
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
@@ -320,12 +320,16 @@ class Mk1BaseClass(VecTask, ABC):
         pass
     
     @abstractmethod
-    def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, int]]:
         """Compute the rewards and the is terminals of the step
         -> all the important variables are sampled using the self property
-
+        
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: (reward, is_terminal)
+                      Tuple[torch.Tensor, torch.Tensor]: 
+                          reward: torch.Tensor shape(num_envs, )
+                          has_fallen: torch.Tensor shape(num_envs, )
+                          constituents: Dict[str, int] contains all the average values, that make up the reward (i.e energy_punishment, directional_reward)
+      
         """
         raise NotImplementedError()
 

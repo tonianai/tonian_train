@@ -146,6 +146,9 @@ class VecTask(BaseEnv, ABC):
         
         # rewards tensor stores the rewards that were given at last
         self.rewards = torch.zeros((self.num_envs, ) , device= self.device, dtype=torch.float32)
+        
+        # mean values, that make up the reward -> only used for logging 
+        self.reward_constituents = {}
 
 
         # the cumulative rewards achieved within the environment until this steop
@@ -287,15 +290,15 @@ class VecTask(BaseEnv, ABC):
         """
         pass
     
-    def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any]]:    
+    def step(self, actions: torch.Tensor) -> Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor, Dict[str, Any], Dict[str, int]]:    
         """Step the physics sim of the environment and apply the given actions
 
         Args: 
             actions (torch.Tensor): Expected Shape (num_envs, ) + self._get_action_space.shape
 
         Returns:
-            Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any]]: 
-            Observations(names in the dict correspond to those given in the multispace), rewards, resets, info
+            Tuple[ Dict[str, torch.Tensor],  torch.Tensor, torch.Tensor, Dict[str, Any], Dict[str, float]]: 
+            Observations(names in the dict correspond to those given in the multispace), rewards, resets, info, avg_reward_constituents
         """
         
         self.extras = {}
@@ -353,7 +356,7 @@ class VecTask(BaseEnv, ABC):
         self.global_step += 1
         
         
-        return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, self.extras 
+        return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, self.extras, self.reward_constituents
         
  
     def reset(self) -> Tuple[Dict[str, torch.Tensor]]:

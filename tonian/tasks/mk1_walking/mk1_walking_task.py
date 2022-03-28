@@ -43,12 +43,15 @@ class Mk1WalkingTask(Mk1BaseClass):
         self.jitter_cost = reward_weight_dict["jitter_cost"] /  self.action_size
         
     
-    def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
         -> all the important variables are sampled using the self property
-
+        
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: (reward, is_terminal)
+               Tuple[torch.Tensor, torch.Tensor]: 
+                   reward: torch.Tensor shape(num_envs, )
+                   has_fallen: torch.Tensor shape(num_envs, )
+                   constituents: Dict[str, int] contains all the average values, that make up the reward (i.e energy_punishment, directional_reward)
         """
         return   compute_robot_rewards(
             root_states= self.root_states,
@@ -104,7 +107,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           energy_cost: float,
                           upright_punishment_factor: float,
                           jitter_cost: float
-                          )-> Tuple[torch.Tensor, torch.Tensor]:
+                          )-> Tuple[torch.Tensor, torch.Tensor, Dict[str, float]]:
     """Compute the reward and the is_terminals for the robot step in the environment 
 
     Args:
@@ -118,13 +121,17 @@ def compute_robot_rewards(root_states: torch.Tensor,
         energy_cost (float): _description_
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: _description_
+        Tuple[torch.Tensor, torch.Tensor]: 
+            reward: torch.Tensor shape(num_envs, )
+            has_fallen: torch.Tensor shape(num_envs, )
+            constituents: Dict[str, number] contains all the average values, that make up the reward (i.e energy_punishment, directional_reward)
     """
     
     
  
     
     # -------------- base reward for being alive --------------  
+    
     reward = torch.ones_like(root_states[:, 0]) * alive_reward  
     
      
@@ -171,10 +178,12 @@ def compute_robot_rewards(root_states: torch.Tensor,
       
      
     # -------------- cost of power --------------
-    reward -= torch.sum(actions ** 2, dim=-1) * energy_cost
+    
+    energy_punishment = torch.sum(actions ** 2, dim=-1) * energy_cost
+    reward -= energy_punishment
      
     # -------------- punish for having fallen -------------- 
-    terminations_height = 1.6
+    terminations_height = 1.4
     # root_states[:, 2] defines the y positon of the root body 
     reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
     
@@ -182,8 +191,15 @@ def compute_robot_rewards(root_states: torch.Tensor,
     
     has_fallen = torch.zeros_like(reward, dtype=torch.int8)
     has_fallen = torch.where(root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
-         
-
-    return (reward, has_fallen)
+    
+    reward_constituents = {
+                            'alive_reward': float(alive_reward),
+                            'upright_punishment': - float(torch.mean(upright_punishment).item()),
+                            'direction_reward':  float(torch.mean(direction_reward).item()),
+                            'jitter_punishment': - float(torch.mean(jitter_punishment).item()),
+                            'energy_punishment': - float(torch.mean(energy_punishment).item())
+                           }
+    
+    return (reward, has_fallen, reward_constituents)
 
 
