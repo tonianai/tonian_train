@@ -1,7 +1,7 @@
 from gym.spaces import space
 import numpy as np
 from tonian.tasks.base.command import Command
-from tonian.tasks.base.mk1_base import Mk1BaseClass
+from tonian.tasks.base.mk1.mk1_base import Mk1BaseClass
 from tonian.tasks.base.vec_task import VecTask 
 from tonian.common.utils.torch_jit_utils import batch_dot_product
 
@@ -196,7 +196,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
     # average rewards per step
     
     alive_reward = float(alive_reward)
-    upright_punishment = - float(torch.mean(upright_punishment).item())
+    upright_punishment = float(torch.mean(upright_punishment).item())
     direction_reward = float(torch.mean(direction_reward).item())
     jitter_punishment = - float(torch.mean(jitter_punishment).item())
     energy_punishment = - float(torch.mean(energy_punishment).item())

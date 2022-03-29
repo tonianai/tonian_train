@@ -1,6 +1,9 @@
 
 seed: 42
 
+
+
+
 task:
   name: "00_cartpole"
   physics_engine: physx
@@ -12,8 +15,11 @@ task:
   sim:
     substeps: 2
 
+  
   task: 
     randomize: True
+
+  
 
 
 policy: 

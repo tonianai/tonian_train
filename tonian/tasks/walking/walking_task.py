@@ -242,6 +242,7 @@ class WalkingTask(VecTask):
         
         # Note - for this asset we are loading the actuator info from the MJCF
         actuator_props = self.gym.get_asset_actuator_properties(robot_asset)
+        
         self.motor_efforts = to_torch([prop.motor_effort for prop in actuator_props])
         
         # get ids used to attach force sensors at the feet

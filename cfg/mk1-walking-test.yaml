@@ -24,6 +24,18 @@ task:
       upright_punishment_factor: 2 # higher values punish the actor more for bad posture
       jitter_cost: 0.25
 
+
+    agent:
+
+      default_motor_power: 1000 
+
+      motor_powers: # describe by using joint name and than the value
+        left_foot: 200
+        left_knee: 1000
+        right_foot: 200
+        right_knee: 1000
+
+
   sim:
     substeps: 2
 
