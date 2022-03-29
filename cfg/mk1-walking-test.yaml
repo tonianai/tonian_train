@@ -29,11 +29,31 @@ task:
 
       default_motor_power: 1000 
 
-      motor_powers: # describe by using joint name and than the value
-        left_foot: 200
+      motor_powers: # describe by using joint name and than the max efort in NM
+        left_foot: 300
         left_knee: 1000
-        right_foot: 200
+        left_hip_b: 1000
+        left_hip_a: 1000
+        
+        right_foot: 300
         right_knee: 1000
+        right_hip_b: 500
+        right_hip_a: 500
+
+        torso: 300
+
+        left_elbow: 400
+        left_arm_rotate: 200
+        left_shoulder_b: 400
+        left_shoulder_a: 400
+
+
+        right_elbow: 400
+        right_arm_rotate: 200
+        right_shoulder_b: 400
+        right_shoulder_a: 400
+
+
 
 
   sim:

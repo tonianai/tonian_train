@@ -184,6 +184,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
      
     # -------------- punish for having fallen -------------- 
     terminations_height = 1.4
+    terminations_height = 0
     # root_states[:, 2] defines the y positon of the root body 
     reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
     
