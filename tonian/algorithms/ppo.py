@@ -57,6 +57,8 @@ class PPO(BaseAlgorithm):
         
         self.highest_avg_reward = -1e9
         
+        self.step_at_highest_avg_reward = 0 # the step number at the highest reward
+        
         self.current_avg_reward = -1e9 # the reward obtained most recently
         
         assert self.batch_size > 1, "Batch size must be bigger than one"
@@ -66,9 +68,6 @@ class PPO(BaseAlgorithm):
         assert self.buffer_size % self.batch_size == 0, "the buffer size must be a multiple of the batch size"
         
         self._setup_model()
-        
-        
-        
         
     def _fetch_config_params(self):
         """Fetćh hyperparameters from the configuration dict and set them to member variables
@@ -89,12 +88,11 @@ class PPO(BaseAlgorithm):
         self.entropy_coef = self.config['entropy_coef']
         self.save_freq = float(self.config['save_freq'])
         
+        
          
         self.max_grad_norm = None
         if 'max_grad_norm' in self.config:
             self.max_grad_norm = self.config['max_grad_norm']
-         
-        
         
     def _setup_model(self) -> None:
         """Setup the model
@@ -121,7 +119,6 @@ class PPO(BaseAlgorithm):
             print(f"Seed: {seed}")
             set_random_seed(seed=seed, using_cuda=  "cuda" in self.device)
             self.action_space.seed(seed)
-            
         
     def _setup_learn(
         self, 
@@ -151,6 +148,8 @@ class PPO(BaseAlgorithm):
     def learn(
         self, 
         total_timesteps: int,
+        early_stopping: bool = False, 
+        early_stopping_patience: int = 1e8,
         reset_num_timesteps: bool = True
     )-> None:
         """Alternate between rollout and model optimization 
@@ -160,6 +159,9 @@ class PPO(BaseAlgorithm):
             reset_num_timesteps (bool, optional): 
         """
         iteration = 0
+        
+        self.early_stopping = early_stopping
+        self.early_stopping_patience = early_stopping_patience
         
         self._setup_learn(total_timesteps, reset_num_timesteps)
         
@@ -175,7 +177,7 @@ class PPO(BaseAlgorithm):
             end_rollout_time = time.time()
             iteration += 1
         
-            self.train()
+            continue_training = self.train()
             
             end_time = time.time()
             
@@ -186,7 +188,10 @@ class PPO(BaseAlgorithm):
             self.logger.log("z_speed/steps_per_second", steps_per_second, self.num_timesteps)
             self.logger.log("z_speed/time_on_rollout", end_rollout_time - start_time, self.num_timesteps)
             self.logger.log("z_speed/time_on_train", end_time - end_rollout_time, self.num_timesteps)
-    
+            
+            if not continue_training:
+                print(f"Early stopping at {self.num_timesteps}")
+            
     def collect_rollouts(self, 
                          n_rollout_steps: int) -> bool:
         """Collects experiences using the current policy and fills the self.rollout_buffer
@@ -292,9 +297,13 @@ class PPO(BaseAlgorithm):
         
         return True        
     
-    def train(self)-> None:
+    def train(self)-> bool:
         """Update the policy using the rollout buffer
-        """        
+       
+        Returns:
+            bool: continue learning -> could be false, because of early stopping
+        """
+        
         # switch to train mode
         self.policy.train(True)
         # update schedules (like lr) 
@@ -308,11 +317,13 @@ class PPO(BaseAlgorithm):
         
         clip_fractions = []
         
+        continue_training = True
+        
         
         clip_range = self.eps_clip
         # todo introduce schedule
         
-        for _ in range(self.n_epochs):
+        for epoch in range(self.n_epochs):
             # train for each epoch
             
             approx_kl_divs = []
@@ -370,6 +381,11 @@ class PPO(BaseAlgorithm):
                     approx_kl_div = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
                     approx_kl_divs.append(approx_kl_div)
 
+                if self.target_kl is not None and approx_kl_div > 1.5 * self.target_kl:
+                    continue_training = False
+                    if self.verbose >= 1:
+                        print(f"Early epoch stopping at step {epoch} due to reaching max kl: {approx_kl_div:.2f}")
+                    break
                     
                 # Optimization Step
                 self.policy.optimizer.zero_grad()
@@ -378,8 +394,11 @@ class PPO(BaseAlgorithm):
                 
                 if self.max_grad_norm is not None: 
                     torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+                
                 self.policy.optimizer.step()
                 
+                if not continue_training:
+                    break
                 
         
         self.logger.log("train/entropy_loss", np.mean(entropy_losses), self.num_timesteps)       
@@ -399,8 +418,16 @@ class PPO(BaseAlgorithm):
 
             if self.highest_avg_reward < self.current_avg_reward:
                 self.highest_avg_reward = self.current_avg_reward
+                self.step_at_highest_avg_reward = self.num_timesteps
                 # save the run, that performed the best as such
                 self.save(save_as_best=True)
+                
+        if self.early_stopping:
+            return (self.num_timesteps - self.step_at_highest_avg_reward) > self.early_stopping_patience
+        
+        return True
+                
+        
 
     def _update_schedules(self):
         # todo add lr schedule and not a fixed rate

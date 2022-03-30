@@ -21,7 +21,7 @@ import torch.nn as nn
 import yaml, argparse
 
 
-def train(args: Dict, early_stopping: bool = False ,config_overrides: Dict = {}):
+def train(args: Dict, early_stopping: bool = False, early_stop_patience = 1e8, config_overrides: Dict = {}):
     """Train an environment given a config
 
     Args:
@@ -66,7 +66,7 @@ def train(args: Dict, early_stopping: bool = False ,config_overrides: Dict = {})
     print(policy) 
     algo = algo_from_config(config["algo"], task, policy, device, logger)
     
-    algo.learn(total_timesteps=1e10)
+    algo.learn(total_timesteps=1e10, early_stopping = early_stopping, early_stopping_patience= early_stop_patience)
     
     task.close()
     

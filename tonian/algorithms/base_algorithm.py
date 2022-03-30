@@ -49,6 +49,13 @@ class BaseAlgorithm(ABC):
     def load(self, path: str):
         raise NotImplementedError()
     
+    @abstractmethod
+    def learn(self, n_steps: int, 
+              early_stopping: bool = False,
+              early_stopping_patience: int = 1e8, 
+              reset_num_timesteps: bool = True):
+        raise NotImplementedError()
+    
     
     @abstractmethod
     def _get_standard_config(self) -> Dict:  

@@ -17,11 +17,12 @@ task:
 
 
     reward_weighting:
+      death_height: 1.25 # the height of the 
       directional_factor: 0.8
       death_cost: 10
       energy_cost: 0.005
       alive_reward: 0.7
-      upright_punishment_factor: 8 # higher values punish the actor more for bad posture
+      upright_punishment_factor: 16 # higher values punish the actor more for bad posture
       jitter_cost: 0.25
 
 
@@ -31,12 +32,12 @@ task:
 
       motor_powers: # describe by using joint name and than the max efort in NM
         left_foot: 300
-        left_knee: 3000
+        left_knee: 1500
         left_hip_b: 1000
         left_hip_a: 1000
         
         right_foot: 300
-        right_knee: 3000
+        right_knee: 1500
         right_hip_b: 500
         right_hip_a: 500
 
