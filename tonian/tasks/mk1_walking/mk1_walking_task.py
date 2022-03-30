@@ -41,6 +41,7 @@ class Mk1WalkingTask(Mk1BaseClass):
         self.alive_reward = reward_weight_dict["alive_reward"]
         self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
         self.jitter_cost = reward_weight_dict["jitter_cost"] /  self.action_size
+        self.death_height = reward_weight_dict["death_height"]
         
     
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
@@ -59,6 +60,7 @@ class Mk1WalkingTask(Mk1BaseClass):
             actions= self.actions,
             former_actions= self.former_actions, 
             force_sensor_states=self.vec_force_sensor_tensor,
+            death_height= self.death_height, 
             alive_reward= self.alive_reward,
             death_cost= self.death_cost,
             directional_factor= self.directional_factor,
@@ -101,6 +103,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           actions: torch.Tensor, 
                           former_actions: torch.Tensor,  
                           force_sensor_states: torch.Tensor,
+                          death_height: float, 
                           death_cost: float,
                           alive_reward: float, 
                           directional_factor: float,
@@ -183,7 +186,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
     reward -= energy_punishment
      
     # -------------- punish for having fallen -------------- 
-    terminations_height = 1.25
+    terminations_height = death_height
     # root_states[:, 2] defines the y positon of the root body 
     reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
     

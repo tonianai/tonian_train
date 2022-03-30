@@ -17,7 +17,7 @@ task:
 
 
     reward_weighting:
-      death_height: 1.25 # the height of the 
+      death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
       directional_factor: 0.8
       death_cost: 10
       energy_cost: 0.005
