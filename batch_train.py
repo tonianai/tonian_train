@@ -2,7 +2,7 @@ from train import train
 import argparse
 
 test_for_values = [4,8,10,16,20,30,40]
-test_for_dicts = [{'task': {'reward_weighting': {'upright_punishment_factor': value} }} for value in test_for_values]
+test_for_dicts = [{'task': {'env' : {'reward_weighting': {'upright_punishment_factor': value}}}} for value in test_for_values]
 
  
 ap = argparse.ArgumentParser()

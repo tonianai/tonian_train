@@ -349,9 +349,6 @@ class ActorCriticPolicy(BasePolicy, ABC):
         # sample from the distribution
         return self.get_distribution(actor_obs).get_actions(deterministic= deterministic)
     
-
-    
-    
     def evaluate_actions(self, 
                          actor_obs: Observation,
                          critic_obs: Observation,
@@ -394,7 +391,6 @@ class ActorCriticPolicy(BasePolicy, ABC):
         latent_vf = self.critic_net(critic_obs)
         return self.value_latent_net(latent_vf)
         
-        
     def get_distribution(self,actor_obs: Observation) -> Distribution:
         """
         Get the current action policy distribution given the observation
@@ -406,7 +402,6 @@ class ActorCriticPolicy(BasePolicy, ABC):
         latent_pi = self.actor_net(actor_obs)
         # get the mean value for the action distribution
         return self._get_action_dist_from_latent(latent_pi)
-        
         
     def _get_action_dist_from_latent(self, latent_pi: torch.Tensor) -> Distribution:
         """
@@ -422,8 +417,6 @@ class ActorCriticPolicy(BasePolicy, ABC):
         else:
             raise ValueError("Invalid action distribution")
         
-        
-    
     @abstractmethod
     def _build_actor_net(self) -> BaseNet:
         """Build the actor net in the implementation of the actor critic algorithm 

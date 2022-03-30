@@ -33,8 +33,7 @@ class Schedule:
         elif isinstance(schedule, float):
             self.static_value = schedule
         elif isinstance(schedule, str):
-            self.static_value = float(schedule)
-            print(self.static_value)
+            self.static_value = float(schedule) 
         else:
             raise ValueError(f"The schedule input type is not acceptable, Type: {type(schedule)}")
         
@@ -71,8 +70,7 @@ ScheduleOrValue = Union[Schedule, Callable]
 
 def schedule_or_callable(input: Union[int, float, dict, str]) -> ScheduleOrValue:
     
-    if isinstance(input, Dict):
-        print("I am a Dic")
+    if isinstance(input, Dict): 
         return Schedule(input)
     elif isinstance(input, str):
         val = float(input)

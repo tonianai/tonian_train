@@ -373,9 +373,7 @@ class VecTask(BaseEnv, ABC):
         Returns:
             Tuple[Dict[str, torch.Tensor]]: actor_obs, critic_ob
         """
-        
-        print(self.rl_device)
-       
+         
         actions = torch.zeros([self.num_envs, self.action_space.shape[0] ], dtype=torch.float32, device=self.rl_device)
 
         # step the simulator

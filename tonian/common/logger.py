@@ -1,7 +1,8 @@
 from collections import defaultdict
 from typing import Dict, Optional, Tuple , Union
 from torch.utils.tensorboard import SummaryWriter
-import os
+import os, torch
+import torch.nn as nn
 
 from abc import ABC, abstractmethod
 
@@ -64,3 +65,5 @@ class TensorboardLogger(BaseLogger):
         if self.print_to_console and verbose:
             print(f"{step}  -  {key}: {value} ")
             
+    def add_graph(self, model: nn.Module, observation: torch.Tensor = None):
+        self.writer.add_graph(model, observation)
