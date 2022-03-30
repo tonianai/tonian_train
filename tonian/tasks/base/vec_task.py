@@ -4,9 +4,14 @@ from abc import ABC, abstractmethod
 from isaacgym import gymtorch, gymapi
 from tonian.tasks.base.base_env import BaseEnv
 from tonian.common.utils.utils import  join_configs
+
+from isaacgym.gymutil import get_property_setter_map, get_property_getter_map, get_default_setter_args, apply_random_samples, check_buckets, generate_random_samples
+
 import numpy as np
 
 import torch, sys, yaml
+
+
 
 
 
@@ -45,6 +50,16 @@ class VecTask(BaseEnv, ABC):
         # The sum of all action dimensions        
         self._action_size = None
         
+        self._first_domain_randomization= True # determines whether there has alreadly beem an randomization
+        self.original_props = {} # properties before randomization
+        self.dr_randomizations = {}
+        self.actor_params_generator = None
+        self.extern_actor_params = {}
+        self.last_step = -1
+        self.last_rand_step = -1
+        for env_id in range(self.num_envs):
+            self.extern_actor_params[env_id] = None
+        
         self._extract_params_from_config()
         
         self.sim_params = self.__parse_sim_params(self.config["physics_engine"], self.config["sim"])
@@ -59,14 +74,17 @@ class VecTask(BaseEnv, ABC):
         # optimization flags for pytorch JIT
         # torch._C._jit_set_profiling_mode(False)
         # torch._C._jit_set_profiling_executor(False)
-        
-
+         
         
         self.gym = gymapi.acquire_gym()
          
         self.global_step = 0
         self.sim_initialized = False
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
+        
+        if 'randomization_params' in self.config['task']:
+            if self.config['task']['randomization_params'].get('randomize', True):
+                self._apply_domain_randomization(self.config['task']['randomization_params'])
         
         print("Gym and Sim types")
         print(type(self.gym))
@@ -89,8 +107,6 @@ class VecTask(BaseEnv, ABC):
         
         # These are the extras that will be returned on the step function
         self.extras = {}
-        
-        
         
         
     def _config_path_to_config(self, config_path: str) -> Dict:
@@ -159,8 +175,6 @@ class VecTask(BaseEnv, ABC):
         
         self.former_actions = torch.zeros((self.num_envs, ) + self.action_space.shape ).to(self.device)
         
-        
-        
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
         """Create an Isaac Gym sim object.
 
@@ -211,7 +225,6 @@ class VecTask(BaseEnv, ABC):
             self.gym.viewer_camera_look_at(
                 self.viewer, None, cam_pos, cam_target)
             
-        
     def render(self):
         """Draw the frame to the viewer, and check for keyboard events."""
         if self.viewer:
@@ -358,7 +371,6 @@ class VecTask(BaseEnv, ABC):
         
         return (self.actor_obs, self.critic_obs), self.rewards, self.do_reset, self.extras, self.reward_constituents
         
- 
     def reset(self) -> Tuple[Dict[str, torch.Tensor]]:
         """Reset the environment 
 
@@ -375,7 +387,6 @@ class VecTask(BaseEnv, ABC):
         
         return self.actor_obs, self.critic_obs 
  
-        
     def _create_ground_plane(self, sim = None):
         if not sim:
             sim = self.sim
@@ -434,6 +445,34 @@ class VecTask(BaseEnv, ABC):
 
         # return the configured params
         return sim_params
+    
+    def _apply_domain_randomization(self, dr_params: Dict):
+        
+        # If we don't have a randomization frequency, randomize every step
+        rand_freq = dr_params.get("frequency", 1)
+
+        # First, determine what to randomize:
+        #   - non-environment parameters when > frequency steps have passed since the last non-environment
+        #   - physical environments in the reset buffer, which have exceeded the randomization frequency threshold
+        #   - on the first call, randomize everything
+        self.last_step = self.gym.get_frame_count(self.sim)
+        
+        if "sim_params" in dr_params:
+            prop_attrs = dr_params["sim_params"]
+            prop = self.gym.get_sim_params(self.sim)
+
+            if self._first_domain_randomization:
+                self.original_props["sim_params"] = {
+                    attr: getattr(prop, attr) for attr in dir(prop)}
+
+            for attr, attr_randomization_params in prop_attrs.items():
+                apply_random_samples(
+                    prop, self.original_props["sim_params"], attr, attr_randomization_params, self.last_step)
+
+            self.gym.set_sim_params(self.sim, prop)
+            
+        
+        self._first_domain_randomization = False
     
     @property
     def action_size(self):

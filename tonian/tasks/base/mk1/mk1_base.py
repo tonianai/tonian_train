@@ -169,8 +169,7 @@ class Mk1BaseClass(VecTask, ABC):
         Returns:
             torch.Tensor: shape(self.action_size)
         """
-        
-        print("Create effort tensor")
+         
         
         if 'agent' not in self.config['env']:
             default_motor_effort = 1000

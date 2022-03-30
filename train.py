@@ -7,7 +7,7 @@ import yaml
 
 import sys
 
-from tonian.common.utils.utils import set_random_seed
+from tonian.common.utils.utils import set_random_seed, join_configs
 from tonian.common.utils.config_utils import task_from_config, algo_from_config, policy_from_config, create_new_run_directory
 from tonian.common.logger import TensorboardLogger
 
@@ -21,7 +21,7 @@ import torch.nn as nn
 import yaml, argparse
 
 
-def train(args: Dict):
+def train(args: Dict, early_stopping: bool = False ,config_overrides: Dict = {}):
     """Train an environment given a config
 
     Args:
@@ -46,6 +46,9 @@ def train(args: Dict):
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:    
             raise FileNotFoundError( f"File {config_path} not found")
+    
+    
+    config = join_configs(config, config_overrides)
     
     if args_seed is not None:
         set_random_seed(args_seed)
