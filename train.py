@@ -21,7 +21,7 @@ import torch.nn as nn
 import yaml, argparse
 
 
-def train(args: Dict, early_stopping: bool = False, early_stop_patience = 1e8, config_overrides: Dict = {}):
+def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early_stop_patience = 1e8, config_overrides: Dict = {}):
     """Train an environment given a config
 
     Args:
@@ -29,25 +29,26 @@ def train(args: Dict, early_stopping: bool = False, early_stop_patience = 1e8, c
             required args['cfg'] 
 
     """
+    
     args_seed = None
     
     if args['seed'] is not None:
         args_seed = int(args['seed'])
     
+     
     
     headless =  'headless' in args and args['headless']
      
     device = "cuda:0"
     config_path = args['cfg']
-    
+      
     # open the config file 
     with open(config_path, 'r') as stream:
         try:
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:    
             raise FileNotFoundError( f"File {config_path} not found")
-    
-    
+      
     config = join_configs(config, config_overrides)
     
     if args_seed is not None:
@@ -66,7 +67,8 @@ def train(args: Dict, early_stopping: bool = False, early_stop_patience = 1e8, c
     print(policy) 
     algo = algo_from_config(config["algo"], task, policy, device, logger)
     
-    algo.learn(total_timesteps=1e10, early_stopping = early_stopping, early_stopping_patience= early_stop_patience)
+    
+    algo.learn(total_timesteps=1e10, verbose = verbose, early_stopping = early_stopping, early_stopping_patience= early_stop_patience)
     
     task.close()
     
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     ap.set_defaults(feature= False)
     
     args = vars(ap.parse_args())
-    train(args)
+    train(args, early_stopping= True, early_stop_patience=5e7)
     
    
     

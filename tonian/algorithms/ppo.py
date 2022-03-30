@@ -148,6 +148,7 @@ class PPO(BaseAlgorithm):
     def learn(
         self, 
         total_timesteps: int,
+        verbose: bool = True, 
         early_stopping: bool = False, 
         early_stopping_patience: int = 1e8,
         reset_num_timesteps: bool = True
@@ -183,14 +184,16 @@ class PPO(BaseAlgorithm):
             
             steps_per_second = (self.n_steps * self.n_envs)/ (end_time - start_time)
             
-            print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,iteration, self.num_timesteps,steps_per_second, ( end_rollout_time - start_time) / (end_time - start_time )))
+            if verbose:
+                print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,iteration, self.num_timesteps,steps_per_second, ( end_rollout_time - start_time) / (end_time - start_time )))
             
             self.logger.log("z_speed/steps_per_second", steps_per_second, self.num_timesteps)
             self.logger.log("z_speed/time_on_rollout", end_rollout_time - start_time, self.num_timesteps)
             self.logger.log("z_speed/time_on_train", end_time - end_rollout_time, self.num_timesteps)
             
             if not continue_training:
-                print(f"Early stopping at {self.num_timesteps}")
+                print(f"Run: {self.logger.identifier}    |   Early stopping at {self.num_timesteps}")
+                break
             
     def collect_rollouts(self, 
                          n_rollout_steps: int) -> bool:
@@ -423,7 +426,7 @@ class PPO(BaseAlgorithm):
                 self.save(save_as_best=True)
                 
         if self.early_stopping:
-            return (self.num_timesteps - self.step_at_highest_avg_reward) > self.early_stopping_patience
+            return (self.num_timesteps - self.step_at_highest_avg_reward) < self.early_stopping_patience
         
         return True
                 

@@ -189,8 +189,6 @@ class Mk1BaseClass(VecTask, ABC):
                 
                 motor_efforts[dof_id] = motor_effort
                 
-                
-            print(specific_motor_efforts)
             
             return motor_efforts
     
@@ -416,14 +414,7 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     torso_rotation = root_states[:, 3:7]
     velocity = root_states[:, 7:10]
     ang_velocity = root_states[:, 10:13]
-    
-    # print("Torso Position")
-    # print(torso_position.shape)
-    # print(torso_rotation.shape)
-    # print(velocity.shape)
-    # print(ang_velocity.shape)
-    # print(sensor_states.shape)
-    
+     
     
     
     # todo add some other code to deal with initial information, that might be required

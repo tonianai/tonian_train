@@ -151,12 +151,9 @@ class DiagGaussianDistributionStdParam(Distribution):
         :param mean_actions:
         :param log_std:
         :return:
-        """
-        #TODO: Change back
-        #print("means actions internal")
-        #print(mean_actions)
+        """ 
         action_std = torch.ones_like(mean_actions, device= self.device) * log_std.exp().to(self.device)
-        #action_std = torch.ones_like(mean_actions) * 0.1
+ 
         self.distribution = Normal(mean_actions, action_std)
         return self
         

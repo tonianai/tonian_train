@@ -85,11 +85,7 @@ class VecTask(BaseEnv, ABC):
         if 'randomization_params' in self.config['task']:
             if self.config['task']['randomization_params'].get('randomize', True):
                 self._apply_domain_randomization(self.config['task']['randomization_params'])
-        
-        print("Gym and Sim types")
-        print(type(self.gym))
-        print(type(self.sim))
-        
+         
         # create the environments 
         print(f'num envs {self.num_envs} env spacing {self.config["env"]["env_spacing"]}')
         self._create_envs( self.config["env"]["env_spacing"], int(np.sqrt(self.num_envs)))

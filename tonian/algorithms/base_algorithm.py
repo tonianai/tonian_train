@@ -51,6 +51,7 @@ class BaseAlgorithm(ABC):
     
     @abstractmethod
     def learn(self, n_steps: int, 
+              verbose: bool = True, 
               early_stopping: bool = False,
               early_stopping_patience: int = 1e8, 
               reset_num_timesteps: bool = True):
