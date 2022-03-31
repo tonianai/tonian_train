@@ -1,27 +1,48 @@
+import imp
 from train import train
 import argparse
+import torch.multiprocessing as _mp
+import torch
 
-test_for_values = [4,8,10,16,20,30,40]
-test_for_dicts = [{'task': {'env' : {'reward_weighting': {'upright_punishment_factor': value}}}} for value in test_for_values]
+mp = _mp.get_context('spawn')
 
- 
-ap = argparse.ArgumentParser()
-ap.add_argument("-seed", required=False, help="Seed for running the env")
-ap.add_argument("-cfg", required= True, help="path to the config")
-ap.add_argument('--headless', action='store_true')
-ap.add_argument('--no-headless', action='store_false')
-ap.set_defaults(feature= False)
-    
-args = vars(ap.parse_args()) 
-    
+print("Cuda: " + str(torch.cuda.is_available()))
+
+def mp_start_run(queue, done_event):
+    args = queue.get()
+    train(args[0], args[1], args[2], args[3], args[4])
 
 
-for i, test_dict in enumerate(test_for_dicts):
+if __name__ == '__main__':
+    test_for_values = [10,16,20,30,40]
+    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'upright_punishment_factor': value}}}} for value in test_for_values]
+
     
-    print(f"Tesing for value {test_for_values[i]}")
-    
-    train(args, verbose= False, early_stopping=True, early_stop_patience= 5e7, config_overrides=test_dict)
-    
-    
-print("Run complete")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-seed", required=False, help="Seed for running the env")
+    ap.add_argument("-cfg", required= True, help="path to the config")
+    ap.add_argument('--headless', action='store_true')
+    ap.add_argument('--no-headless', action='store_false')
+    ap.set_defaults(feature= False)
+
+    args = vars(ap.parse_args()) 
+
+
+
+    for i, test_dict in enumerate(test_for_dicts):
+
+        print(f"Tesing for value {test_for_values[i]}")
+        
+        queue = mp.Queue()
+        done_event = mp.Event()
+        
+        queue.put((args, False, True, 5e7, test_dict))
+        
+        #train(args, verbose= False, early_stopping=True, early_stop_patience= 5e7, config_overrides=test_dict)
+        p = mp.Process(target=mp_start_run, args=(queue, done_event))
+        p.start()
+        done_event.wait()
+
+
+    print("Run complete")
 
