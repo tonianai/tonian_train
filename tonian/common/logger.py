@@ -5,6 +5,7 @@ import os, torch
 import torch.nn as nn
 
 from abc import ABC, abstractmethod
+import json
 
 from tonian.policies.policies import BasePolicy
 
@@ -34,6 +35,17 @@ class BaseLogger(ABC):
         pass
     
     
+    @abstractmethod
+    def log_config(self, config: Dict):
+        pass
+    
+
+    def _pretty_config_dict(config: Dict):
+        json_hp = json.dumps(config, indent=2)
+        return "".join("\t" + line for line in json_hp.splitlines(True))
+        
+        
+    
 
     
 class DummyLogger(BaseLogger):
@@ -48,7 +60,8 @@ class DummyLogger(BaseLogger):
     def log(self, key: str, value: Union[int, float], step: int):
         pass
         
-    
+    def log_config(self, config: Dict):
+        pass
      
 class TensorboardLogger(BaseLogger):
         
@@ -67,3 +80,25 @@ class TensorboardLogger(BaseLogger):
             
     def add_graph(self, model: nn.Module, observation: torch.Tensor = None):
         self.writer.add_graph(model, observation)
+        
+    def log_config(self, tag: str, config: Dict):
+        """Log the cofnig of the run to the tesnorboard via text
+
+        Args:
+            config (Dict): COnfiguration Dict
+        """
+        
+        self.writer.add_text(tag,BaseLogger._pretty_config_dict(config))
+        
+    def log_config_items(self, tag: str, config: Dict):
+        """Logg all direct children of a dict as a config themselves
+
+        Args:
+            tag (str): parent tag
+            config (Dict): config with children
+        """
+        
+        for key, value in config.items():
+            if isinstance(value, Dict):
+                self.log_config(tag + '/' + key, value)
+        

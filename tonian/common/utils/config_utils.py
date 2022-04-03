@@ -20,6 +20,8 @@ import torch
 import torch.nn as nn
 import os, yaml
 
+from typing import Optional
+
 
      
 
@@ -127,7 +129,7 @@ def get_run_index(base_folder_name: str) -> int:
         
     
 
-def create_new_run_directory(config: Dict) -> Tuple[str, int]:
+def create_new_run_directory(config: Dict, batch_id: Optional[str] = None) -> Tuple[str, int]:
     """Create a new run directory and store the given config in the directory
     Args:
         config (Dict): The config file, that contains all the important info to recreate, or continue this run
@@ -141,10 +143,15 @@ def create_new_run_directory(config: Dict) -> Tuple[str, int]:
     
     # the name where  the network and log files will be stored about this run
     run_base_folder= f'runs/{task_name}'
-       
-    run_index = get_run_index(run_base_folder)
+    
+    if batch_id is not None:
+        run_index = get_run_index(os.path.join(run_base_folder, batch_id))
         
-    run_folder_name = run_base_folder + "/"+ str(run_index)
+        run_folder_name = os.path.join(run_base_folder, batch_id, str(run_index))
+        
+    else: 
+        run_index = get_run_index(run_base_folder)
+        run_folder_name = os.path.join(run_base_folder , str(run_index))
      
     # create the run folder
     os.makedirs(run_folder_name)

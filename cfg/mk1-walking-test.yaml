@@ -22,7 +22,7 @@ task:
       death_cost: 10
       energy_cost: 0.005
       alive_reward: 0.7
-      upright_punishment_factor: 16 # higher values punish the actor more for bad posture
+      upright_punishment_factor: 20 # higher values punish the actor more for bad posture
       jitter_cost: 0.25
 
 

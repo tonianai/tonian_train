@@ -10,17 +10,19 @@ print("Cuda: " + str(torch.cuda.is_available()))
 
 def mp_start_run(queue, done_event):
     args = queue.get()
-    train(args[0], args[1], args[2], args[3], args[4])
+    train(args[0], args[1], args[2], args[3], args[4], args[0]['batch_id'])
+    done_event.set()
 
 
 if __name__ == '__main__':
-    test_for_values = [10,16,20,30,40]
-    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'upright_punishment_factor': value}}}} for value in test_for_values]
+    test_for_values = [0.5, 0.8, 1, 2, 3, 5, 8, 10]
+    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'directional_factor': value}}}} for value in test_for_values]
 
     
     ap = argparse.ArgumentParser()
-    ap.add_argument("-seed", required=False, help="Seed for running the env")
     ap.add_argument("-cfg", required= True, help="path to the config")
+    ap.add_argument("-batch_id", required= True, help="A name for the run can be set here")
+    ap.add_argument("-seed", required=False, help="Seed for running the env")
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--no-headless', action='store_false')
     ap.set_defaults(feature= False)

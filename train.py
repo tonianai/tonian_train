@@ -1,7 +1,7 @@
 
 from tonian.tasks.cartpole.cartpole_task import Cartpole
 
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Optional
 
 import yaml
 
@@ -21,7 +21,7 @@ import torch.nn as nn
 import yaml, argparse
 
 
-def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early_stop_patience = 1e8, config_overrides: Dict = {}):
+def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early_stop_patience = 1e8, config_overrides: Dict = {}, batch_id: Optional[str] = None):
     """Train an environment given a config
 
     Args:
@@ -58,9 +58,13 @@ def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early
         set_random_seed(config["seed"])
     
     # create the run folder here
-    run_folder_name, run_id = create_new_run_directory(config)
+    run_folder_name, run_id = create_new_run_directory(config, batch_id)
      
     logger = TensorboardLogger(run_folder_name, run_id)
+    
+    logger.log_config('task',config['task'])
+    logger.log_config('policy',config['policy'])
+    logger.log_config('algo',config['algo'])
     
     task = task_from_config(config["task"], headless= headless)
     policy = policy_from_config(config["policy"], task) 
