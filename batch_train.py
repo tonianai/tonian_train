@@ -1,4 +1,3 @@
-import imp
 from train import train
 import argparse
 import torch.multiprocessing as _mp
@@ -15,8 +14,8 @@ def mp_start_run(queue, done_event):
 
 
 if __name__ == '__main__':
-    test_for_values = [0.5, 0.8, 1, 2, 3, 5, 8, 10]
-    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'directional_factor': value}}}} for value in test_for_values]
+    test_for_values = [15, 30, 40, 50, 60]
+    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'death_cost': value}}}} for value in test_for_values]
 
     
     ap = argparse.ArgumentParser()

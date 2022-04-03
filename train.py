@@ -62,7 +62,7 @@ def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early
      
     logger = TensorboardLogger(run_folder_name, run_id)
     
-    logger.log_config('task',config['task'])
+    logger.log_config_items('task',config['task'])
     logger.log_config('policy',config['policy'])
     logger.log_config('algo',config['algo'])
     
