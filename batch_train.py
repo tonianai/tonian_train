@@ -14,9 +14,13 @@ def mp_start_run(queue, done_event):
 
 
 if __name__ == '__main__':
-    test_for_values = [15, 30, 40, 50, 60]
-    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'death_cost': value}}}} for value in test_for_values]
+    #test_for_values = [15, 30, 40, 50, 60]
+    #test_for_dicts = [{'task': {'env' : {'reward_weighting': {'death_cost': value}}}} for value in test_for_values]
 
+    test_for_values = [0, 0.1, 0.3, 0.5,1, 2, 3]
+    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'jitter_cost': value}}}} for value in test_for_values]
+
+    
     
     ap = argparse.ArgumentParser()
     ap.add_argument("-cfg", required= True, help="path to the config")
