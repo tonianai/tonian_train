@@ -1,82 +1,10 @@
-# Show all from all the runs in a batch the best policy for a couple seconds
- 
+
 from tonian.tasks.cartpole.cartpole_task import Cartpole
 
-import yaml, os, argparse
-import argparse
-import torch.multiprocessing as _mp
-import torch
+import yaml, os, argparse, torch
 from tonian.common.utils.config_utils import  policy_from_config, task_from_config, get_run_index
 from tonian.common.utils.utils import set_random_seed
 #
-
-mp = _mp.get_context('spawn')
-
-def inference(run_folder: str):
-    
-    print(f"in sec f{run_folder}")
-    
-    print("-------------------------")
-    
-    
-    if not os.path.exists(run_folder):
-        raise FileNotFoundError("The run path does not exist")
-    
-    
-    
-    device = "cuda:0"
-    
-    config_path = run_folder + '/config.yaml'
-    
-    # open the config file 
-    with open(config_path, 'r') as stream:
-        try:
-            config = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:    
-            raise FileNotFoundError( f"Algo Config File {config_path} not found")
-    
-    if "seed" in config:   
-        set_random_seed(config["seed"])
-    
-    task = task_from_config(config['task'], False)
-    task.is_symmetric = False
-    
-    policy = policy_from_config(config['policy'], task)
-    
-    # get the highest step stored policy
-    
-    saves_folder = os.path.join(run_folder, 'saves')
-    
-    best_model_path = os.path.join(saves_folder, 'best.pth')
-    
-    policy.load(best_model_path)
-    
-    
-    print("-------------------------")
-    
-    policy.eval()
-    
-    last_obs = task.reset()
-    
-    for i in range(int(10000)):
-        with torch.no_grad():
-            actions, values, log_probs = policy.forward(last_obs[0], last_obs[1])
-    
-        new_obs, rewards, dones, info = task.step(actions)
-        
-        last_obs = new_obs
-        
-        
-
-def mp_start_inference(queue, done_event):
-    args = queue.get()
-    
-    inference(args[0])
-    done_event.set()
-    
-
-
-
 
 
 if __name__ == '__main__':
@@ -109,14 +37,65 @@ if __name__ == '__main__':
     
     run_base_folders = sorted([ os.path.join(batch_base_folder, run_name ) for run_name in os.listdir(batch_base_folder)])
     
+    # Trust, that the task is the same across the whole set
+    
+    config_path = os.path.join(run_base_folders[0], 'config.yaml')
+    
+    # open the config file 
+    with open(config_path, 'r') as stream:
+        try:
+            config = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:    
+            raise FileNotFoundError( f"Algo Config File {config_path} not found")
+    
+    
+    task = task_from_config(config['task'])
+    task.is_symmetric = False
     
     for run_base_folder in run_base_folders:
         
-        print("RUN "+ run_base_folder )        
-        queue = mp.Queue()
-        done_event = mp.Event()
-        p = mp.Process(target=mp_start_inference, args=(queue,done_event))
-        p.start()
-        done_event.wait()
-        #input("Hit enter to continue:")
-        #p.terminate()
+        print("########################################################")
+        print(f"Running policy from folder: {run_base_folder}")
+        
+        # get the policy from the specific seed
+        
+        s_config_path = os.path.join(run_base_folder, 'config.yaml')
+        
+        # open the config file 
+        with open(s_config_path, 'r') as stream:
+            try:
+                s_config = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"Algo Config File {s_config_path} not found")
+        
+        policy = policy_from_config(s_config['policy'], task)
+        
+        # get the best model from the saves folder
+        
+        path_to_best = os.path.join(run_base_folder, 'saves', 'best.pth')
+        policy.load(path_to_best)
+        
+        
+        
+        policy.eval()
+        
+        last_obs = task.reset()
+        
+        for _ in range(300):
+            
+            with torch.no_grad():
+                actions, values, log_probs = policy.forward(last_obs[0], last_obs[1])
+                
+            new_obs, rewards, dones, info, _ = task.step(actions)
+            
+            last_obs = new_obs
+            
+        
+        
+        
+        
+        
+        
+        
+        
+        
