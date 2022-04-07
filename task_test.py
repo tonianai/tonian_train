@@ -1,5 +1,6 @@
 
 
+from tonian.tasks.mk1_walking.mk1_walking_task import Mk1WalkingTask
 from tonian.tasks.walking.walking_task import WalkingTask
 
 from warnings import resetwarnings
@@ -11,10 +12,6 @@ import numpy as np
 from tonian.algorithms.ppo import PPO
 from tonian.policies.policies import SimpleActorCriticPolicy
 
-from gym.spaces import space
-from tonian.tasks.base.command import Command
-from  tonian.tasks.base.vec_task import MultiSpace, VecTask
-from tonian.common.schedule import Schedule
 
 import gym
 from gym import spaces
@@ -23,14 +20,14 @@ from tonian.tasks.cartpole.cartpole_task import Cartpole
 from tonian.common.utils.utils import set_random_seed
 import torch
 
-import yaml
+import yaml, time
 
 
 
 set_random_seed(40, True)
 
  
-env = WalkingTask(config_or_path={"env": {"num_envs": 1000}}, sim_device="gpu" , graphics_device_id=0 , headless=False)
+env = Mk1WalkingTask(config={"env": {"num_envs": 10, "reward_weighting": { "death_height": 0}}}, sim_device="gpu" , graphics_device_id=0 , headless=False)
  
 #env = Cartpole(config_or_path={"env": {"num_envs": 10}}, sim_device="gpu", graphics_device_id=0, headless=False)
 
@@ -44,25 +41,29 @@ with open(config_path, 'r') as stream:
     except yaml.YAMLError as exc:    
         raise FileNotFoundError( f"File {config_path} not found")
     
-lr_schedule = Schedule(config["lr"])
-
-
-policy = SimpleActorCriticPolicy(actor_obs_space=env.actor_observation_spaces,
-                                 critic_obs_space=env.critic_observation_spaces,
-                                 action_space= env.action_space,
-                                 lr_schedule=lr_schedule,
-                                 init_log_std = 0.0,
-                                 actor_hidden_layer_sizes=( 64, 64),
-                                 critic_hiddent_layer_sizes=(64, 64),
-                                 device="cuda:0")
- 
-
-
-algo = PPO(env, config, policy=policy, device="cuda:0", logger= DummyLogger() )
+# lr_schedule = Schedule(config["lr"])
+# 
+# policy = SimpleActorCriticPolicy(actor_obs_space=env.actor_observation_spaces,
+#                                  critic_obs_space=env.critic_observation_spaces,
+#                                  action_space= env.action_space,
+#                                  lr_schedule=lr_schedule,
+#                                  init_log_std = 0.0,
+#                                  actor_hidden_layer_sizes=( 64, 64),
+#                                  critic_hiddent_layer_sizes=(64, 64),
+#                                  device="cuda:0")
+#  
+# 
+# 
+# algo = PPO(env, config, policy=policy, device="cuda:0", logger= DummyLogger() )
 
 # train for a million steps
-algo.learn(total_timesteps=1e10)
+# algo.learn(total_timesteps=1e10)
 
+for _ in range(100):
+    for i in range(100):
+        ones_actions = torch.ones((env.num_envs, env.action_size)).to("cuda:0")  * 1
+        env.step(ones_actions)
+    time.sleep(30.0)
 # show the learned policy
 
 print("I have learned")

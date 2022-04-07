@@ -1,3 +1,4 @@
+from pydoc import cli
 from gym.spaces import space
 import numpy as np
 from tonian.tasks.base.command import Command
@@ -42,7 +43,7 @@ class Mk1WalkingTask(Mk1BaseClass):
         self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
         self.jitter_cost = reward_weight_dict["jitter_cost"] /  self.action_size
         self.death_height = reward_weight_dict["death_height"]
-        self.extended_knee_cost = reward_weight_dict["extended_knee_cost"]
+        self.overextend_cost = reward_weight_dict["overextend_cost"]
     
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -62,6 +63,8 @@ class Mk1WalkingTask(Mk1BaseClass):
             actions= self.actions,
             former_actions= self.former_actions, 
             force_sensor_states=self.vec_force_sensor_tensor,
+            dof_limits_lower= self.dof_limits_lower,
+            dof_limits_upper= self.dof_limits_upper,
             death_height= self.death_height, 
             alive_reward= self.alive_reward,
             death_cost= self.death_cost,
@@ -69,9 +72,11 @@ class Mk1WalkingTask(Mk1BaseClass):
             energy_cost= self.energy_cost,
             upright_punishment_factor= self.upright_punishment_factor,
             jitter_cost= self.jitter_cost,
-            extended_knee_cost=self.extended_knee_cost,
-            dof_name_index_dict=self.dof_name_index_dict
+            dof_name_index_dict=self.dof_name_index_dict,
+            overextend_cost=self.overextend_cost
+            
         )
+        
     
     
     def _add_to_env(self, env_ptr): 
@@ -109,6 +114,8 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           actions: torch.Tensor, 
                           former_actions: torch.Tensor,  
                           force_sensor_states: torch.Tensor,
+                          dof_limits_upper: torch.Tensor,
+                          dof_limits_lower: torch.Tensor,
                           death_height: float, 
                           death_cost: float,
                           alive_reward: float, 
@@ -116,7 +123,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           energy_cost: float,
                           upright_punishment_factor: float,
                           jitter_cost: float,
-                          extended_knee_cost: float, 
+                          overextend_cost: float, 
                           dof_name_index_dict: Dict[str, int]
                           )-> Tuple[torch.Tensor, torch.Tensor, Dict[str, float]]:
     """Compute the reward and the is_terminals for the robot step in the environment 
@@ -187,6 +194,27 @@ def compute_robot_rewards(root_states: torch.Tensor,
     jitter_punishment = torch.abs(actions - former_actions).view(reward.shape[0], -1).sum(-1) * jitter_cost
     reward -= jitter_punishment
       
+    
+    
+    #-------------- cost for overextension --------------
+    distance_to_upper = dof_limits_upper - dof_pos
+    distance_to_lower = dof_pos - dof_limits_lower
+    distance_to_limit = torch.minimum(distance_to_upper, distance_to_lower)
+    
+    # 0.001 rad -> 0,071 deg 
+    at_upper_limit = torch.where(distance_to_upper < 0.02, actions, torch.zeros_like(distance_to_limit))
+    at_lower_limit = torch.where(distance_to_lower < 0.02, actions, torch.zeros_like(distance_to_lower)) * -1
+    at_lower_limit[:, 8] = 0
+    at_upper_limit[: , 8] = 0
+    
+    clipped_upper_punishment = torch.clamp(at_upper_limit, min=0) * overextend_cost
+    clipped_lower_punishment = torch.clamp(at_lower_limit, min=0) * overextend_cost
+    
+    overextend_punishment = torch.sum(clipped_lower_punishment + clipped_upper_punishment, dim=1) / clipped_lower_punishment.shape[1]
+    
+    reward -= overextend_punishment
+    
+    
      
     # -------------- cost of power --------------
     
@@ -197,6 +225,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
     terminations_height = death_height
     # root_states[:, 2] defines the y positon of the root body 
     reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
+    
     
     
     # cost for overextending knee
@@ -219,6 +248,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
     direction_reward = float(torch.mean(direction_reward).item())
     jitter_punishment = - float(torch.mean(jitter_punishment).item())
     energy_punishment = - float(torch.mean(energy_punishment).item())
+    overextend_punishment = - float(torch.mean(overextend_punishment).item())
     
     total_avg_reward = alive_reward + upright_punishment + direction_reward + jitter_punishment + energy_punishment
     
@@ -228,6 +258,7 @@ def compute_robot_rewards(root_states: torch.Tensor,
                             'direction_reward':    direction_reward,
                             'jitter_punishment':   jitter_punishment,
                             'energy_punishment':   energy_punishment,
+                            'overextend_punishment': overextend_punishment,
                             'total_reward': total_avg_reward
                            }
     

@@ -169,6 +169,8 @@ class Mk1BaseClass(VecTask, ABC):
 
         self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
+        
+        
     
     def _create_effort_tensor(self, mk1_robot_asset) -> torch.Tensor:
         """Create the motor effort tensor, that defines how strong each motor is 
