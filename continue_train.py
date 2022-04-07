@@ -32,15 +32,27 @@ if __name__ == '__main__':
     if ':' in args['run']:
         # the run nr is set in the run string 
         args_arr = args['run'].split(':')
-        env_name = args_arr[0]
-        run_nr = args_arr[1]
+        
+        if len(args_arr) == 2:
+              
+            env_name = args_arr[0]
+            run_nr = args_arr[1]    
+            run_folder = os.path.join(run_base_folder, env_name, run_nr)
+            
+        else:
+            
+            env_name = args_arr[0]
+            batch_name = args_arr[1]
+            run_nr = args_arr[2]    
+            run_folder = os.path.join(run_base_folder, env_name, batch_name,  run_nr)           
+            
     else:
         # the run number is not set in the run string
         # -> use the most recent one
         env_name = args['run']
         run_nr = get_run_index(run_base_folder + env_name) - 1
         
-    run_folder = run_base_folder + env_name + '/'+ str(run_nr)
+        run_folder = os.path.join(run_base_folder, env_name, run_nr)
     
     if not os.path.exists(run_folder):
         raise FileNotFoundError("The run path does not exist")

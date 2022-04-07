@@ -147,6 +147,13 @@ class Mk1BaseClass(VecTask, ABC):
             self.envs.append(env_ptr)
             self.robot_handles.append(robot_handle)
             
+            
+        # get all dofs and assign the action index to the dof name in the dof_name_index_dict
+        self.dof_name_index_dict = self.gym.get_actor_dof_dict(env_ptr, robot_handle)
+        
+        
+        
+        
         # take the last one as an example (All should be the same)
         dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
         
@@ -252,6 +259,7 @@ class Mk1BaseClass(VecTask, ABC):
         Returns:
             [type]: [description]
         """
+         
         self.actions = actions.to(self.device).clone()
         forces = self.actions * self._motor_efforts
         force_tensor = gymtorch.unwrap_tensor(forces)

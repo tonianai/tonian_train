@@ -16,9 +16,22 @@ def mp_start_run(queue, done_event):
 if __name__ == '__main__':
     #test_for_values = [15, 30, 40, 50, 60]
     #test_for_dicts = [{'task': {'env' : {'reward_weighting': {'death_cost': value}}}} for value in test_for_values]
+    
+    reward_weightings = [{
+    "death_height": 1.05,
+    "directional_factor": 0,
+    "death_cost": 10,
+    "energy_cost": 0,
+    "alive_reward": 1,
+    "upright_punishment_factor": 0,
+    "jitter_cost": 0,
+    "extended_knee_cost": 2}]
 
-    test_for_values = [0, 0.1, 0.3, 0.5,1, 2, 3]
-    test_for_dicts = [{'task': {'env' : {'reward_weighting': {'jitter_cost': value}}}} for value in test_for_values]
+    # test_for_values = [0, 0.1, 0.3, 0.5,1, 2, 3]
+    # test_for_energy_cost = [0, 0,0, 0]
+    # test_for_upright_punishment = []
+    
+    test_for_dicts = [{'task': {'env' : {'reward_weighting': rewards }}} for rewards in reward_weightings]
 
     
     
@@ -36,12 +49,12 @@ if __name__ == '__main__':
 
     for i, test_dict in enumerate(test_for_dicts):
 
-        print(f"Tesing for value {test_for_values[i]}")
-        
+        #print(f"Tesing for value {test_for_values[i]}")
+        print(f"Testing for config {str(test_dict)}")
         queue = mp.Queue()
         done_event = mp.Event()
         
-        queue.put((args, False, True, 5e7, test_dict))
+        queue.put((args, False, True, 1e9, test_dict))
         
         #train(args, verbose= False, early_stopping=True, early_stop_patience= 5e7, config_overrides=test_dict)
         p = mp.Process(target=mp_start_run, args=(queue, done_event))

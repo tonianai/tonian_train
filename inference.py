@@ -31,15 +31,27 @@ if __name__ == '__main__':
     if ':' in args['run']:
         # the run nr is set in the run string 
         args_arr = args['run'].split(':')
-        env_name = args_arr[0]
-        run_nr = args_arr[1]
+        
+        if len(args_arr) == 2:
+              
+            env_name = args_arr[0]
+            run_nr = args_arr[1]    
+            run_folder = os.path.join(run_base_folder, env_name, run_nr)
+            
+        else:
+            
+            env_name = args_arr[0]
+            batch_name = args_arr[1]
+            run_nr = args_arr[2]    
+            run_folder = os.path.join(run_base_folder, env_name, batch_name,  run_nr)           
+            
     else:
         # the run number is not set in the run string
         # -> use the most recent one
         env_name = args['run']
         run_nr = get_run_index(run_base_folder + env_name) - 1
         
-    run_folder = run_base_folder + env_name + '/'+ str(run_nr)
+        run_folder = os.path.join(run_base_folder, env_name, run_nr)
     
     if not os.path.exists(run_folder):
         raise FileNotFoundError("The run path does not exist")
@@ -70,6 +82,7 @@ if __name__ == '__main__':
     saves_in_directory = os.listdir(saves_folder)
     
     
+    
     if len(saves_in_directory) == 0:
         print("WARNING: The run has no saves policy!!!")
     elif len(saves_in_directory) == 1:
@@ -77,28 +90,32 @@ if __name__ == '__main__':
         policy.load(os.path.join(saves_folder, saves_in_directory[0]))
     else:
         
-        if args['at_n_trained_steps'] is None:
-        # multiple policies -> choose the last or the closest to the goal one    
-            step_nr = max([int(file_name.split('.')[0]) for file_name in saves_in_directory])
-            file_name = str(step_nr) + '.pth'
-        else:
-            at_n_traines_steps = int(args['at_n_trained_steps'])
-            
-            minim_delta = 1e10
-            file_name_at_min_delta = ''
-            
-            for file_name in saves_in_directory:
-                step_nr = int(file_name.split('.')[0])
-                
-                if minim_delta >= abs(step_nr - at_n_traines_steps):
-                    minim_delta = abs(step_nr - at_n_traines_steps)
-                    file_name_at_min_delta = file_name 
-            
-            if file_name_at_min_delta != '':
-                file_name = file_name_at_min_delta
-                
-        policy.load(os.path.join(saves_folder, file_name))
+        path_to_best = os.path.join(run_folder, 'saves', 'best.pth')
+        policy.load(path_to_best)
         
+        #     
+        #     if args['at_n_trained_steps'] is None:
+        #     # multiple policies -> choose the last or the closest to the goal one    
+        #         step_nr = max([int(file_name.split('.')[0]) for file_name in saves_in_directory])
+        #         file_name = str(step_nr) + '.pth'
+        #     else:
+        #         at_n_traines_steps = int(args['at_n_trained_steps'])
+        #         
+        #         minim_delta = 1e10
+        #         file_name_at_min_delta = ''
+        #         
+        #         for file_name in saves_in_directory:
+        #             step_nr = int(file_name.split('.')[0])
+        #             
+        #             if minim_delta >= abs(step_nr - at_n_traines_steps):
+        #                 minim_delta = abs(step_nr - at_n_traines_steps)
+        #                 file_name_at_min_delta = file_name 
+        #         
+        #         if file_name_at_min_delta != '':
+        #             file_name = file_name_at_min_delta
+        #             
+        #     policy.load(os.path.join(saves_folder, file_name))
+        #     
         
     
     policy.eval()
@@ -109,7 +126,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             actions, values, log_probs = policy.forward(last_obs[0], last_obs[1])
     
-        new_obs, rewards, dones, info = task.step(actions)
+        new_obs, rewards, dones, info, _ = task.step(actions)
         
         last_obs = new_obs
     

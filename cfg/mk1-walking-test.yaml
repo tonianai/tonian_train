@@ -24,6 +24,8 @@ task:
       alive_reward: 0.7
       upright_punishment_factor: 20 # higher values punish the actor more for bad posture
       jitter_cost: 0.25
+      extended_knee_cost: 2
+      overextend_cost: 3
 
 
     agent:

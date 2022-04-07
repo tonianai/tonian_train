@@ -42,7 +42,7 @@ class Mk1WalkingTask(Mk1BaseClass):
         self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
         self.jitter_cost = reward_weight_dict["jitter_cost"] /  self.action_size
         self.death_height = reward_weight_dict["death_height"]
-        
+        self.extended_knee_cost = reward_weight_dict["extended_knee_cost"]
     
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -57,6 +57,8 @@ class Mk1WalkingTask(Mk1BaseClass):
         return   compute_robot_rewards(
             root_states= self.root_states,
             former_root_states= self.former_root_states, 
+            dof_pos= self.dof_pos,
+            dof_vel = self.dof_vel,
             actions= self.actions,
             former_actions= self.former_actions, 
             force_sensor_states=self.vec_force_sensor_tensor,
@@ -66,7 +68,9 @@ class Mk1WalkingTask(Mk1BaseClass):
             directional_factor= self.directional_factor,
             energy_cost= self.energy_cost,
             upright_punishment_factor= self.upright_punishment_factor,
-            jitter_cost= self.jitter_cost
+            jitter_cost= self.jitter_cost,
+            extended_knee_cost=self.extended_knee_cost,
+            dof_name_index_dict=self.dof_name_index_dict
         )
     
     
@@ -100,6 +104,8 @@ class Mk1WalkingTask(Mk1BaseClass):
 @torch.jit.script
 def compute_robot_rewards(root_states: torch.Tensor,
                           former_root_states: torch.Tensor,
+                          dof_pos: torch.Tensor,
+                          dof_vel: torch.Tensor, 
                           actions: torch.Tensor, 
                           former_actions: torch.Tensor,  
                           force_sensor_states: torch.Tensor,
@@ -109,7 +115,9 @@ def compute_robot_rewards(root_states: torch.Tensor,
                           directional_factor: float,
                           energy_cost: float,
                           upright_punishment_factor: float,
-                          jitter_cost: float
+                          jitter_cost: float,
+                          extended_knee_cost: float, 
+                          dof_name_index_dict: Dict[str, int]
                           )-> Tuple[torch.Tensor, torch.Tensor, Dict[str, float]]:
     """Compute the reward and the is_terminals for the robot step in the environment 
 
@@ -189,6 +197,14 @@ def compute_robot_rewards(root_states: torch.Tensor,
     terminations_height = death_height
     # root_states[:, 2] defines the y positon of the root body 
     reward = torch.where(root_states[:, 2] < terminations_height, - 1 * torch.ones_like(reward) * death_cost, reward)
+    
+    
+    # cost for overextending knee
+    
+    #print(dof_pos[0, dof_name_index_dict['left_knee']])
+    # knee over extend punishment 
+    #knee_extend_punishment = torch.where()
+    
     
     #print(reward[10:])
     
