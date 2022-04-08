@@ -25,7 +25,53 @@ if __name__ == '__main__':
     "alive_reward": 1,
     "upright_punishment_factor": 0,
     "jitter_cost": 0,
-    "extended_knee_cost": 2}]
+    "overextend_cost": 2},
+                         {
+    "death_height": 1.25,
+    "directional_factor": 10,
+    "death_cost": 10,
+    "energy_cost": 0,
+    "alive_reward": 1,
+    "upright_punishment_factor": 0,
+    "jitter_cost": 0,
+    "overextend_cost": 2},
+                         {
+    "death_height": 1.05,
+    "directional_factor": 0,
+    "death_cost": 10,
+    "energy_cost": 0,
+    "alive_reward": 1,
+    "upright_punishment_factor": 2,
+    "jitter_cost": 0,
+    "overextend_cost": 5},
+                         {
+    "death_height": 1.05,
+    "directional_factor": 0,
+    "death_cost": 20,
+    "energy_cost": 0.005,
+    "alive_reward": 3,
+    "upright_punishment_factor": 0,
+    "jitter_cost": 1,
+    "overextend_cost": 2},
+                         {
+    "death_height": 1.05,
+    "directional_factor": 10,
+    "death_cost": 20,
+    "energy_cost": 0.005,
+    "alive_reward": 3,
+    "upright_punishment_factor": 0,
+    "jitter_cost": 1,
+    "overextend_cost": 2},
+                         {
+    "death_height": 1.05,
+    "directional_factor": 15,
+    "death_cost": 20,
+    "energy_cost": 0.005,
+    "alive_reward": 3,
+    "upright_punishment_factor": 0,
+    "jitter_cost": 1,
+    "overextend_cost": 4},
+                         ]
 
     # test_for_values = [0, 0.1, 0.3, 0.5,1, 2, 3]
     # test_for_energy_cost = [0, 0,0, 0]
