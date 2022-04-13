@@ -17,61 +17,54 @@ if __name__ == '__main__':
     #test_for_values = [15, 30, 40, 50, 60]
     #test_for_dicts = [{'task': {'env' : {'reward_weighting': {'death_cost': value}}}} for value in test_for_values]
     
-    reward_weightings = [{
-    "death_height": 1.05,
-    "directional_factor": 0,
-    "death_cost": 10,
-    "energy_cost": 0,
-    "alive_reward": 1,
-    "upright_punishment_factor": 0,
-    "jitter_cost": 0,
-    "overextend_cost": 2},
-                         {
+    reward_weightings = [
+      
+      {
     "death_height": 1.25,
-    "directional_factor": 10,
+    "directional_factor": 0.8,
     "death_cost": 10,
-    "energy_cost": 0,
-    "alive_reward": 1,
-    "upright_punishment_factor": 0,
-    "jitter_cost": 0,
+    "energy_cost": 0.005,
+    "alive_reward": 2,
+    "upright_punishment_factor": 2,  
+    "jitter_cost": 0.02,
     "overextend_cost": 2},
-                         {
-    "death_height": 1.05,
-    "directional_factor": 0,
-    "death_cost": 10,
-    "energy_cost": 0,
-    "alive_reward": 1,
-    "upright_punishment_factor": 2,
-    "jitter_cost": 0,
-    "overextend_cost": 5},
-                         {
-    "death_height": 1.05,
+                       {
+    "death_height": 1.15,  
     "directional_factor": 0,
     "death_cost": 20,
-    "energy_cost": 0.005,
+    "energy_cost": 0,
     "alive_reward": 3,
-    "upright_punishment_factor": 0,
-    "jitter_cost": 1,
+    "upright_punishment_factor": 0 , 
+    "jitter_cost": 0,
     "overextend_cost": 2},
-                         {
-    "death_height": 1.05,
-    "directional_factor": 10,
+    {
+    "death_height": 1.15  ,
+    "directional_factor": 0,
     "death_cost": 20,
-    "energy_cost": 0.005,
+    "energy_cost": 0,
     "alive_reward": 3,
-    "upright_punishment_factor": 0,
-    "jitter_cost": 1,
-    "overextend_cost": 2},
-                         {
-    "death_height": 1.05,
-    "directional_factor": 15,
+    "upright_punishment_factor": 0,  
+    "jitter_cost": 0,
+    "overextend_cost": 1},
+    
+    {"death_height": 1.15  ,
+    "directional_factor": 0,
     "death_cost": 20,
-    "energy_cost": 0.005,
+    "energy_cost": 0,
     "alive_reward": 3,
-    "upright_punishment_factor": 0,
-    "jitter_cost": 1,
-    "overextend_cost": 4},
-                         ]
+    "upright_punishment_factor": 0 , 
+    "jitter_cost": 0,
+    "overextend_cost": 0},
+    
+    {"death_height": 1.15  ,
+    "directional_factor": 0,
+    "death_cost": 20,
+    "energy_cost": 0,
+    "alive_reward": 3,
+    "upright_punishment_factor": 0 , 
+    "jitter_cost": 0,
+    "overextend_cost": 0}
+      ]
 
     # test_for_values = [0, 0.1, 0.3, 0.5,1, 2, 3]
     # test_for_energy_cost = [0, 0,0, 0]
