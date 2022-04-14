@@ -116,7 +116,8 @@ def sum_independent_dims(tensor: torch.Tensor) -> torch.Tensor:
         
     return tensor
         
-class DiagGaussianDistributionStdParam(Distribution):
+
+class DiagGaussianDistribution(Distribution):
     """Gaussioan distribution with diagonal covariance matrice, for continoous acitons
     The std is a nn Param in this implementation
     Args:
@@ -130,21 +131,20 @@ class DiagGaussianDistributionStdParam(Distribution):
         self.mean_actions = None
         self.log_std = None
     
-    def proba_distribution_net(self, latent_dim: int, log_std_init: float = 0.0) -> Tuple[nn.Module, nn.Parameter]:
+    def proba_distribution_net(self, latent_dim: int) -> Tuple[nn.Module]:
         """
         Create the layers and parameter that represent the distribution:
         one output will be the mean of the Gaussian, the other parameter will be the
         standard deviation (log std in fact to allow negative values)
 
         :param latent_dim: Dimension of the last layer of the policy (before the action layer)
-        :param log_std_init: Initial value for the log standard deviation
         :return:
         """
         mean_actions = nn.Linear(latent_dim, self.action_size, device= self.device)
-        log_std = nn.Parameter(torch.ones(self.action_size) * log_std_init, requires_grad=True)
-        return mean_actions, log_std
+       
+        return mean_actions
     
-    def proba_distribution(self, mean_actions: torch.Tensor, log_std: torch.Tensor) -> "DiagGaussianDistributionStdParam":
+    def proba_distribution(self, mean_actions: torch.Tensor, log_std: torch.Tensor) -> "DiagGaussianDistribution":
         """
         Create the distribution given its parameters (mean, std)
 
@@ -200,96 +200,7 @@ class DiagGaussianDistributionStdParam(Distribution):
         log_prob = self.log_prob(actions)
         return actions, log_prob
     
-class DiagnoalGaussianDistributionStdSchedule(Distribution):
-    """Gaussioan distribution with diagonal covariance matrice, for continoous acitons
-    The action std is defined by a Schedule in this implementation
-    Args:
-        Distribution ([type]): [description]
-    """
-    
-    def __init__(self, action_size: int, std_schedule: Schedule) -> None:
-        self.action_size = action_size
-        self.mean_actions = None
-        self.std_schedule: Schedule = std_schedule
-        super().__init__()
-    
-    def proba_distribution_net(self, latent_dim: int) -> Union[nn.Module, Tuple[nn.Module, nn.Parameter]]:
-        """
-        Create the layers and parameter that represent the distribution:
-        one output will be the mean of the Gaussian
-
-        :param latent_dim: Dimension of the last layer of the policy (before the action layer)
-        :param log_std_init: Initial value for the log standard deviation
-        :return:
-        """
-        mean_actions = nn.Linear(latent_dim, self.action_size) 
-        return mean_actions
-    
-    
-    def proba_distribution(self, mean_actions: torch.Tensor, steps: int) -> "Distribution":
-        """
-        Create the distribution given its parameters 
-        Args:
-            mean_actions (torch.Tensor): mean action
-            steps (int): steps taken up to this point, used in the scheduled std
-
-        Returns:
-        """
         
-        action_std = torch.ones_like(mean_actions) * self.std_schedule(steps)
-        
-        self.distribution = Normal(mean_actions, action_std)
-        return self
-    
-
-    
-    def log_prob(self, actions: torch.Tensor) -> torch.Tensor:
-        """
-        Get the log probabilities of actions according to the distribution.
-        Note that you must first call the ``proba_distribution()`` method.
-
-        :param actions:
-        :return:
-        """
-        log_prob = self.distribution.log_prob(actions)
-        return sum_independent_dims(log_prob)
-    
-    def entropy(self) -> torch.Tensor:
-        return sum_independent_dims(self.distribution.entropy())
-    
-    def sample(self) -> torch.Tensor:
-        # Reparametrization trick to pass gradients
-        return self.distribution.rsample()
-
-    def mode(self) -> torch.Tensor:
-        return self.distribution.mean
-    
-    def actions_from_params(self, mean_actions: torch.Tensor, steps_taken: int, deterministic: bool) -> torch.Tensor:
-        """_summary_
-
-        Args:
-            mean_actions (torch.Tensor): _description_
-            steps_taken (int): _description_
-            deterministic (bool): _description_
-
-        Returns:
-            torch.Tensor: _description_
-        """
-        self.proba_distribution(mean_actions, steps_taken)
-        return self.get_actions(deterministic= deterministic)
-    
-        
-    
-    def log_prob_from_params(self, mean_action: torch.Tensor, steps_taken: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Compute the log probability of taking an action
-        given the distribution parameters
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: _description_
-        """
-        actions = self.actions_from_params(mean_action, steps_taken)
-        log_prob = self.log_prob(actions)
-        return actions, log_prob
     
     
     

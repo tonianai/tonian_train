@@ -16,7 +16,7 @@ from gym import spaces
 import collections
 import warnings
 
-from tonian.common.distributions import DiagGaussianDistributionStdParam, Distribution
+from tonian.common.distributions import DiagGaussianDistribution, Distribution
 from tonian.common.spaces import MultiSpace
 from tonian.common.schedule import Schedule
 from tonian.common.networks import BaseNet, SimpleDynamicForwardNet
@@ -180,6 +180,14 @@ class BasePolicy(nn.Module , ABC):
         :return: The dictionary to pass to the as kwargs constructor when reconstruction this model.
         """
         
+    @abstractmethod
+    def update_schedules(self, progress_steps: int) -> None:
+        """
+        Set the progress steps in order to update key values, like the std according to schedules
+        Args:
+            progress_steps (int): _description_
+        """
+        
     
 class ActorCriticPolicy(BasePolicy, ABC):
     
@@ -188,7 +196,9 @@ class ActorCriticPolicy(BasePolicy, ABC):
                  critic_obs_space: Optional[Union[spaces.Space, MultiSpace]],
                  action_space: spaces.Space,
                  lr_schedule: Schedule,
-                 init_log_std: float = 0, 
+                 is_std_param: bool,
+                 init_log_std: Optional[float] = 0,
+                 log_std_schedule: Optional[Schedule] = None,  
                  device: Union[torch.device, str] = "cuda:0",
                  squash_actions: bool = False,
                  ortho_init: bool = True,
@@ -224,7 +234,10 @@ class ActorCriticPolicy(BasePolicy, ABC):
         self.ortho_init = ortho_init
         
         self.lr_schedule = lr_schedule
+        
         self.init_log_std = init_log_std
+        self.is_std_param = is_std_param
+        self.log_std_schedule = log_std_schedule
         
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
@@ -232,10 +245,21 @@ class ActorCriticPolicy(BasePolicy, ABC):
             if optimizer_class == torch.optim.Adam:
                 optimizer_kwargs["eps"] = 1e-5
         
-        self.action_dist = make_proba_distribution(action_space, device= self.device)
+        self.action_dist = make_proba_distribution(action_space,  device= self.device)
         self.build(lr_schedule(1))
         
-    
+    def update_schedules(self, progress_steps: int) -> None:
+        """Update the schedules given the current progress_steps
+
+        Args:
+            progress_steps (int): steps taken in the environment up to this point
+
+        """
+        
+        if not self.is_std_param:
+            self.log_std = torch.ones(self.action_dist.action_size) * self.log_std_schedule(progress_steps)    
+
+            
     def build(self, init_lr: float):
         """Initialize the networks
             - shared_net
@@ -254,10 +278,16 @@ class ActorCriticPolicy(BasePolicy, ABC):
         
         # the action latent net connectes the action net with the action size
         # the log dist 
-        self.action_latent_net, self.log_std = self.action_dist.proba_distribution_net(
-            latent_dim= self.latent_dim_pi,
-            log_std_init= self.init_log_std
-        )
+        self.action_latent_net = self.action_dist.proba_distribution_net(
+            latent_dim= self.latent_dim_pi )
+        
+        
+        if self.is_std_param:
+            self.log_std = torch.ones(self.action_dist.action_size) * self.init_log_std
+            self.log_std = nn.Parameter(self.log_std, requires_grad= True)
+        else:
+            self.log_std = torch.ones(self.action_dist.action_size) * self.log_std_schedule(0)    
+        
         
         # value latent net combines the output of the value net to a single dim
         self.value_latent_net = nn.Linear(self.latent_dim_vf, 1, device= self.device)
@@ -368,7 +398,6 @@ class ActorCriticPolicy(BasePolicy, ABC):
         """
         
         latent_pi = self.actor_net(actor_obs)
-        
         latent_vf = self.critic_net(critic_obs)
         
          
@@ -412,7 +441,7 @@ class ActorCriticPolicy(BasePolicy, ABC):
         """
         mean_actions = self.action_latent_net(latent_pi)
 
-        if isinstance(self.action_dist, DiagGaussianDistributionStdParam):
+        if isinstance(self.action_dist, DiagGaussianDistribution):
             return self.action_dist.proba_distribution(mean_actions, self.log_std)
         else:
             raise ValueError("Invalid action distribution")
@@ -445,10 +474,12 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                  critic_obs_space: Optional[Union[spaces.Space, MultiSpace]], 
                  action_space: spaces.Space, 
                  lr_schedule: Schedule, 
+                 is_std_param: bool,
+                 init_log_std: Optional[float] = 0,
+                 log_std_schedule: Optional[Schedule] = None,
                  activation_fn_class: ActivationFnClass = nn.Tanh,
                  actor_hidden_layer_sizes: Tuple[int] = (64, 64),
                  critic_hiddent_layer_sizes: Tuple[int] = (64, 64),
-                 init_log_std: float = 0, 
                  device: Union[torch.device, str] = "cuda:0", 
                  squash_actions: bool = False, 
                  ortho_init: bool = True, 
@@ -489,7 +520,9 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
                          critic_obs_space, 
                          action_space,
                          lr_schedule,
+                         is_std_param,
                          init_log_std,
+                         log_std_schedule,
                          device,
                          squash_actions, 
                          ortho_init, 
@@ -556,23 +589,19 @@ class SimpleActorCriticPolicy(ActorCriticPolicy):
         }
 
 
-class SimpleActorCriticFixedStdPolicy(ActorCriticPolicy):
-    
-    
-    def __init__(self, actor_obs_space: Union[spaces.Space, MultiSpace],
-                 critic_obs_space: Optional[Union[spaces.Space, MultiSpace]], 
-                 action_space: spaces.Space, 
-                 lr_schedule: Schedule, init_log_std: float = 0, device: Union[torch.device, str] = "cuda:0", squash_actions: bool = False, ortho_init: bool = True, optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam, optimizer_kwargs: Optional[Dict[str, Any]] = None) -> None:
-        super().__init__(actor_obs_space, critic_obs_space, action_space, lr_schedule, init_log_std, device, squash_actions, ortho_init, optimizer_class, optimizer_kwargs)
-                
+
 
 def make_proba_distribution(
-    action_space: spaces.Space, device: str,  use_sde: bool = False, dist_kwargs: Optional[Dict[str, Any]] = None
+    action_space: spaces.Space, 
+    device: str, 
+    use_sde: bool = False,
+    dist_kwargs: Optional[Dict[str, Any]] = None
 ) -> Distribution:
     """
     Return an instance of Distribution for the correct type of action space
 
     :param action_space: the input action space
+    :param is_std_param: boolean, that determines whether the action_std is a torch parameter and is thus subject to the optimizer 
     :param use_sde: Force the use of StateDependentNoiseDistribution
         instead of DiagGaussianDistribution
     :param dist_kwargs: Keyword arguments to pass to the probability distribution
@@ -583,7 +612,8 @@ def make_proba_distribution(
 
     if isinstance(action_space, spaces.Box):
         assert len(action_space.shape) == 1, "Error: the action space must be a vector"
-        return DiagGaussianDistributionStdParam(int(np.prod(action_space.shape)), device , **dist_kwargs) 
+        return DiagGaussianDistribution(int(np.prod(action_space.shape)), device , **dist_kwargs) 
+ 
     else:
         raise NotImplementedError(
             "Error: probability distribution, not implemented for action space"

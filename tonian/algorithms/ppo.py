@@ -208,6 +208,8 @@ class PPO(BaseAlgorithm):
         
         assert self._last_obs is not None, "No previous obs was provided"
         self.policy.train(False)
+        
+        self.policy.update_schedules(self.num_timesteps)
     
     
         n_steps = 0 

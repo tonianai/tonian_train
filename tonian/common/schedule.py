@@ -25,8 +25,8 @@ class Schedule:
         self.is_static = not isinstance(schedule, Dict) 
         
         if not self.is_static:
-            self.schedule_type: str = schedule['schedule_type'] 
             self.schedule: Union[List[List[float]], List[Tuple[int]]] = schedule['schedule']
+            self.schedule = [(float(schedule_item[0]), float(schedule_item[1])) for schedule_item in self.schedule]
         
             #schedules with no values will be rejected
             assert len(self.schedule) != 0, "The schedule must have at least one value"

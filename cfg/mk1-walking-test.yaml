@@ -6,7 +6,7 @@ task:
   physics_engine: physx
   pure_shapes: False
   env:
-    num_envs: 4096
+    num_envs: 1024
     env_spacing: 10
     max_episode_length: 1000
     motor_strength_factor: 10
@@ -127,7 +127,28 @@ task:
 
 policy: 
     name: "SimpleActorCritic"
-    
+    is_std_param: False
+    # init_log_std: 0.0  # Only makes sence, when the is_std_param is true
+    log_std:  # only makes sence, if the is_std_param is false
+      interpolation: 'linear'
+      schedule:
+        - [0, 0.0]
+        - [1e8, -0.1]
+        - [2e8, -0.2]
+        - [3e8, -0.2]
+        - [4e8, -0.3]
+        - [5e8, -0.3]
+        - [6e8, -0.4]
+        - [7e8, -0.4]    
+        - [8e8, -0.5]    
+        - [9e8, -0.5]    
+        - [10e8, -0.6]    
+        - [11e8, -0.6]    
+        - [12e8, -0.7]    
+        - [13e8, -0.7]    
+        - [14e8, -0.8]    
+        - [15e8, -1.0]    
+
     
     actor_hidden_layers:
       - 128

@@ -1,6 +1,6 @@
 
 
-from typing import Dict, Tuple
+from typing import Callable, Dict, Tuple
 
 from tonian.common.logger import BaseLogger
 from tonian.tasks.walking.walking_task import WalkingTask
@@ -68,6 +68,22 @@ def policy_from_config(config: Dict, env: VecTask) -> ActorCriticPolicy:
     lr = Schedule(config["lr"])
     if config['name'] == "SimpleActorCritic":
         
+        # -- get the action_std params
+        
+        is_std_param = config.get('is_std_param', True)
+        
+        log_std_schedule: Optional[Callable] = None
+        init_log_std = None # only set when the is_std_param is used
+        
+        if is_std_param:
+            # only the initial value
+            init_log_std = config.get('init_log_std', 0.0)
+        else:
+            # the complete schedule
+            log_std_schedule = Schedule(config.get('log_std', 0.0))
+            
+        
+        
         activation_fn = nn.Tanh
         if "activation_fn" in config:
             activation_fn = parseActvationFunction(config["activation_fn"])
@@ -86,12 +102,18 @@ def policy_from_config(config: Dict, env: VecTask) -> ActorCriticPolicy:
             device = config["device"]
         else:
             device = "cuda:0"
+        
+        
+            
              
             
         # create a simple actor critic from the params
         return SimpleActorCriticPolicy(actor_obs_space= actor_obs_spaces,
                                        critic_obs_space= critic_obs_spaces,
                                        lr_schedule= lr,
+                                       is_std_param = is_std_param,
+                                       init_log_std= init_log_std,
+                                       log_std_schedule= log_std_schedule,
                                        action_space=action_space,
                                        activation_fn_class=activation_fn,
                                        actor_hidden_layer_sizes=actor_hidden_layers,

@@ -1,22 +1,13 @@
 
 from tonian.tasks.cartpole.cartpole_task import Cartpole
 
-from typing import Dict, Union, List, Optional
+from typing import Dict, List, Optional
 
 import yaml
-
-import sys
 
 from tonian.common.utils.utils import set_random_seed, join_configs
 from tonian.common.utils.config_utils import task_from_config, algo_from_config, policy_from_config, create_new_run_directory
 from tonian.common.logger import TensorboardLogger
-
-import gym
-from gym import spaces
-import numpy as np
-
-import torch
-import torch.nn as nn
 
 import yaml, argparse
 
@@ -77,8 +68,6 @@ def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early
     
     task.close()
     
- 
-
 
 if __name__ == "__main__":
     
