@@ -114,7 +114,7 @@ class Mk1BaseClass(VecTask, ABC):
         upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
 
 
-        mk1_robot_asset = self.create_mk1_asset()
+        mk1_robot_asset = self.create_mk1_asset(self.config['pure_shapes'])
 
         
         self.num_dof = self.gym.get_asset_dof_count(mk1_robot_asset) 
@@ -201,7 +201,7 @@ class Mk1BaseClass(VecTask, ABC):
             
             return motor_efforts
     
-    def create_mk1_asset(self):
+    def create_mk1_asset(self, use_pure_shapes: bool = False):
         """Create the Mk1 Robot with all sensors and setting in the simulation and return the asset
 
         Args:
@@ -209,8 +209,10 @@ class Mk1BaseClass(VecTask, ABC):
             sim (_type_): isaacgym sim reference
         """
 
-
-        asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../assets/urdf/mk-1/")
+        if use_pure_shapes: 
+            asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../assets/mk-1/mk1-pure-shapes")
+        else: 
+            asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../assets/mk-1/mk1-precision")
 
         mk1_robot_file = "robot.urdf"
 

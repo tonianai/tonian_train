@@ -4,8 +4,9 @@ seed: 42
 task:
   name: "02_mk1_walking"
   physics_engine: physx
+  pure_shapes: False
   env:
-    num_envs: 1024
+    num_envs: 4096
     env_spacing: 10
     max_episode_length: 1000
     motor_strength_factor: 10
