@@ -25,6 +25,9 @@ class Schedule:
         self.is_static = not isinstance(schedule, Dict) 
         
         if not self.is_static:
+            
+            self.interpolation_type = schedule['interpolation']
+            
             self.schedule: Union[List[List[float]], List[Tuple[int]]] = schedule['schedule']
             self.schedule = [(float(schedule_item[0]), float(schedule_item[1])) for schedule_item in self.schedule]
         
@@ -58,12 +61,20 @@ class Schedule:
             return self.schedule[0][1]
         else:  
             
-            lower = 0
-            upper = 0
-            
             for i in range(len(self.schedule) - 1):
                 if self.schedule[i][0] <= query and self.schedule[i+1][0] >= query:
-                    return self.schedule[i][1]
+                    if self.interpolation_type == 'linear':
+                        lower_step = self.schedule[i][0]
+                        lower_val = self.schedule[i][1]
+                        
+                        upper_step = self.schedule[i+1][0]
+                        upper_val = self.schedule[i+1][1]
+                        
+                        ratio = (query - lower_step)/(upper_step - lower_step) 
+                        return lower_val + (ratio * (upper_val - lower_val))
+                        
+                    else:
+                        return self.schedule[i][1]
                     # Todo: add interpolation
                     
 ScheduleOrValue = Union[Schedule, Callable]
