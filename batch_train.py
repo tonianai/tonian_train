@@ -17,10 +17,7 @@ if __name__ == '__main__':
     #test_for_values = [15, 30, 40, 50, 60]
     #test_for_dicts = [{'task': {'env' : {'reward_weighting': {'death_cost': value}}}} for value in test_for_values]
     
-    test_for_dicts = [
-      {
-        "algo": { "n_steps" : 64}
-      },
+    test_for_dicts = [ 
       {
         "algo": { "n_steps" : 128}
       },
@@ -59,7 +56,7 @@ if __name__ == '__main__':
         queue = mp.Queue()
         done_event = mp.Event()
         
-        queue.put((args, False, True, 1e9, test_dict))
+        queue.put((args, False, True, 3e9, test_dict))
         
         #train(args, verbose= False, early_stopping=True, early_stop_patience= 5e7, config_overrides=test_dict)
         p = mp.Process(target=mp_start_run, args=(queue, done_event))

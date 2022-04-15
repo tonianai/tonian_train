@@ -4,7 +4,7 @@ mk1:
 
   initial_velocities: 
       - 0
-      - -10
+      - -1
       - 0
 
 

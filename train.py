@@ -53,11 +53,14 @@ def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early
      
     logger = TensorboardLogger(run_folder_name, run_id)
     
-    logger.log_config_items('task',config['task'])
     logger.log_config('policy',config['policy'])
     logger.log_config('algo',config['algo'])
     
     task = task_from_config(config["task"], headless= headless)
+    
+    # log after the task was created, since the task joins all the default config files with this file
+    logger.log_config_items('task',task.config)
+    
     policy = policy_from_config(config["policy"], task) 
     
     

@@ -7,8 +7,6 @@ task:
   vec_task: {}
  
 
-
-
 policy: 
     name: "SimpleActorCritic"
     
