@@ -11,7 +11,7 @@ from tonian.training.algorithms.ppo import PPO
 from tonian.training.policies.policies import SimpleActorCriticPolicy, ActorCriticPolicy
 
 from gym.spaces import space
-from tonian.tasks.base.command import Command
+from tonian.tasks.common.command import Command
 from tonian.tasks.base.vec_task import  VecTask
 from tonian.common.schedule import Schedule 
 from tonian.common.spaces import MultiSpace

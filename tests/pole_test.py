@@ -1,5 +1,5 @@
 from gym.spaces import space
-from tonian.tasks.base.command import Command
+from tonian.tasks.common.command import Command
 from tonian.tasks.base.vec_task import MultiSpace, VecTask
 import gym
 from gym import spaces
