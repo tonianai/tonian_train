@@ -2,8 +2,8 @@
 from tonian.tasks.cartpole.cartpole_task import Cartpole
 
 import yaml, os, argparse, torch
-from tonian.common.utils.config_utils import  policy_from_config, task_from_config, get_run_index
-from tonian.common.utils.utils import set_random_seed
+from tonian.common.config_utils import  policy_from_config, task_from_config, get_run_index
+from tonian.common.utils import set_random_seed
 #
 
 
@@ -32,6 +32,7 @@ if __name__ == '__main__':
     
     
     if not os.path.exists(batch_base_folder):
+        print(f"Batch folder {batch_base_folder}")
         raise FileNotFoundError("The batch path does not exist")
     
     

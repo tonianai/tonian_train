@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from isaacgym import gymtorch, gymapi
 from tonian.tasks.base.base_env import BaseEnv
-from tonian.common.utils.utils import  join_configs
+from tonian.common.utils import  join_configs
 
 from isaacgym.gymutil import get_property_setter_map, get_property_getter_map, get_default_setter_args, apply_random_samples, check_buckets, generate_random_samples
 

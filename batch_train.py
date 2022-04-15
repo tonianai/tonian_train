@@ -59,7 +59,7 @@ if __name__ == '__main__':
         queue = mp.Queue()
         done_event = mp.Event()
         
-        queue.put((args, False, True, 5e8, test_dict))
+        queue.put((args, False, True, 1e9, test_dict))
         
         #train(args, verbose= False, early_stopping=True, early_stop_patience= 5e7, config_overrides=test_dict)
         p = mp.Process(target=mp_start_run, args=(queue, done_event))

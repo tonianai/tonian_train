@@ -1,23 +1,20 @@
 
 
-from tonian.tasks.mk1_walking.mk1_walking_task import Mk1WalkingTask
+from tonian.tasks.mk1.mk1_walking.mk1_walking_task import Mk1WalkingTask
 from tonian.tasks.walking.walking_task import WalkingTask
 
 from warnings import resetwarnings
-from tonian.common.logger import DummyLogger
+from tonian.training.common.logger import DummyLogger
 
-import gym 
-import numpy as np
-
-from tonian.algorithms.ppo import PPO
-from tonian.policies.policies import SimpleActorCriticPolicy
+from tonian.training.algorithms.ppo import PPO
+from tonian.training.policies.policies import SimpleActorCriticPolicy
 
 
 import gym
 from gym import spaces
 import numpy as np
 from tonian.tasks.cartpole.cartpole_task import Cartpole
-from tonian.common.utils.utils import set_random_seed
+from tonian.common.utils import set_random_seed
 import torch
 
 import yaml, time
