@@ -2,7 +2,7 @@ from gym.spaces import space
 import numpy as np
 from tonian.tasks.common.command import Command
 from tonian.tasks.base.vec_task import VecTask
-
+from tonian.common.utils import join_configs
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
@@ -29,8 +29,13 @@ class WalkingTask(VecTask):
     
     
     
-    def __init__(self, config_or_path: Optional[Union[str, Dict]], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None: 
-        super().__init__(config_or_path, sim_device, graphics_device_id, headless, rl_device)
+    def __init__(self, config: Dict, sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None: 
+        
+        base_config = self._get_standard_config()
+        
+        config = join_configs(base_config, config)
+        
+        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
 
         self._get_gpu_gym_state_tensors()
@@ -48,15 +53,12 @@ class WalkingTask(VecTask):
         Extract local variables used in the sim from the config dict
         """
         
-        assert self.config["sim"] is not None, "The sim config must be set on the task config file"
-        assert self.config["env"] is not None, "The env config must be set on the task config file"
+        assert self.config["walking"] is not None, "The env config must be set on the task config file"
           
         
-        #extract params from config 
-        self.randomize = self.config["task"]["randomize"]
         
         # The reward weighting dict is located in the config.yaml file and determines how much each reward contributes to the total reward function
-        reward_weight_dict = self.config["env"]["reward_weighting"]
+        reward_weight_dict = self.config["walking"]["reward_weighting"]
         
         self.energy_cost = reward_weight_dict["energy_cost"]
         self.directional_factor = reward_weight_dict["directional_factor"]
@@ -71,7 +73,7 @@ class WalkingTask(VecTask):
             Dict: Standard configuration
         """
         dirname = os.path.dirname(__file__)
-        base_config_path = os.path.join(dirname, 'config.yaml')
+        base_config_path = os.path.join(dirname, 'config_walking.yaml')
         
           # open the config file 
         with open(base_config_path, 'r') as stream:
@@ -183,9 +185,7 @@ class WalkingTask(VecTask):
         
     def reset_envs(self, env_ids):
         # Randomization can only happen at reset time, since it can reset actor positions on GPU
-        if self.randomize:
-            self.apply_randomizations()
-        
+
          
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
@@ -204,8 +204,6 @@ class WalkingTask(VecTask):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
         
-    def apply_randomizations(self):
-        pass
     
     def _create_envs(self, spacing: float, num_per_row: int) -> None:
         
@@ -216,10 +214,6 @@ class WalkingTask(VecTask):
         
         asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../assets')
         asset_file = "samples/nv_humanoid.xml"
-        #asset_file = "urdf/mk-1/robot.urdf"
-        
-        if "asset" in self.config["env"]:
-            asset_file = self.config["env"]["asset"].get("assetFileName", asset_file)
         
         asset_path = os.path.join(asset_root, asset_file)
         asset_root = os.path.dirname(asset_path)

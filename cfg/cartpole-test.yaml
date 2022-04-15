@@ -1,25 +1,12 @@
 
 seed: 42
 
-
-
-
 task:
   name: "00_cartpole"
-  physics_engine: physx
-  env:
-    num_envs: 4096
-    env_spacing: 5
-    max_episode_length: 1000
-    
-  sim:
-    substeps: 2
 
-  
-  task: 
-    randomize: True
+  vec_task: {}
 
-  
+  cartpole: {}
 
 
 policy: 

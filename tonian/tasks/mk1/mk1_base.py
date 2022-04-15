@@ -5,19 +5,19 @@ from gym.spaces import space
 import numpy as np
 from tonian.tasks.common.command import Command
 from tonian.tasks.base.vec_task import VecTask
+from tonian.common.utils import join_configs
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
 from tonian.common.spaces import MultiSpace
-
-import gym
+ 
 
 from typing import Dict, Any, Tuple, Union, Optional, List
 
 from isaacgym import gymtorch, gymapi
 from isaacgym.torch_utils import to_torch
 
-import os, torch
+import os, torch, gym, yaml
 
 
 class Mk1BaseClass(VecTask, ABC):
@@ -27,17 +27,31 @@ class Mk1BaseClass(VecTask, ABC):
         # The parts of the robot, that should get a force sensor    
         self.parts_with_force_sensor = ['upper_torso' , 'foot', 'foot_2', 'forearm', 'forearm_2' ]
         
-        
+        base_config = self._get_mk1_base_config()
+        config = join_configs(base_config, config)
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         self.action_space_shape = self.action_space.sample().shape
         
         
-        self.randomize = self.config["task"]["randomize"]
-        self.randomization_params = self.config["task"]["randomization_params"]
-        
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
+        
+    def _get_mk1_base_config(self):
+        """Get the base config for the vec_task
+
+        Returns:
+            Dict: _description_
+        """
+        dirname = os.path.dirname(__file__)
+        base_config_path = os.path.join(dirname, 'config_mk1_base.yaml')
+        
+          # open the config file 
+        with open(base_config_path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"Base Config : {base_config_path} not found")
             
     def _get_gpu_gym_state_tensors(self) -> None:
         """
@@ -86,7 +100,7 @@ class Mk1BaseClass(VecTask, ABC):
         # 7:13 describe velocities
         self.initial_root_states[:, 7:13] = 0
         
-        initial_velocities = self.config['env'].get("initial_velocities", [0 ,0,0])
+        initial_velocities = self.config['mk1'].get("initial_velocities", [0 ,0,0])
         self.initial_root_states[: , 7] = initial_velocities[0] # vel in -y axis
         self.initial_root_states[: , 8] = initial_velocities[1] # vel in -x axis
         self.initial_root_states[: , 9] = initial_velocities[2] # vel in -z axis
@@ -114,7 +128,7 @@ class Mk1BaseClass(VecTask, ABC):
         upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
 
 
-        mk1_robot_asset = self.create_mk1_asset(self.config['pure_shapes'])
+        mk1_robot_asset = self.create_mk1_asset(self.config['mk1']['pure_shapes'])
 
         
         self.num_dof = self.gym.get_asset_dof_count(mk1_robot_asset) 
@@ -178,15 +192,15 @@ class Mk1BaseClass(VecTask, ABC):
         """
          
         
-        if 'agent' not in self.config['env']:
+        if 'agent' not in self.config['mk1']:
             default_motor_effort = 1000
             return  (torch.ones(self.action_size) * default_motor_effort).to(self.device)
         else:
-            default_motor_effort =  self.config['env']['agent'].get('default_motor_effort', 1000)
+            default_motor_effort =  self.config['mk1']['agent'].get('default_motor_effort', 1000)
             motor_efforts = (torch.ones(self.action_size) * default_motor_effort).to(self.device) 
             
             # specific motor efforts
-            specific_motor_efforts = self.config['env']['agent'].get('motor_powers', {})
+            specific_motor_efforts = self.config['mk1']['agent'].get('motor_powers', {})
             
             
             
@@ -286,9 +300,6 @@ class Mk1BaseClass(VecTask, ABC):
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
         
     def reset_envs(self, env_ids: torch.Tensor) -> None:
-        
-        if self.randomize:
-            self._apply_domain_randomization(self.randomization_params)
         
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
         

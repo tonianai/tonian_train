@@ -1,6 +1,7 @@
 from pydoc import cli
 from gym.spaces import space
 import numpy as np
+from tonian.common.utils import join_configs
 from tonian.tasks.common.command import Command
 from tonian.tasks.mk1.mk1_base import Mk1BaseClass
 from tonian.tasks.base.vec_task import VecTask 
@@ -19,6 +20,11 @@ import yaml, os, torch, math
 class Mk1WalkingTask(Mk1BaseClass):
     
     def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
+        
+        base_config = self._get_standard_config()
+        
+        config = join_configs(base_config, config)
+        
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         # retreive pointers to simulation tensors
@@ -28,11 +34,10 @@ class Mk1WalkingTask(Mk1BaseClass):
         """
         Extract local variables used in the sim from the config dict
         """
+         
+        assert self.config["mk1_walking"] is not None, "The mk1_walking config must be set on the task config file"
         
-        assert self.config["sim"] is not None, "The sim config must be set on the task config file"
-        assert self.config["env"] is not None, "The env config must be set on the task config file"
-        
-        reward_weight_dict = self.config["env"]["reward_weighting"]  
+        reward_weight_dict = self.config["mk1_walking"]["reward_weighting"]  
         
         self.energy_cost = reward_weight_dict["energy_cost"]
         self.directional_factor = reward_weight_dict["directional_factor"]
@@ -92,7 +97,7 @@ class Mk1WalkingTask(Mk1BaseClass):
             Dict: Standard configuration
         """
         dirname = os.path.dirname(__file__)
-        base_config_path = os.path.join(dirname, 'config.yaml')
+        base_config_path = os.path.join(dirname, 'config_mk1_walking.yaml')
         
           # open the config file 
         with open(base_config_path, 'r') as stream:

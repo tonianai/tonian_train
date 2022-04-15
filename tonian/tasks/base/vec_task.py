@@ -9,7 +9,7 @@ from isaacgym.gymutil import get_property_setter_map, get_property_getter_map, g
 
 import numpy as np
 
-import torch, sys, yaml
+import torch, sys, yaml, os
 
 
 class VecTask(BaseEnv, ABC):
@@ -21,7 +21,7 @@ class VecTask(BaseEnv, ABC):
     """
     
     
-    def __init__(self, config_or_path: Union[Dict[str, Any], str], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str)  -> None:
+    def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str)  -> None:
         """Initialise the `VecTask`.
 
         Args:
@@ -31,20 +31,37 @@ class VecTask(BaseEnv, ABC):
             headless (bool): determines whether the scene is rendered
         """
         
-        base_config = self._get_standard_config()
-        
-        if config_or_path is not None and isinstance(config_or_path, str):
-            config = self._config_path_to_config(config_or_path)
-        else:
-            config = config_or_path
-            assert isinstance(config_or_path, Dict), "The config_or_path must eighter be a string to a config file or the contents of a content dict itself"
+        # add the top level configs
+        vec_env_base_config = self._get_vec_env_base_config()
          
-        config = join_configs(base_config, config)
+        config = join_configs(vec_env_base_config, config)
         
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         # The sum of all action dimensions        
         self._action_size = None
+        
+        self.num_envs = config["vec_task"]["num_envs"] 
+
+        # The Frequency with which the actions are polled relative to physics step
+        self.control_freq_inv = config["vec_task"].get("control_freq_invariant", 1)
+ 
+        
+        self.device = "cpu"
+        if config["vec_task"]["use_gpu_pipeline"]:
+            if self.device_type.lower() == "cuda" or self.device_type.lower() == "gpu":
+                self.device = "cuda" + ":" + str(self.device_id)
+            else:
+                print("GPU Pipeline can only be used with GPU simulation. Forcing CPU Pipeline.")
+                config["vec_task"]["use_gpu_pipeline"] = False
+
+        self.rl_device = config.get("rl_device", rl_device)
+        
+        
+        enable_camera_sensors = config.get("enableCameraSensors", False)
+        self.graphics_device_id = graphics_device_id
+        if enable_camera_sensors == False and self.headless == True:   
+            self.graphics_device_id = -1
         
         self._first_domain_randomization= True # determines whether there has alreadly beem an randomization
         self.original_props = {} # properties before randomization
@@ -58,15 +75,13 @@ class VecTask(BaseEnv, ABC):
         
         self._extract_params_from_config()
         
-        
-        
-        self.sim_params = self.__parse_sim_params(self.config["physics_engine"], self.config["sim"])
-        if self.config["physics_engine"] == "physx":
+        self.sim_params = self.__parse_sim_params(self.config['vec_task']["physics_engine"], self.config['vec_task']["sim"])
+        if self.config["vec_task"]["physics_engine"] == "physx":
             self.physics_engine = gymapi.SIM_PHYSX
-        elif self.config["physics_engine"] == "flex":
+        elif self.config["vec_task"]["physics_engine"] == "flex":
             self.physics_engine = gymapi.SIM_FLEX
         else:
-            msg = f"Invalid physics engine backend: {self.config['physics_engine']}"
+            msg = f"Invalid physics engine backend: {self.config['vec_task']['physics_engine']}"
             raise ValueError(msg)
         
         # optimization flags for pytorch JIT
@@ -79,16 +94,12 @@ class VecTask(BaseEnv, ABC):
         self.global_step = 0
         self.sim_initialized = False
         self.sim = self.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
-        
-        if 'randomization_params' in self.config['task']:
-            if self.config['task']['randomization_params'].get('randomize', True):
-                self._apply_domain_randomization(self.config['task']['randomization_params'])
          
         # create the environments 
-        print(f'num envs {self.num_envs} env spacing {self.config["env"]["env_spacing"]}')
-        self._create_envs( self.config["env"]["env_spacing"], int(np.sqrt(self.num_envs)))
+        print(f'num envs {self.num_envs} env spacing {self.config["vec_task"]["env_spacing"]}')
+        self._create_envs( self.config["vec_task"]["env_spacing"], int(np.sqrt(self.num_envs)))
         
-        self.max_episode_length = self.config['env'].get('max_episode_length', 10000)
+        self.max_episode_length = self.config['vec_task'].get('max_episode_length', 10000)
         
         print(f"The max ep length is {self.max_episode_length}")
         
@@ -101,8 +112,7 @@ class VecTask(BaseEnv, ABC):
         
         # These are the extras that will be returned on the step function
         self.extras = {}
-        
-        
+         
     def _config_path_to_config(self, config_path: str) -> Dict:
         """Fetches the config file and returns config dict 
         Args:
@@ -249,19 +259,26 @@ class VecTask(BaseEnv, ABC):
             else:
                 self.gym.poll_viewer_events(self.viewer)
     
-    @abstractmethod
     def _extract_params_from_config(self) -> None:
-        """Extract important parameters from the config"""
-        pass
-    
-    @abstractmethod
-    def _get_standard_config(self) -> Dict:
-        """Get the dict of the standard configuration
+        """Extract important parameters from the config given in the constructor
+        this will be called hierachically"""
+        
+    def _get_vec_env_base_config(self) -> Dict:
+        """Get the base config for the vec_task
 
         Returns:
-            Dict: Standard configuration
+            Dict: _description_
         """
+        dirname = os.path.dirname(__file__)
+        base_config_path = os.path.join(dirname, 'config_vec_task.yaml')
         
+          # open the config file 
+        with open(base_config_path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"Base Config : {base_config_path} not found")
+     
     @abstractmethod
     def _create_envs(self, spacing: float, num_per_row: int)->None:
         pass
@@ -437,34 +454,6 @@ class VecTask(BaseEnv, ABC):
 
         # return the configured params
         return sim_params
-    
-    def _apply_domain_randomization(self, dr_params: Dict):
-        
-        # If we don't have a randomization frequency, randomize every step
-        rand_freq = dr_params.get("frequency", 1)
-
-        # First, determine what to randomize:
-        #   - non-environment parameters when > frequency steps have passed since the last non-environment
-        #   - physical environments in the reset buffer, which have exceeded the randomization frequency threshold
-        #   - on the first call, randomize everything
-        self.last_step = self.gym.get_frame_count(self.sim)
-        
-        if "sim_params" in dr_params:
-            prop_attrs = dr_params["sim_params"]
-            prop = self.gym.get_sim_params(self.sim)
-
-            if self._first_domain_randomization:
-                self.original_props["sim_params"] = {
-                    attr: getattr(prop, attr) for attr in dir(prop)}
-
-            for attr, attr_randomization_params in prop_attrs.items():
-                apply_random_samples(
-                    prop, self.original_props["sim_params"], attr, attr_randomization_params, self.last_step)
-
-            self.gym.set_sim_params(self.sim, prop)
-            
-        
-        self._first_domain_randomization = False
     
     @property
     def action_size(self):

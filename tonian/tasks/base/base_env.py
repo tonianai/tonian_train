@@ -36,32 +36,6 @@ class BaseEnv(ABC):
         self.device_type = split_device[0]
         self.device_id = int(split_device[1]) if len(split_device) > 1 else 0
 
-        
-        self.device = "cpu"
-        if config["sim"]["use_gpu_pipeline"]:
-            if self.device_type.lower() == "cuda" or self.device_type.lower() == "gpu":
-                self.device = "cuda" + ":" + str(self.device_id)
-            else:
-                print("GPU Pipeline can only be used with GPU simulation. Forcing CPU Pipeline.")
-                config["sim"]["use_gpu_pipeline"] = False
-
-        self.rl_device = config.get("rl_device", rl_device)
-        
-        
-        enable_camera_sensors = config.get("enableCameraSensors", False)
-        self.graphics_device_id = graphics_device_id
-        if enable_camera_sensors == False and self.headless == True:   
-            self.graphics_device_id = -1
-        
-        self.num_envs = config["env"]["num_envs"] 
-
-        # The Frequency with which the actions are polled relative to physics step
-        self.control_freq_inv = config["env"].get("controlFrequencyInv", 1)
-
-        self.clip_obs = config["env"].get("clip_observations", np.Inf)
-        self.clip_actions = config["env"].get("clip_actions", np.Inf)
-        
-        
         # This implementation used Asymmetic Actor Critics
         # https://arxiv.org/abs/1710.06542
         self.critic_observation_spaces = self._get_critic_observation_spaces()

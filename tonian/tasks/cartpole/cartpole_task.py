@@ -2,6 +2,7 @@
 
 from isaacgym.torch_utils import to_torch
 from isaacgym import gymutil, gymtorch, gymapi
+from tonian.common.utils import join_configs
 
   
 from tonian.tasks.base.vec_task import VecTask
@@ -28,18 +29,18 @@ from tonian.common.spaces import MultiSpace
 
 class Cartpole(VecTask):
 
-    def __init__(self, config_or_path: Optional[Union[str, Dict]], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0"):
-        super().__init__(config_or_path, sim_device, graphics_device_id, headless, rl_device)
+    def __init__(self, config: Dict, sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0"):
+        
+        base_config = self._get_standard_config()
+        config = join_configs(base_config, config)
+        
+        super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
          
 
-        self.reset_dist = self.config["env"]["resetDist"]
+        self.reset_dist = self.config["cartpole"]["resetDist"]
 
-        self.max_push_effort = self.config["env"]["maxEffort"]
-        self.max_episode_length = 500
-
-        self.config["env"]["numObservations"] = 4
-        self.config["env"]["numActions"] = 1
-
+        self.max_push_effort = self.config["cartpole"]["maxEffort"]
+        self.max_episode_length = 500 
         
         # aquire the state tensor of the dof
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
@@ -54,7 +55,7 @@ class Cartpole(VecTask):
             Dict: Standard configuration
         """
         dirname = os.path.dirname(__file__)
-        base_config_path = os.path.join(dirname, 'config.yaml')
+        base_config_path = os.path.join(dirname, 'config_cartpole.yaml')
         
           # open the config file 
         with open(base_config_path, 'r') as stream:
@@ -69,12 +70,10 @@ class Cartpole(VecTask):
         Extract local variables used in the sim from the config dict
         """
         
-        assert self.config["sim"] is not None, "The sim config must be set on the task config file"
-        assert self.config["env"] is not None, "The env config must be set on the task config file"
+        assert self.config["cartpole"] is not None, "The cartpole config must be set on the task config file"
         
-        #extract params from config 
-        assert self.config["env"]["powerscale"]
-        self.power_scale = self.config["env"]["powerscale"]
+        #extract params from config  
+        self.power_scale = self.config["cartpole"]["powerscale"]
            
  
 
