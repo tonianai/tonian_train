@@ -303,14 +303,18 @@ class VecTask(BaseEnv, ABC):
         """
 
     @abstractmethod
-    def reset_envs(env_ids: torch.Tensor) -> None:
+    def reset_envs(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor) -> None:
         """
         Reset the envs of the given env_ids
 
         Args:
             env_ids (torch.Tensor): A tensor on device, that contains all the ids of the envs that need a reset
-            example 
-            : tensor([ 0,  10,  22,  43,  51,  64,  81,  82, 99], device='cuda:0')
+                example 
+                : tensor([ 0,  10,  22,  43,  51,  64,  81,  82, 99], device='cuda:0')
+
+            do_reset_bool_tensor (torch.Tensor): Carries the same information as the env_ids tensor, but encoded as a boolean tensor at the position indices that do reset with a 1 and env positions that do not reset with a zero
+                example
+                : tensor([ True, False, False,  ..., False, False, False], device='cuda:0')
         """
         pass
     
@@ -344,8 +348,9 @@ class VecTask(BaseEnv, ABC):
 
         # check if there are enviromments, that need a reset
         reset_env_ids = self.do_reset.nonzero(as_tuple=False).flatten()
+        
         if len(reset_env_ids) > 0:
-            self.reset_envs(reset_env_ids)
+            self.reset_envs(reset_env_ids, self.do_reset.detach().clone().to(dtype=torch.bool))
             
         # set the num steps in ep, the is_timeout and the do_reset tensors to 0
         self.num_steps_in_ep[reset_env_ids] = 0
@@ -464,6 +469,18 @@ class VecTask(BaseEnv, ABC):
         
         return self._action_size
              
+    def apply_domain_randomization(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor):
+        """Apply domain randomisation to the parameters given in the config file
+        
+        This Function should be called by subclasses on env reset, either by using the super() or by calling directly
+        Args:
+            env_ids (torch.Tensor): ids where dr should be performed (typically the env_ids, that are resetting)
+            do_reset_bool_tensor (torch.Tensor): Carries the same information as the env_ids tensor, but encoded as a boolean tensor at the position indices that do reset with a 1 and env positions that do not reset with a zero
+        
+        """
+        
+        
+        
              
 
  
