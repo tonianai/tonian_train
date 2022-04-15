@@ -2,9 +2,18 @@ mk1:
 
   pure_shapes: False
 
+  spawn_height: 1.65
   initial_velocities: 
-      - 0
-      - -1
+      - {
+        dist_type: 'gaussian',
+        mean: 0,
+        std: 0.4
+      }
+      - { # The y direction is the direction the agent is facing at the beginning
+          dist_type: 'gaussian',
+          mean: -1,
+          std: 0.8
+        }
       - 0
 
 

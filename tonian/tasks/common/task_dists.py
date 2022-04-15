@@ -21,7 +21,7 @@ class TaskDistribution(ABC, Callable):
         self.config = config
         
     @abstractmethod
-    def sample(self)-> Union[str, float, int,  np.ndarray]:
+    def sample(self)-> Union[str, float, int]:
         raise NotImplementedError()
     
     
@@ -30,17 +30,17 @@ class TaskDistribution(ABC, Callable):
 
 class TaskFixedDistribution(TaskDistribution):
     
-    def __init__(self, value: Union[str, int, float, np.ndarray]) -> None:
+    def __init__(self, value: Union[str, int, float]) -> None:
         """The fixed distribution does not sample a value from a dist, it just returns the value given in the 
         The TaskFixedDistribution is a sort of dummy task distribution
         Args:
-            value (Union[str, int, float, np.ndarray]): _description_
+            value (Union[str, int, float]): _description_
         """
         config = {'dist_type':'fixed', 'value': value}
         super().__init__(config)
         self.value = value
         
-    def sample(self) -> Union[str, float, int,np.ndarray]:
+    def sample(self) -> Union[str, float]:
         return self.value
         
     
@@ -51,7 +51,7 @@ class TaskGaussianDistribution(TaskDistribution):
         """Gaussian sample a value given a mean and an std
         
         Args:
-            config (Dict): Example: {dist_type:'gaussian', mean: 0.0,  std: 1.0, size: 10}
+            config (Dict): Example: {dist_type:'gaussian', mean: 0.0,  std: 1.0}
         """
         super().__init__(config)
         
@@ -59,12 +59,11 @@ class TaskGaussianDistribution(TaskDistribution):
         assert 'std' in config, "The standard deviation (std) must be set for the task_gaussian distribution"
         
         self.mean = float(config['mean'])
-        self.std = float(config['std'])
-        self.n_samples = config.get('n_samples', 1)
+        self.std = float(config['std']) 
         
         
-    def sample(self) -> np.ndarray:
-        return np.random.normal(self.mean, self.std, (self.n_samples,))
+    def sample(self) -> float:
+        return np.random.normal(self.mean, self.std, (1,))[0]
 
 class TaskSelectionDistribution(TaskDistribution):
     

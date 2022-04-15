@@ -5,11 +5,13 @@ from gym.spaces import space
 import numpy as np
 from tonian.tasks.common.command import Command
 from tonian.tasks.base.vec_task import VecTask
+from tonian.tasks.common.task_dists import task_dist_from_config
 from tonian.common.utils import join_configs
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
 from tonian.common.spaces import MultiSpace
+
  
 
 from typing import Dict, Any, Tuple, Union, Optional, List
@@ -29,13 +31,28 @@ class Mk1BaseClass(VecTask, ABC):
         
         base_config = self._get_mk1_base_config()
         config = join_configs(base_config, config)
+        
+        self._parse_config_params(config)
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         self.action_space_shape = self.action_space.sample().shape
         
-        
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
+        
+    def _parse_config_params(self, config):
+        """
+        Parse the mk1 values from the config to be used in the implementation
+        """
+        
+        mk1_config = config['mk1']
+        
+        # The initial velcoities after the environment resets
+        self.intitial_velocities = [  task_dist_from_config(vel) for vel in mk1_config.get('initial_velocities', [0,0,0])]
+        
+        self.spawn_height = mk1_config.get('spawn_height', 1.7)
+        
+        
         
     def _get_mk1_base_config(self):
         """Get the base config for the vec_task
@@ -99,11 +116,10 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_root_states = self.root_states.clone()
         # 7:13 describe velocities
         self.initial_root_states[:, 7:13] = 0
-        
-        initial_velocities = self.config['mk1'].get("initial_velocities", [0 ,0,0])
-        self.initial_root_states[: , 7] = initial_velocities[0] # vel in -y axis
-        self.initial_root_states[: , 8] = initial_velocities[1] # vel in -x axis
-        self.initial_root_states[: , 9] = initial_velocities[2] # vel in -z axis
+         
+        self.initial_root_states[: , 7] = self.intitial_velocities[0]()  # vel in -y axis
+        self.initial_root_states[: , 8] = self.intitial_velocities[1]() # vel in -x axis
+        self.initial_root_states[: , 9] = self.intitial_velocities[2]() # vel in -z axis
         
     def refresh_tensors(self):
         """Refreshes tensors, that are on the GPU
@@ -123,6 +139,7 @@ class Mk1BaseClass(VecTask, ABC):
             num_per_row (int): _description_
         """
         
+        
         # define plane on which environments are initialized
         lower = gymapi.Vec3(0.5 * -spacing, -spacing, 0.0)
         upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
@@ -139,7 +156,7 @@ class Mk1BaseClass(VecTask, ABC):
         
         
         start_pose = gymapi.Transform()
-        start_pose.p = gymapi.Vec3(0.0,0.0, 1.80)
+        start_pose.p = gymapi.Vec3(0.0,0.0, self.spawn_height)
         start_pose.r = gymapi.Quat(0.0, 0.0 , 0.0, 1.0)
         
         self._motor_efforts = self._create_effort_tensor(mk1_robot_asset)
@@ -309,6 +326,12 @@ class Mk1BaseClass(VecTask, ABC):
         self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
         self.dof_vel[env_ids] = velocities
         
+        # update the initial root states with the randomized values given by the task std
+        
+        self.initial_root_states[: , 7] = self.intitial_velocities[0]()  # vel in -y axis
+        self.initial_root_states[: , 8] = self.intitial_velocities[1]() # vel in -x axis
+        self.initial_root_states[: , 9] = self.intitial_velocities[2]() # vel in -z axis
+         
  
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
