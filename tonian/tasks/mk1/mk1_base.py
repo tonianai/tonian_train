@@ -32,11 +32,12 @@ class Mk1BaseClass(VecTask, ABC):
         
         self.action_space_shape = self.action_space.sample().shape
         
-
+        
+        self.randomize = self.config["task"]["randomize"]
+        self.randomization_params = self.config["task"]["randomization_params"]
+        
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
-        
-    
             
     def _get_gpu_gym_state_tensors(self) -> None:
         """
@@ -89,7 +90,6 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_root_states[: , 7] = initial_velocities[0] # vel in -y axis
         self.initial_root_states[: , 8] = initial_velocities[1] # vel in -x axis
         self.initial_root_states[: , 9] = initial_velocities[2] # vel in -z axis
-        
         
     def refresh_tensors(self):
         """Refreshes tensors, that are on the GPU
@@ -170,8 +170,6 @@ class Mk1BaseClass(VecTask, ABC):
         self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
         
-        
-    
     def _create_effort_tensor(self, mk1_robot_asset) -> torch.Tensor:
         """Create the motor effort tensor, that defines how strong each motor is 
 
@@ -244,7 +242,6 @@ class Mk1BaseClass(VecTask, ABC):
 
         return mk1_robot_asset
     
-    
     @abstractmethod
     def _add_to_env(self, env_ptr):
         """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
@@ -253,7 +250,6 @@ class Mk1BaseClass(VecTask, ABC):
             env_ptr (_type_): pointer to the env
         """
         pass
-        
         
     def pre_physics_step(self, actions: torch.Tensor):
         """Apply the action given to all the envs
@@ -290,6 +286,10 @@ class Mk1BaseClass(VecTask, ABC):
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
         
     def reset_envs(self, env_ids: torch.Tensor) -> None:
+        
+        if self.randomize:
+            self._apply_domain_randomization(self.randomization_params)
+        
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
         
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
@@ -386,10 +386,6 @@ class Mk1BaseClass(VecTask, ABC):
         if isinstance(joint_names, str):
             joint_names = [joint_names]
             
-        
-
-
-
 
 @torch.jit.script
 def compute_linear_robot_observations(root_states: torch.Tensor, 

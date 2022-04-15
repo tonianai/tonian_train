@@ -12,10 +12,6 @@ import numpy as np
 import torch, sys, yaml
 
 
-
-
-
-
 class VecTask(BaseEnv, ABC):
     """
     Vectorized Environments are a method for stacking multiple independent environments into a single environment.
@@ -61,6 +57,8 @@ class VecTask(BaseEnv, ABC):
             self.extern_actor_params[env_id] = None
         
         self._extract_params_from_config()
+        
+        
         
         self.sim_params = self.__parse_sim_params(self.config["physics_engine"], self.config["sim"])
         if self.config["physics_engine"] == "physx":
