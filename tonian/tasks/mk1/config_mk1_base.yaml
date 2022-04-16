@@ -11,7 +11,7 @@ mk1:
       }
       - { # The y direction is the direction the agent is facing at the beginning
           dist_type: 'gaussian',
-          mean: -1,
+          mean: -0.5,
           std: 0.8
         }
       - 0
@@ -41,5 +41,16 @@ mk1:
       right_arm_rotate: 200
       right_shoulder_b: 400
       right_shoulder_a: 400
+
+    default_friction: 1.0
+    frictions: # describe by using the link name 
+      foot: 10
+      foot_2: 10
+
+    # mass stamdard deviation 
+    default_mass_std: 0.1
+
+
+
 
     

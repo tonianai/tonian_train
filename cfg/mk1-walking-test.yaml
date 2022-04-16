@@ -1,6 +1,8 @@
 
 seed: 42
 
+#start_model: 'start_models/02_mk1_walking.pth'
+
 task:
   name: "02_mk1_walking"
 
@@ -13,8 +15,8 @@ task:
 
 policy: 
     name: "SimpleActorCritic"
-    is_std_param: False
-    # init_log_std: 0.0  # Only makes sence, when the is_std_param is true
+    is_std_param: True
+    init_log_std: 0.0  # Only makes sence, when the is_std_param is true
     log_std:  # only makes sence, if the is_std_param is false
       interpolation: 'linear'
       schedule:

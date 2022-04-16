@@ -15,7 +15,7 @@ import torch
 
 if __name__ == '__main__':    
     ap = argparse.ArgumentParser()
-    ap.add_argument("-run", required=True, help="Name of the environment you want to run : optional run number eg. Cartpole:10")
+    ap.add_argument("-run_path", required=True, help="Path to the run ")
     ap.add_argument("-at_n_trained_steps", required=False, help="The point of amount of steps at closest to which inference should start", default= None)
     ap.add_argument("-n_steps", required=False, help="The amount of steps the inference is shown", default=1e7)
     
@@ -23,35 +23,7 @@ if __name__ == '__main__':
     
     args = vars(ap.parse_args())
     n_rollout_steps = args['n_steps']
-    env_name = ''
-    run_nr = ''
-    
-    run_base_folder= 'runs/'
-    
-    if ':' in args['run']:
-        # the run nr is set in the run string 
-        args_arr = args['run'].split(':')
-        
-        if len(args_arr) == 2:
-              
-            env_name = args_arr[0]
-            run_nr = args_arr[1]    
-            run_folder = os.path.join(run_base_folder, env_name, run_nr)
-            
-        else:
-            
-            env_name = args_arr[0]
-            batch_name = args_arr[1]
-            run_nr = args_arr[2]    
-            run_folder = os.path.join(run_base_folder, env_name, batch_name,  run_nr)           
-            
-    else:
-        # the run number is not set in the run string
-        # -> use the most recent one
-        env_name = args['run']
-        run_nr = get_run_index(run_base_folder + env_name) - 1
-        
-        run_folder = os.path.join(run_base_folder, env_name, run_nr)
+    run_folder = args['run_path']
     
     if not os.path.exists(run_folder):
         raise FileNotFoundError("The run path does not exist")
@@ -92,30 +64,7 @@ if __name__ == '__main__':
         
         path_to_best = os.path.join(run_folder, 'saves', 'best.pth')
         policy.load(path_to_best)
-        
-        #     
-        #     if args['at_n_trained_steps'] is None:
-        #     # multiple policies -> choose the last or the closest to the goal one    
-        #         step_nr = max([int(file_name.split('.')[0]) for file_name in saves_in_directory])
-        #         file_name = str(step_nr) + '.pth'
-        #     else:
-        #         at_n_traines_steps = int(args['at_n_trained_steps'])
-        #         
-        #         minim_delta = 1e10
-        #         file_name_at_min_delta = ''
-        #         
-        #         for file_name in saves_in_directory:
-        #             step_nr = int(file_name.split('.')[0])
-        #             
-        #             if minim_delta >= abs(step_nr - at_n_traines_steps):
-        #                 minim_delta = abs(step_nr - at_n_traines_steps)
-        #                 file_name_at_min_delta = file_name 
-        #         
-        #         if file_name_at_min_delta != '':
-        #             file_name = file_name_at_min_delta
-        #             
-        #     policy.load(os.path.join(saves_folder, file_name))
-        #     
+      
         
     
     policy.eval()

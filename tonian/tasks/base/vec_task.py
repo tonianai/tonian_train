@@ -113,24 +113,6 @@ class VecTask(BaseEnv, ABC):
         # These are the extras that will be returned on the step function
         self.extras = {}
          
-    def _config_path_to_config(self, config_path: str) -> Dict:
-        """Fetches the config file and returns config dict 
-        Args:
-            config_path (str): relative path to the config file
-        Result:
-            config (Dict): The resulting config dict, that will be used to cinfigure the task
-        """
-        
-        # open the config file 
-        with open(config_path, 'r') as stream:
-            try:
-                config = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:    
-                raise FileNotFoundError( f"File {config_path} not found")
-        
-        
-        return config
-        
     def allocate_buffers(self):
         """initialize the tensors on the gpu
           it is important, that these tensors reside on the gpu, as to reduce the amount of data, that has to be transmitted between gpu and cpu
@@ -395,7 +377,13 @@ class VecTask(BaseEnv, ABC):
         """
          
         actions = torch.zeros([self.num_envs, self.action_space.shape[0] ], dtype=torch.float32, device=self.rl_device)
-
+        
+        do_reset_tensor = torch.ones(self.num_envs).to(self.device).to(dtype=torch.bool)
+        every_env_id_tensor = torch.range(start=0, end= self.num_envs -1).to(self.device).to(dtype=torch.int64)
+        self.reset_envs(every_env_id_tensor, do_reset_tensor )
+        
+        self.initial_domain_randomization()
+        
         # step the simulator
         self.step(actions)
         
@@ -479,6 +467,13 @@ class VecTask(BaseEnv, ABC):
         
         """
         
+    def initial_domain_randomization(self):
+        """Apply domain randomization to the parameter given in the config file after reset
+        
+        This Function should be called by subclasses on env reset, either by using the super() or by calling directly
+        
+        """
+        pass
         
         
              

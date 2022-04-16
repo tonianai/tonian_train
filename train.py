@@ -63,6 +63,10 @@ def train(args: Dict, verbose: bool = True,  early_stopping: bool = False, early
     
     policy = policy_from_config(config["policy"], task) 
     
+    if 'start_model' in config:
+        policy.load(config['start_model'])
+        
+        
     
     algo = algo_from_config(config["algo"], task, policy, device, logger)
     

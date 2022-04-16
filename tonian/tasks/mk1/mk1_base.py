@@ -19,12 +19,14 @@ from typing import Dict, Any, Tuple, Union, Optional, List
 from isaacgym import gymtorch, gymapi
 from isaacgym.torch_utils import to_torch
 
-import os, torch, gym, yaml
-
-
+import os, torch, gym, yaml, time
+ 
 class Mk1BaseClass(VecTask, ABC):
     
     def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
+
+        # all the link names
+        self.link_names = ['upper_torso' , 'torso' , 'foot', 'foot_2', 'forearm', 'forearm_2' ]
 
         # The parts of the robot, that should get a force sensor    
         self.parts_with_force_sensor = ['upper_torso' , 'foot', 'foot_2', 'forearm', 'forearm_2' ]
@@ -51,6 +53,9 @@ class Mk1BaseClass(VecTask, ABC):
         self.intitial_velocities = [  task_dist_from_config(vel) for vel in mk1_config.get('initial_velocities', [0,0,0])]
         
         self.spawn_height = mk1_config.get('spawn_height', 1.7)
+        
+        self.default_friction = task_dist_from_config(mk1_config.get('default_friction', 1.0))
+        self.friction_properties = { key: task_dist_from_config(friction) for key, friction in mk1_config.get('frictions', {}).items()}
         
     def _get_mk1_base_config(self):
         """Get the base config for the vec_task
@@ -143,10 +148,10 @@ class Mk1BaseClass(VecTask, ABC):
         upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
 
 
-        mk1_robot_asset = self.create_mk1_asset(self.config['mk1']['pure_shapes'])
+        self.mk1_robot_asset = self.create_mk1_asset(self.config['mk1']['pure_shapes'])
 
         
-        self.num_dof = self.gym.get_asset_dof_count(mk1_robot_asset) 
+        self.num_dof = self.gym.get_asset_dof_count(self.mk1_robot_asset) 
                 
                 
         self.robot_handles = []
@@ -157,14 +162,14 @@ class Mk1BaseClass(VecTask, ABC):
         start_pose.p = gymapi.Vec3(0.0,0.0, self.spawn_height)
         start_pose.r = gymapi.Quat(0.0, 0.0 , 0.0, 1.0)
         
-        self._motor_efforts = self._create_effort_tensor(mk1_robot_asset)
+        self._motor_efforts = self._create_effort_tensor(self.mk1_robot_asset)
         
         for i in range(self.num_envs):
             # create env instance
             env_ptr = self.gym.create_env(
                 self.sim, lower, upper, num_per_row
             )
-            robot_handle = self.gym.create_actor(env_ptr, mk1_robot_asset, start_pose, "mk1", i, 1, 0)
+            robot_handle = self.gym.create_actor(env_ptr, self.mk1_robot_asset, start_pose, "mk1", i, 1, 0)
             
              
             dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
@@ -179,8 +184,6 @@ class Mk1BaseClass(VecTask, ABC):
             
         # get all dofs and assign the action index to the dof name in the dof_name_index_dict
         self.dof_name_index_dict = self.gym.get_actor_dof_dict(env_ptr, robot_handle)
-        
-        
         
         
         # take the last one as an example (All should be the same)
@@ -199,6 +202,7 @@ class Mk1BaseClass(VecTask, ABC):
         self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
         
+        
     def _create_effort_tensor(self, mk1_robot_asset) -> torch.Tensor:
         """Create the motor effort tensor, that defines how strong each motor is 
 
@@ -216,8 +220,6 @@ class Mk1BaseClass(VecTask, ABC):
             
             # specific motor efforts
             specific_motor_efforts = self.config['mk1']['agent'].get('motor_powers', {})
-            
-            
             
             for motor_name, motor_effort in specific_motor_efforts.items():
                 
@@ -327,7 +329,6 @@ class Mk1BaseClass(VecTask, ABC):
                 example
                 : tensor([0,0,0,0,0,1,0,0,1,0,0,0,0,0], device='cuda:0')
         """
-        
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
         
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
@@ -394,6 +395,7 @@ class Mk1BaseClass(VecTask, ABC):
         """
         num_actions = 17
         return gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
+    
         
     def reward_range(self):
         return (-1e100, 1e100)
@@ -415,17 +417,21 @@ class Mk1BaseClass(VecTask, ABC):
         """
         raise NotImplementedError()
     
-    def _joint_name_to_action_index(self, joint_names: Union[str, List[str]]) -> torch.Tensor:
-        """Get the action indices of the given joint names
-
-        Args:
-            joint_names (Union[str, List[str]]): _description_
-
-        Returns:
-            torch.Tensor: _description_
+            
+    def initial_domain_randomization(self):
+        """Initial domain randomization across all the envs
+            also saves tensors 
         """
-        if isinstance(joint_names, str):
-            joint_names = [joint_names]
+        # ---- actor linear velocity domain randomization ----
+        # update the initial root state linear velocities with the randomized values given by the task std
+        self.initial_root_states[: , 7] = self.intitial_velocities[0]()  # vel in -y axis
+        self.initial_root_states[:, 8] = self.intitial_velocities[1]() # vel in -x axis
+        self.initial_root_states[:, 9] = self.intitial_velocities[2]() # vel in -z axis
+        
+        
+        
+        
+        
             
     def apply_domain_randomization(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor):
         """Apply domain randomisation to the parameters given in the config file
@@ -444,6 +450,51 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_root_states[do_reset_bool_tensor , 8] = self.intitial_velocities[1]() # vel in -x axis
         self.initial_root_states[do_reset_bool_tensor , 9] = self.intitial_velocities[2]() # vel in -z axis
         
+        shape_properties = self.gym.get_actor_rigid_shape_properties(self.envs[0], self.robot_handles[0])
+        
+        
+        for env_id in env_ids: # this is very costly 
+            
+            
+            # ---- friction domain randomization -----
+            shape_properties = self.gym.get_actor_rigid_shape_properties(self.envs[env_id], self.robot_handles[env_id])
+            
+            friction_values = [ self.default_friction() for _ in range(len(shape_properties))]
+            
+            for link_name, friction_value in self.friction_properties:
+                link_index = self.gym.find_asset_rigid_body_index(self.mk1_robot_asset,link_name)
+                friction_values[link_index] = friction_value()
+                
+            for shape_property, friction_value in zip(shape_properties,  friction_values):
+                shape_property.friction = friction_value
+                
+            self.gym.set_actor_rigid_shape_properties(self.envs[env_id], self.robot_handles[env_id], shape_properties)
+                
+            
+            # ---- mass domain randomization ....
+            body_properties = self.gym.get_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id])
+            
+            mass_values = [ self.default_friction() for _ in range(len(shape_properties))]
+
+                
+                
+        
+            # print(self.gym.get_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id]))
+            
+            # object_properties = self.gym.get_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id])
+            # 
+            # for property in object_properties:
+            #     print(property.mass)
+            # 
+            # for property in object_properties:
+            #     property.mass = 1000
+            # 
+            # self.gym.set_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id], object_properties)
+            
+            
+            #for property in shape_properties:
+            #    print(property.friction)
+            pass
         
 
 @torch.jit.script
