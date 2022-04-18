@@ -4,7 +4,7 @@ vec_task:
   randomize: False
 
   physics_engine: physx
-  num_envs: 1024
+  num_envs: 512
   env_spacing: 10
   max_episode_length: 1000
 

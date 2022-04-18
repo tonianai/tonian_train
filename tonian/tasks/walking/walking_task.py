@@ -183,7 +183,7 @@ class WalkingTask(VecTask):
             energy_cost= self.energy_cost
         )
         
-    def reset_envs(self, env_ids):
+    def reset_envs(self, env_ids: torch.Tensor, do_reset_tensor: torch.Tensor):
         # Randomization can only happen at reset time, since it can reset actor positions on GPU
 
          

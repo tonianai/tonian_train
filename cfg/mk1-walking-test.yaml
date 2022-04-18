@@ -15,20 +15,14 @@ task:
 
 policy: 
     name: "SimpleActorCritic"
-    is_std_param: True
+    is_std_param: False
     init_log_std: 0.0  # Only makes sence, when the is_std_param is true
     log_std:  # only makes sence, if the is_std_param is false
       interpolation: 'linear'
       schedule:
-        - [0, 0.0]
-        - [1e8, -0.1]
-        - [2e8, -0.2]
-        - [4e8, -0.3]
-        - [6e8, -0.4]    
-        - [8e8, -0.5]    
-        - [10e8, -0.6]    
-        - [12e8, -0.7]    
-        - [14e8, -0.8]    
+        - [0,-0.5]   
+        - [12e8, -0.5]    
+        - [14e8, -0.6]    
         - [15e8, -1.0]    
         - [17e8, -1.3]    
 

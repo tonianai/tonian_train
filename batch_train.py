@@ -19,7 +19,15 @@ if __name__ == '__main__':
     
     test_for_dicts = [ 
       {
-        "algo": { "n_steps" : 128}
+        "algo": { "n_steps" : 128},
+        "task": {
+          "mk1_walking": {
+              "reward_weighting":
+                {
+                  "jitter_cost": 1       
+                }
+          }
+        }
       },
       {
         "algo": { "n_steps" : 256}

@@ -151,7 +151,7 @@ class Cartpole(VecTask):
 
         return self.actor_obs
 
-    def reset_envs(self, env_ids):
+    def reset_envs(self, env_ids, do_reset_tensor):
         positions = 0.2 * (torch.rand((len(env_ids), self.num_dof), device=self.device) - 0.5)
         velocities = 0.5 * (torch.rand((len(env_ids), self.num_dof), device=self.device) - 0.5)
 

@@ -4,9 +4,14 @@ seed: 42
 task:
   name: "00_cartpole"
 
-  vec_task: {}
+  vec_task: {
+  
+  }
 
-  cartpole: {}
+  cartpole: 
+    powerscale: 1.0
+    resetDist: 3.0
+    maxEffort: 400.0
 
 
 policy: 

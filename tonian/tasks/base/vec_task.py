@@ -379,7 +379,7 @@ class VecTask(BaseEnv, ABC):
         actions = torch.zeros([self.num_envs, self.action_space.shape[0] ], dtype=torch.float32, device=self.rl_device)
         
         do_reset_tensor = torch.ones(self.num_envs).to(self.device).to(dtype=torch.bool)
-        every_env_id_tensor = torch.range(start=0, end= self.num_envs -1).to(self.device).to(dtype=torch.int64)
+        every_env_id_tensor = torch.arange(start=0, end= self.num_envs).to(self.device).to(dtype=torch.int64)
         self.reset_envs(every_env_id_tensor, do_reset_tensor )
         
         self.initial_domain_randomization()
