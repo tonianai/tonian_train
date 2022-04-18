@@ -112,7 +112,11 @@ class VecTask(BaseEnv, ABC):
         
         # These are the extras that will be returned on the step function
         self.extras = {}
-         
+    
+    def get_number_of_agents(self):
+        return self.num_envs
+             
+
     def allocate_buffers(self):
         """initialize the tensors on the gpu
           it is important, that these tensors reside on the gpu, as to reduce the amount of data, that has to be transmitted between gpu and cpu

@@ -49,6 +49,7 @@ class BaseEnv(ABC):
     @property
     def observation_space(self) -> gym.Space:
         return spaces.Dict(self.actor_observation_spaces.spaces)
+    
 
     @abstractproperty
     def reward_range(self):
