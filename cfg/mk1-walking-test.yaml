@@ -6,7 +6,9 @@ seed: 42
 task:
   name: "02_mk1_walking"
 
-  vec_task: {}
+  vec_task: 
+    num_envs: 1024
+  
 
   mk1: {}
 

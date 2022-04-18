@@ -352,8 +352,8 @@ class PPO(BaseAlgorithm):
                  
                 # clipped surrogate loss
                 policy_loss_1 = advantages * ratio
-                policy_loss_2 = advantages * torch.clamp(ratio, 1 - clip_range, 1 + clip_range)
-                policy_loss = -torch.min(policy_loss_1, policy_loss_2).mean()
+                policy_loss_2 = advantages * torch.clamp(ratio, 1.0 - clip_range, 1.0 + clip_range)
+                policy_loss = torch.max(- policy_loss_1, - policy_loss_2)
                 
                 # Logging
                 pg_losses.append(policy_loss.item())

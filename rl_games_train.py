@@ -1,6 +1,7 @@
 
 
 from tonian.tasks.cartpole.cartpole_task import Cartpole
+from tonian.tasks.mk1.mk1_walking.mk1_walking_task import Mk1WalkingTask
 
 from tonian.common.config_utils import task_from_config
 
@@ -45,7 +46,7 @@ class RLGPUEnv(vecenv.IVecEnv):
 
 def create_env_func():
 
-    config_path = './cfg/cartpole-test.yaml'
+    config_path = './cfg/mk1-walking-test.yaml'
       
     # open the config file 
     with open(config_path, 'r') as stream:
@@ -54,7 +55,7 @@ def create_env_func():
         except yaml.YAMLError as exc:    
             raise FileNotFoundError( f"File {config_path} not found")
 
-    task = Cartpole(config['task'], 'cuda:0', 0, False)
+    task = Mk1WalkingTask(config['task'], 'cuda:0', 0, False)
     
     return task
 
@@ -68,7 +69,7 @@ env_configurations.register('rlgpu', {
 
 
     
-config_path = './cfg/rl_games_cartpole_train.yaml'
+config_path = './cfg/rl_games_walking_train.yaml'
   
 # open the config file 
 with open(config_path, 'r') as stream:
