@@ -133,7 +133,7 @@ class DictRolloutBuffer(BaseBuffer):
         self.actions = torch.zeros((self.buffer_size, self.n_envs, self.action_size), dtype=torch.float32, device=self.store_device)
         self.rewards = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
         self.returns = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
-        self.is_epidsode_start = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.int8, device=self.store_device)
+        self.dones = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.int8, device=self.store_device)
         self.values = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
         self.log_probs = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
         self.advantages = torch.zeros((self.buffer_size, self.n_envs), dtype=torch.float32, device=self.store_device)
@@ -156,7 +156,7 @@ class DictRolloutBuffer(BaseBuffer):
         critic_obs: Dict[str, torch.Tensor],
         action: torch.Tensor,
         reward: torch.Tensor,
-        is_epidsode_start: torch.Tensor,
+        dones: torch.Tensor,
         value: torch.Tensor,
         log_prob: torch.Tensor
     ) -> None:
@@ -164,7 +164,7 @@ class DictRolloutBuffer(BaseBuffer):
         :param critic_obs: Observation 
         :param actor_obs: Action
         :param reward:
-        :param episode_start: End of episode signal.
+        :param dones: End of episode signal.
         :param value: estimated value of the current state
             following the current policy.
         :param log_prob: log probability of the action
@@ -185,7 +185,7 @@ class DictRolloutBuffer(BaseBuffer):
         
         self.actions[self.pos] = action.detach().to(self.store_device)
         self.rewards[self.pos] = reward.detach().to(self.store_device)
-        self.is_epidsode_start[self.pos] = is_epidsode_start.detach().to(self.store_device)
+        self.dones[self.pos] = dones.detach().to(self.store_device)
         self.values[self.pos] = value.detach().squeeze().to(self.store_device)
         self.log_probs[self.pos] = log_prob.detach().squeeze().to(self.store_device)
         
@@ -297,7 +297,7 @@ class DictRolloutBuffer(BaseBuffer):
                 next_non_terminal = 1.0 - dones
                 next_values = last_values
             else:
-                next_non_terminal = 1.0 - self.is_epidsode_start[step + 1]
+                next_non_terminal = 1.0 - self.dones[step]
                 next_values = self.values[step + 1]
             delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
             last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
