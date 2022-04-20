@@ -50,8 +50,8 @@ class DictExperienceBuffer(BaseBuffer):
 
         Args:
             horizon_length (int): Number of steps saved in the buffer 
-            critic_obs_space (MultiSpace): Observation Space used by the critic
-            actor_obs_space (MultiSpace): Observation Spaces used by the actor
+            critic_obs_space (MultiSpace): Observation Space used by the critic, also contains the commands if they exist
+            actor_obs_space (MultiSpace): Observation Spaces used by the actor, also contains the commands if they exist
             action_space (spaces.Space): Action Space
             store_device (Union[str, torch.device], optional): [The Device on which the values will be stored. Defaults to "cuda:0".
                 (If possible, let all tensors stay on the gpu, to minimize cpu usage)
@@ -143,9 +143,9 @@ class DictExperienceBuffer(BaseBuffer):
         action_stds: torch.Tensor
     ) -> None:
         """
-        :param critic_obs: Observation 
-        :param actor_obs: Action
-        :param reward:
+        :param critic_obs: Observation of the critic, also contains commands, if available
+        :param actor_obs: Observations of the actor, also contains commands, if available
+        :param reward: Rewards gotten by the env
         :param dones: End of episode signal.
         :param value: estimated value of the current state
             following the current policy.
