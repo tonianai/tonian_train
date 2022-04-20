@@ -5,6 +5,8 @@ from typing import Dict, Union, Tuple, Any
 import torch
 import torch.nn as nn
 
+from tonian.training2.networks import A2CNetwork
+
  
 class BasePolicy(nn.Module):
     def __init__(self) -> None:
@@ -21,6 +23,6 @@ class BasePolicy(nn.Module):
     
 class A2CPolicyLogStd(BasePolicy):
     
-    def __init__(self, network: ) -> None:
+    def __init__(self, network: A2CNetwork) -> None:
         super().__init__()
-         
+        
