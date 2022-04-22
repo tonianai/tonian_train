@@ -1,7 +1,7 @@
 
 import torch.nn as nn
 from typing import List, Optional
-from tonian.training2.common.types import ActivationFn, SequentialLayerConfiguration, CnnConfiguration
+from tonian.training2.common.configuration_types import ActivationFn, MlpConfiguration, CnnConfiguration
 
 class BaseNetwork(nn.Module):
     
@@ -21,17 +21,17 @@ class BaseNetwork(nn.Module):
     
 class A2CNetwork(BaseNetwork):
     
-    def __init__(self, activation_fn: ActivationFn) -> None:
+    def __init__(self) -> None:
         super().__init__()
         
         
 class SeperatedA2CNetwork(A2CNetwork):
     
     def __init__(self, 
-                 activation_fn: ActivationFn,
-                 cnn: Optional[CnnConfiguration],
-                 actor_units: SequentialLayerConfiguration,
-                 critic_units: SequentialLayerConfiguration,
+                 actor_cnn: Optional[CnnConfiguration],
+                 critic_cnn: Optional[CnnConfiguration],
+                 actor_units: MlpConfiguration,
+                 critic_units: MlpConfiguration,
                  
                  ) -> None:
         super().__init__(activation_fn)
