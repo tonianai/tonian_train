@@ -24,7 +24,7 @@ class MultispaceNetElement(nn.Module):
         self.net = net
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        self.net(x)
+        return self.net(x)
 
 class MultispaceNet(nn.Module):
     
@@ -56,7 +56,7 @@ class MultispaceNet(nn.Module):
                     if input is None:
                         input = x[input_name]
                     else: 
-                        input = torch.cat(input, x[input_name], dim=0)
+                        input = torch.cat((input, x[input_name]), dim=1)
         
                 if i_layer != len(self.network_layers) - 1:
                     x[element.name] = element(input)

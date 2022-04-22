@@ -1,7 +1,7 @@
 from tonian.training2.common.configuration_types import MultiSpaceNetworkConfiguration
 from tonian.common.spaces import MultiSpace
 
-import yaml, gym
+import yaml, gym, torch
 
 
 if __name__ == '__main__':
@@ -28,4 +28,11 @@ if __name__ == '__main__':
                              })
     
     
-    net_config.build(multispace)
+    multispace_net = net_config.build(multispace)
+    
+    sample_obs = {'linear': torch.from_numpy(linear.sample()).unsqueeze(dim=0),
+                  'command': torch.from_numpy(command.sample()).unsqueeze(dim=0),
+                  'visual': torch.from_numpy(visual.sample()).unsqueeze(dim=0).unsqueeze(dim=0)
+                  }
+    
+    print(multispace_net(sample_obs))

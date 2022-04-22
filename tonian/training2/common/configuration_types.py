@@ -237,7 +237,7 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
     def __init__(self, config: List) -> None:
         """
         The multispace network configuration describes which parts of a multispace are used as inputs for which network 
-
+        It is imparative, that there is a final network, that takes all residual networks as input 
         Args:
             config (List): Examples:
                 - [
@@ -323,7 +323,15 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
                     })
                 
     def build(self, multi_space: MultiSpace) -> MultispaceNet:
-        
+        """ build the multispace network, that takes a multispace as an input and outputs a flattened tensor
+
+        Args:
+            multi_space (MultiSpace): Multispace with all possible observations, that will be used on the net
+
+        Returns:
+            MultispaceNet: Network as described int the config
+        """
+                
         for space_key in multi_space.keys():
             assert space_key not in [mlp_net['name'] for mlp_net in  self.mlp_networks], "The name of a net cannot be the same as any multispace key name"
             assert space_key not in [cnn_net['name'] for cnn_net in  self.cnn_networks], "The name of a net cannot be the same as any multispace key name"

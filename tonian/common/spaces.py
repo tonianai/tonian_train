@@ -1,6 +1,6 @@
 
 from typing import Dict, Tuple, Union
-import numpy as np 
+import torch
 import gym
  
 
@@ -36,8 +36,8 @@ class MultiSpace():
     def keys(self) -> str:
         return self.space_names
         
-    def sample(self) -> Tuple[np.ndarray, ...]:
-        return tuple([self.spaces[i].sample() for i in self.spaces])
+    def sample(self) -> Dict[str, torch.Tensor]:
+        return {key: torch.from_numpy(space.sample()) for key, space in self.spaces.items()}
         
     def __len__(self):
         return self.num_spaces         
