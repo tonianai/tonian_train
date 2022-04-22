@@ -1,0 +1,49 @@
+ 
+  - name: linear_obs_net # this can be custom set
+    input: 
+        - obs: linear
+    mlp:
+        units: [256, 128]
+        activation: relu,
+        initializer: default
+
+
+  - name: visual_obs_net
+    input_obs_space: visual
+    cnn:
+        type: conv2d
+        activation: 
+          name: elu
+          alpha: 0.5
+        initializer:
+          name: glorot_normal_initializer
+          gain: 1
+        convs:    
+          - filters: 32
+            kernel_size: 8
+            strides: 4
+            padding: 0
+          - filters: 64
+            kernel_size: 4
+            strides: 2
+            padding: 0
+          - filters: 64
+            kernel_size: 3
+            strides: 1
+            padding: 0
+          - filters: 16
+            kernel_size: 1
+            strides: 1
+            padding: 0
+
+    
+  - name: final_output
+    input: 
+        - obs: command
+        - net: linear_obs_net
+        - net: visual_obs_net
+    mlp:
+        units: [128, 128]
+        activation: relu,
+        initializer: default
+ 
