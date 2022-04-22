@@ -32,7 +32,9 @@ class MultiSpace():
         for key in self.spaces:
             self.dict_shape[key] = self.spaces[key].shape
             
-        
+    
+    def keys(self) -> str:
+        return self.space_names
         
     def sample(self) -> Tuple[np.ndarray, ...]:
         return tuple([self.spaces[i].sample() for i in self.spaces])

@@ -4,7 +4,7 @@
         - obs: linear
     mlp:
         units: [256, 128]
-        activation: relu,
+        activation: relu
         initializer: default
 
 
@@ -44,6 +44,6 @@
         - net: visual_obs_net
     mlp:
         units: [128, 128]
-        activation: relu,
+        activation: relu
         initializer: default
  

@@ -3,7 +3,7 @@ import torch.nn as nn
 from abc import ABC, abstractmethod
 
 from tonian.common.spaces import MultiSpace, MultiSpaceIterator
-from tonian.training2.common.networks import MultispaceNet
+from tonian.training2.common.networks import MultispaceNet, MultispaceNetElement
 
 import torch
 
@@ -73,6 +73,8 @@ class ActivationConfiguration(DictConfigurationType):
         'softplus': nn.Softplus,
         'None': nn.Identity
         }
+        
+        assert self.name in activation_fn_class_map, f"The activation function {self.name} was not found. Please check your config."
     
         return activation_fn_class_map[self.name](**self.kwargs) 
 
@@ -115,6 +117,8 @@ class InitializerConfiguration(DictConfigurationType):
             'orthogonal': _create_initializer(nn.init.orthogonal_, **self.kwargs),
             'default' : nn.Identity()
         }
+        
+        assert self.name in intializer_fn_class_map, f"The initializer function {self.name} was not found. Please check your config."
     
         return intializer_fn_class_map[self.name]
     
@@ -176,7 +180,6 @@ class CnnConfiguration(DictConfigurationType):
             in_channels = conv['filters']
             layers.append(torch.nn.BatchNorm2d(in_channels))
             
-        print(layers)
         return nn.Sequential(*layers, nn.Flatten())
                 
             
@@ -292,11 +295,13 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
         self.mlp_networks = []
         self.cnn_networks = []
         for network in config:
+            
             type = ''
             if 'cnn' in network:
                 type = 'cnn'
             elif 'mlp' in network:
-                type = 'mlp'
+                type = 'mlp'    
+                
             else:
                 raise Exception(f"The network must either contain a cnn or a mlp. Input {str(network)}, name: {network['name']}")
             
@@ -319,12 +324,11 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
                 
     def build(self, multi_space: MultiSpace) -> MultispaceNet:
         
-        
-        # This gets used to in the end initialize the MultispaceNet
-        network_layers = []
+        for space_key in multi_space.keys():
+            assert space_key not in [mlp_net['name'] for mlp_net in  self.mlp_networks], "The name of a net cannot be the same as any multispace key name"
+            assert space_key not in [cnn_net['name'] for cnn_net in  self.cnn_networks], "The name of a net cannot be the same as any multispace key name"
         
         cnn_name_to_built = {}
-        cnn_name_to_in_out_dims = {}
         
         
         # build the cnns and determine their output shape 
@@ -353,48 +357,14 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
                     
                     
                     built_cnn = cnn_network['net_config'].build(in_channels)
-                    cnn_name_to_built[cnn_network['name']] =  built_cnn
                     
                     mock_input = mock_input.unsqueeze(dim= 0) # add a dim for moch batch size
                     
                     out_size = built_cnn(mock_input).shape[1] # the cnn flattens the values, so, that they can be used in an mlp
-                    cnn_name_to_in_out_dims[cnn_network['name']] = out_size
+                    cnn_name_to_built[cnn_network['name']] = { 'net': built_cnn, 'out_size': out_size, 'input': space_name }
+                    break
         
-        
-        
-        def is_mlp_ready(mlp_inputs: List[Dict], built_mlps: List[str])-> bool:
-            """Determines whether an mlp is ready to be build
-
-            Args:
-                mlp_inputs (List[Dict]): the inputs of the mlp under scruteny
-                built_mlps (List[str]): the mlps that have already been built
-            Returns:
-                bool: whether the mlp has no unbuilt dependencies
-            """
-            for input in mlp_inputs:
-                if 'obs' in input: # obs never have a dependencie issue
-                    continue
-                elif 'net' in input:
-                    # check if the net is already built
-                    if input['net'] not in built_mlps:
-                        return False
-            return True
                     
-        def get_mlp_from_name(name: str) -> Dict :
-            """Gets the mlp from the local mlp config 
-
-            Args:
-                name (str): name of the mlp, that is in the local self.mlp_networks array
-
-            Returns:
-                Dict: {input: [Dict[str, str]],
-                       name: str,
-                       net_config: MlpConfiguration}
-            """
-            for mlp in self.mlp_networks:
-                if mlp['name'] == name:
-                    return mlp
-            return None
         
         
         layered_mlps_to_build = [] 
@@ -471,56 +441,100 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
                 unaccounted_mlps.remove(mlp)
             
             if len(layered_mlps_to_build[i_layer-1]) == 0:
-                raise Exception("A layer specified in the config for the multilabel net could not be found. Check your config file")
+                raise Exception("A layer specified in the config for the multispace net could not be found. Check your config file")
             
             if mlp_configure_iter > 1000:
-                raise Exception("Found circular dependency in the config for multilabel net. Check your multilabel configs")
+                raise Exception("Found circular dependency in the config for multispace net. Check your multispace configs")
             
             
-        # The mlps are now listed in an layered array, with paralell networks nexto each other, and cosecutive networks in layers below
-        print(layered_mlps_to_build)
+        # --- The mlps are now listed in an layered array, with paralell networks nexto each other, and cosecutive networks in layers below
+    
+        
+        def find_input_size(mlp_input: List[Dict], layer: int) -> int:
+            """Find the accumulated output length of the given inputs
+
+            Args:
+                mlp_input (List[Dict]): inputs for a given mlp
+                layer (int): current layer of the input
+
+            Returns:
+                int: accumulated input length
+            """
+            cumulated_input_size = 0
+            
+            for input in mlp_input:
+                
+                if 'obs' in input: # obs never have a dependencie issue
+                    cumulated_input_size += sum(multi_space.spaces[input['obs']].shape)
+                elif 'net' in input:
+                
+                    input_name = input['net']
+                    # check if the net is an cnn
+                
+                    if input_name in cnn_name_to_built.keys():
+                        cumulated_input_size += cnn_name_to_built[input_name]['out_size']
+                        continue
+                        
+                    for i_layer in range(layer):
+                        was_mlp_found = False                        
+                        for mlp in layered_mlps_to_build[i_layer]:
+                            
+                            if mlp['name'] == input_name:
+                                cumulated_input_size +=  mlp['net_config'].get_out_size()
+                                was_mlp_found = True
+                                break
+                        if was_mlp_found:
+                            break
+                        
+            return cumulated_input_size
+         
+        def input_dict_list_to_str_list(mlp_input: List[Dict]) -> List[str]:
+            """Turn the dict list of the mlp input, which differtiates between obs and net into a string list, 
+            which does not
+
+            Args:
+                mlp_input (List[Dict]): inputs for a given mlp as dict list
+
+            Returns:
+                List[str]: inputs for a given mlp as a str list
+            """
+            resulting_list = []
+            for input in mlp_input:
+                if 'obs' in input: # obs never have a dependencie issue
+                    resulting_list.append(input['obs'])
+                elif 'net' in input:
+                    resulting_list.append(input['net'])
+        
+            return resulting_list
+        
+        # This gets used to in the end initialize the MultispaceNet
+        network_layers = []
         
         
+        # build the networks
+        for i_layer in range(max(len(layered_mlps_to_build), 1)):
+            
+            network_layers.append([])
+            if i_layer == 0:
+                # the zeroth index is special, because it contains all cnns ->  add all cnns
+                for net_name, cnn in cnn_name_to_built.items():
+                    network_layers[i_layer].append(MultispaceNetElement(name=net_name, inputs_names=[cnn['input']], net=cnn['net']))
         
-        
-        
-        # # names of the mlps left to build
-        # mlps_to_build: List[str] = [mlp['name'] for mlp in self.mlp_networks]
-        # 
-        # # maps the name of an mlp to the build version of it
-        # mlp_name_to_built_map = {}
-        # 
-        # while len(mlps_to_build) > 0:
-        #     # only stop when all mlps are done
-        #     
-        #     # build a mlp when the depending input nets are already built or the input only contains 
-        #     mlp_name = mlps_to_build[mlp_build_iter % len(mlps_to_build)]
-        #     
-        #     mlp = get_mlp_from_name(mlp_name)
-        #     
-        #     if mlp is None:
-        #         raise Exception(f"The mlp {mlp_name} does not exist" )
-        #     
-        #     
-        #     if not is_mlp_ready(mlp['input'], mlp_name_to_built_map.keys()):
-        #         # the network is not build ready, continue and check the next one
-        #         continue
-        #     
-        #     # build the mlp, because it is ready and remove from the mlp_to_build list
-        #     
-        #     # get the size of the input by concatining all the output sizes from previous nets and the 
-        #     
-        #     
-        #     
-        #     mlp_name_to_built_map[mlp_name] = 
-        #     # remove the network name from the mlp_to_build list
-        #     mlps_to_build.remove(mlp_name)
-        #     
-        #     
-        #     
-        #     mlp_build_iter += 1
-        # 
-        # print(mlp_build_iter)
-        
+            if len(layered_mlps_to_build) > 0:
+                # add the mlp multispace elements
+                for mlp in layered_mlps_to_build[i_layer]:
+                    
+                    # build the net
+                    in_size = find_input_size(mlp['input'], layer=i_layer)
+                    
+                    built_net = mlp['net_config'].build(in_size)
+                    
+                    input_names = input_dict_list_to_str_list(mlp_input=mlp['input'])
+                    
+                    network_layers[i_layer].append(MultispaceNetElement(name= mlp['name'], inputs_names= input_names, net= built_net))
+            
+        assert len(network_layers[-1]) == 1, "There can only be one output layer for the multispace. Check the your multispace configs" 
+            
+        return MultispaceNet(network_layers)
         
         
