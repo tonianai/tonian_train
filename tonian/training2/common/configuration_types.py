@@ -3,12 +3,11 @@ import torch.nn as nn
 from abc import ABC, abstractmethod
 
 from tonian.common.spaces import MultiSpace, MultiSpaceIterator
+from tonian.training2.common.aliases import ActivationFn, InitializerFn
 from tonian.training2.common.networks import MultispaceNet, MultispaceNetElement
 
 import torch
 
-InitializerFn = Callable
-ActivationFn = nn.Module
 
 
 class DictConfigurationType(ABC, Callable):
@@ -526,7 +525,8 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
             if i_layer == 0:
                 # the zeroth index is special, because it contains all cnns ->  add all cnns
                 for net_name, cnn in cnn_name_to_built.items():
-                    network_layers[i_layer].append(MultispaceNetElement(name=net_name, inputs_names=[cnn['input']], net=cnn['net']))
+                    
+                    network_layers[i_layer].append(MultispaceNetElement(name=net_name, inputs_names=[cnn['input']], net=cnn['net'], out_size=cnn['out_size']))
         
             if len(layered_mlps_to_build) > 0:
                 # add the mlp multispace elements
@@ -535,11 +535,13 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
                     # build the net
                     in_size = find_input_size(mlp['input'], layer=i_layer)
                     
+                    out_size = mlp['net_config'].get_out_size()
+                    
                     built_net = mlp['net_config'].build(in_size)
                     
                     input_names = input_dict_list_to_str_list(mlp_input=mlp['input'])
                     
-                    network_layers[i_layer].append(MultispaceNetElement(name= mlp['name'], inputs_names= input_names, net= built_net))
+                    network_layers[i_layer].append(MultispaceNetElement(name= mlp['name'], inputs_names= input_names, net= built_net, out_size= out_size))
             
         assert len(network_layers[-1]) == 1, "There can only be one output layer for the multispace. Check the your multispace configs" 
             

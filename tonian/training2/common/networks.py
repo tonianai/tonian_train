@@ -9,7 +9,7 @@ from tonian.common.spaces import MultiSpace
 
 class MultispaceNetElement(nn.Module):
     
-    def __init__(self, name: str, inputs_names: List[str], net: nn.Sequential) -> None:
+    def __init__(self, name: str, inputs_names: List[str], net: nn.Sequential, out_size: int) -> None:
         """Element Network for the multispace network
         The multispace network is made up of multiple of MultispaceNetElements
         Examples would be a cnn, mlp 
@@ -17,11 +17,13 @@ class MultispaceNetElement(nn.Module):
             name (str): name of the multispace net element, cannot collide with any obersvation name the multispace net is going to use
             inputs_names (List[str]): names of inputs for the network, that will be used and concativated together 
             net (nn.Sequential): Network, that takes the cumulative size of all inputs names as input
+            out_size (int): The size of the flattened output of the network 
         """
         super().__init__()
         self.name = name
         self.input_names = inputs_names
         self.net = net
+        self.out_size = out_size
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
@@ -43,12 +45,22 @@ class MultispaceNet(nn.Module):
         super().__init__()
         self.network_layers = network_layers
         
+        all_nets =  []
+        for layer in self.network_layers:
+            for network in layer:
+                all_nets.append(network)
+        # add all networks to the module list, so that they appear in the parameters
+        self.network_modules = nn.ModuleList(all_nets)
+        
+    def out_size(self):
+        """retreives the size of the flattened output
+        """
+        return self.network_layers[-1][-1].out_size
         
     def forward(self, x: Dict[str, torch.Tensor]):
         
-        
         for i_layer in range(len(self.network_layers)):
-            
+                
             for element in self.network_layers[i_layer]:
                 # concat inputs
                 input = None
@@ -59,13 +71,15 @@ class MultispaceNet(nn.Module):
                         input = torch.cat((input, x[input_name]), dim=1)
         
                 if i_layer != len(self.network_layers) - 1:
-                    x[element.name] = element(input)
+                    x[element.name] = element(input) 
                 else: 
+                    
                     return element(input)
         
-    def to(self, device):
-        for network_layer in self.network_layers:
-            for network in network_layer:
-                network.to(device) 
-        return self
+    
+        
+class ResidualNet(nn.Module):
+    
+    def __init__(self) -> None:
+        super().__init__()
         
