@@ -68,6 +68,7 @@ class MultiSpace():
         
     def __iter__(self):
         return MultiSpaceIterator(self)
+    
         
         
 class MultiSpaceIterator:

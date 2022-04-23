@@ -18,7 +18,7 @@ if __name__ == '__main__':
     
     linear = gym.spaces.Box(low = 0, high = 1, shape = (100,))
     
-    command = gym.spaces.Box(low = 0, high = 1, shape = (10,))
+    command = gym.spaces.Box(low = 0, high = 1, shape = (10000,))
     
     visual = gym.spaces.Box(low = 0, high = 1, shape = (50, 50))
     
@@ -28,11 +28,11 @@ if __name__ == '__main__':
                              })
     
     
-    multispace_net = net_config.build(multispace)
+    multispace_net = net_config.build(multispace).to('cuda:0')
     
-    sample_obs = {'linear': torch.from_numpy(linear.sample()).unsqueeze(dim=0),
-                  'command': torch.from_numpy(command.sample()).unsqueeze(dim=0),
-                  'visual': torch.from_numpy(visual.sample()).unsqueeze(dim=0).unsqueeze(dim=0)
+    sample_obs = {'linear': torch.from_numpy(linear.sample()).unsqueeze(dim=0).to('cuda:0'),
+                  'command': torch.from_numpy(command.sample()).unsqueeze(dim=0).to('cuda:0'),
+                  'visual': torch.from_numpy(visual.sample()).unsqueeze(dim=0).unsqueeze(dim=0).to('cuda:0')
                   }
     
     print(multispace_net(sample_obs))

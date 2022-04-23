@@ -63,6 +63,9 @@ class MultispaceNet(nn.Module):
                 else: 
                     return element(input)
         
-        
-            
+    def to(self, device):
+        for network_layer in self.network_layers:
+            for network in network_layer:
+                network.to(device) 
+        return self
         
