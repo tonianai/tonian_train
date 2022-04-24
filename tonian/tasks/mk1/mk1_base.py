@@ -495,6 +495,10 @@ class Mk1BaseClass(VecTask, ABC):
             #for property in shape_properties:
             #    print(property.friction)
             pass
+    
+    def get_num_actors_per_env(self) -> int:
+        return 1
+    
         
 
 @torch.jit.script

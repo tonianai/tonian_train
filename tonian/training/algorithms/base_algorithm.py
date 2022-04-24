@@ -6,7 +6,7 @@ from typing import Dict, Type
 import torch 
 import torch.nn as nn 
 from tonian.tasks.base.base_env import BaseEnv
-from tonian.training.common.logger import BaseLogger, TensorboardLogger
+from tonian.common.logger import BaseLogger, TensorboardLogger
 from tonian.common.utils import join_configs
 from typing import Union
 

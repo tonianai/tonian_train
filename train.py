@@ -7,7 +7,7 @@ import yaml
 
 from tonian.common.utils import set_random_seed, join_configs
 from tonian.common.config_utils import task_from_config, algo_from_config, policy_from_config, create_new_run_directory
-from tonian.training.common.logger import TensorboardLogger
+from tonian.common.logger import TensorboardLogger
 
 import yaml, argparse
 

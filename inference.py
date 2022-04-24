@@ -5,7 +5,7 @@ An Inference run is a run of a previous stored, without training
 from tonian.tasks.cartpole.cartpole_task import Cartpole
 
 import yaml, os, argparse
-from tonian.training.common.logger import TensorboardLogger
+from tonian.common.logger import TensorboardLogger
 from tonian.common.config_utils import  policy_from_config, task_from_config, get_run_index
 from tonian.common.utils import set_random_seed
 

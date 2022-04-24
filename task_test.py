@@ -4,7 +4,7 @@ from tonian.tasks.mk1.mk1_walking.mk1_walking_task import Mk1WalkingTask
 from tonian.tasks.walking.walking_task import WalkingTask
 
 from warnings import resetwarnings
-from tonian.training.common.logger import DummyLogger
+from tonian.common.logger import DummyLogger
 
 from tonian.training.algorithms.ppo import PPO
 from tonian.training.policies.policies import SimpleActorCriticPolicy

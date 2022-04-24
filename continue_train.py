@@ -6,7 +6,7 @@ from tonian.tasks.cartpole.cartpole_task import Cartpole # import for isaac gym 
 from tonian.training.algorithms.ppo import PPO
 
 import yaml, os, argparse
-from tonian.training.common.logger import TensorboardLogger
+from tonian.common.logger import TensorboardLogger
 from tonian.common.config_utils import get_run_index, policy_from_config, task_from_config, algo_from_config, create_new_run_directory
 from tonian.common.utils import set_random_seed
 

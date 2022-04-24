@@ -452,6 +452,15 @@ class VecTask(BaseEnv, ABC):
         # return the configured params
         return sim_params
     
+    @abstractmethod
+    def get_num_actors_per_env(self) -> int:
+        """Return the amount of actors each environment has
+
+        Returns:
+            int
+        """
+        raise NotImplementedError()
+    
     @property
     def action_size(self):
         """The sum over all the action dimension 

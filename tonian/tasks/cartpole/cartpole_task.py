@@ -230,6 +230,9 @@ class Cartpole(VecTask):
     def reward_range(self):
         return (-1e100, 1e100)
     
+    def get_num_actors_per_env(self) -> int:
+        return 1
+    
     def close(self):
         pass
 

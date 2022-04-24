@@ -10,7 +10,7 @@ from tonian.training.algorithms.base_algorithm import BaseAlgorithm
 from tonian.training.common.buffers import DictRolloutBuffer
 from tonian.common.schedule import Schedule, schedule_or_callable
 from tonian.common.utils import set_random_seed
-from tonian.training.common.logger import BaseLogger
+from tonian.common.logger import BaseLogger
 from tonian.training.policies.policies import ActorCriticPolicy
 
 from tonian.tasks.base.vec_task import VecTask

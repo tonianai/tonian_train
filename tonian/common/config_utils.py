@@ -2,7 +2,7 @@
 
 from typing import Callable, Dict, Tuple
 
-from tonian.training.common.logger import BaseLogger
+from tonian.common.logger import BaseLogger
 from tonian.tasks.walking.walking_task import WalkingTask
 from tonian.tasks.cartpole.cartpole_task import Cartpole
 from tonian.tasks.mk1.mk1_walking.mk1_walking_task import Mk1WalkingTask

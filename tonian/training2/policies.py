@@ -12,7 +12,7 @@ import torch.nn as nn
 
 
  
-class BasePolicy(nn.Module):
+class A2CBasePolicy(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         
@@ -25,7 +25,19 @@ class BasePolicy(nn.Module):
     def get_default_rnn_state(self):
         return None
     
-class A2CSequentialPolicyLogStd(BasePolicy):
+    
+    def forward(self, actor_obs: Dict[torch.Tensor], critic_obs: Optional[Dict[torch.Tensor]] = None ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Forward pass on a A2C sequential logstd policy
+
+        Args:
+            actor_obs (Dict[torch.Tensor]): Multispace Observation of the actor
+            critic_obs (Optional[Dict[torch.Tensor]], optional): Multispace Observation of the critic, that are additional to the actor_ibs.
+                Defaults to None.
+        """
+        raise NotImplementedError()
+    
+    
+class A2CSequentialPolicyLogStd(A2CBasePolicy):
     
     def __init__(self, shared_actor_net: MultispaceNet,
                        action_space: gym.spaces.Space,
@@ -128,14 +140,11 @@ class A2CSequentialPolicyLogStd(BasePolicy):
                 
             # mu*0 + std uses the approptiate shape 
             return mu, mu*0 + std, value
-                
-            
-            
-            
+        
+        else:
+            raise Exception("non continuous spaces are not yet implemented")        
             
         
-        pass
-    
         
         
         

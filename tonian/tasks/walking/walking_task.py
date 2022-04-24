@@ -342,6 +342,9 @@ class WalkingTask(VecTask):
     
     def close(self):
         pass
+    
+    def get_num_actors_per_env(self) -> int:
+        return 1
         
 
 @torch.jit.script
