@@ -21,15 +21,6 @@ class BaseBuffer(ABC):
         super().__init__()
     
 
-class DictExperienceBufferSamples(NamedTuple):
-    critic_obs: Dict[Union[int, str], torch.Tensor]
-    actor_obs: Dict[Union[int, str], torch.Tensor]
-    actions: torch.Tensor
-    old_values: torch.Tensor
-    old_log_prob: torch.Tensor
-    advantages: torch.Tensor
-    returns: torch.Tensor
-
 
 class DictExperienceBuffer(BaseBuffer):
     """Dict Experience buffer used in on policy algorithms
@@ -78,6 +69,8 @@ class DictExperienceBuffer(BaseBuffer):
         self.action_space = action_space
         self.action_size = action_space.shape[0]
         
+        
+        
         assert self.action_size, "Action size must not be zero"
             
         self.store_device = store_device
@@ -103,8 +96,6 @@ class DictExperienceBuffer(BaseBuffer):
         """
         Reset the buffer
         """
-        self.pos = 0
-        self.full = False
         
         # store everything in torch tensors on the gpu
         self.actions = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype=torch.float32, device=self.store_device)
@@ -115,9 +106,9 @@ class DictExperienceBuffer(BaseBuffer):
         self.neglogpacs = torch.zeros((self.horizon_length, self.n_actors_per_step), dtype=torch.float32, device=self.store_device)
         
         # the mean of the action distributions
-        self.action_means = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype=torch.float32)
+        self.mus = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype=torch.float32)
         # the std(sigma) of the action distributions   
-        self.action_std = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype= torch.float32)
+        self.sigmas = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype= torch.float32)
         
         
         # critic obs and actor obs must be dicts, because this enables multispace environments
@@ -130,6 +121,19 @@ class DictExperienceBuffer(BaseBuffer):
         for key, obs_shape in self.critic_obs_dict_shape.items():
             self.critic_obs[key] = torch.zeros((self.horizon_length, self.n_envs) + obs_shape, dtype=torch.float32, device= self.store_device)
         
+        # critic and actor obs are not covered by this, since they are dicts and not tensors
+        self.tensor_dict = {
+            'actions': self.actions,
+            'rewards': self.rewards,
+            'dones': self.dones,
+            'values': self.values,
+            'neglogpacs': self.neglogpacs,
+            'mus': self.mus,
+            'sigmas': self.sigmas,
+            'critic_obs': self.critic_obs,
+            'actor_obs': self.actor_obs
+        }
+        
     def add(
         self, 
         actor_obs: Dict[str, torch.Tensor],
@@ -139,8 +143,8 @@ class DictExperienceBuffer(BaseBuffer):
         dones: torch.Tensor,
         values: torch.Tensor,
         neglogpacs: torch.Tensor,
-        action_means: torch.Tensor,
-        action_stds: torch.Tensor
+        mus: torch.Tensor,
+        sigmas: torch.Tensor
     ) -> None:
         """
         :param critic_obs: Observation of the critic, also contains commands, if available
@@ -151,8 +155,8 @@ class DictExperienceBuffer(BaseBuffer):
             following the current policy.
         :param neglogpacs: neg log probability of the action
             following the current policy.
-        :param action_means: the mean of the gaussian distribution the action was sampled from
-        :param action_stds: the stds of the gaussian distribution the action was sampled from 
+        :param mus: the mean of the gaussian distribution the action was sampled from
+        :param sigmas: the stds of the gaussian distribution the action was sampled from 
         """
         
         if len(log_prob.shape) == 0:
@@ -172,24 +176,35 @@ class DictExperienceBuffer(BaseBuffer):
         self.dones[self.pos] = dones.detach().to(self.store_device)
         self.values[self.pos] = values.detach().squeeze().to(self.store_device)
         self.neglogpacs[self.pos] = neglogpacs.detach().squeeze().to(self.store_device)
-        self.action_means[self.pos] = action_means.detach().squeeze().to(self.store_device)
-        self.action_std[self.pos] = action_stds.detach().squeeze().to(self.store_device)
+        self.mus[self.pos] = mus.detach().squeeze().to(self.store_device)
+        self.sigmas[self.pos] = sigmas.detach().squeeze().to(self.store_device)
     
-        
-        self.pos += 1
-        
-        if self.pos == self.horizon_length:
-            self.full = True
+    def update_value(self, name: str, index: int, val: Union[torch.Tensor, Dict[str, torch.Tensor]]):
+        """Update only a single value at the index of the buffer
+
+        Args:
+            name (str): name of the obs or tensor
+            index (int): position at which the 
+            val (Union[torch.Tensor, Dict[str, torch.Tensor]]): _description_
+        """
+        if type(val) is dict:
+            for key,val in val.items():
+                self.tensor_dict[name][key][index,:] = val
+        else:
+            self.tensor_dict[name][index,:] = val
             
+    def get_transformed(self, transform_op):
+        res_dict = {}
+        for k, v in self.tensor_dict.items():
+            if type(v) is dict:
+                transformed_dict = {}
+                for kd,vd in v.items():
+                    transformed_dict[kd] = transform_op(vd)
+                res_dict[k] = transformed_dict
+            else:
+                res_dict[k] = transform_op(v)
         
-    def size(self) -> int:
-        """
-        Returns:
-            int: current size of the buffer
-        """
-        if self.full:
-            return self.horizon_length
-        return self.pos
+        return res_dict
      
     
  
