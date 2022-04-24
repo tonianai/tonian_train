@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Any, Union
+from typing import Dict, Tuple, Any, Union, Optional
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -9,9 +9,12 @@ from tonian.training2.common.schedulers import AdaptiveScheduler, LinearSchedule
 from tonian.training2.policies import A2CBasePolicy
 from tonian.training2.common.helpers import DefaultRewardsShaper
 from tonian.training2.common.running_mean_std import RunningMeanStd
+from tonian.training2.common.buffers import DictExperienceBuffer
+
+from tonian.common.utils import join_configs
 
 
-import torch, gym
+import torch, gym, os, yaml
 
 class BaseAlgorithm(ABC):
     
@@ -23,6 +26,10 @@ class BaseAlgorithm(ABC):
                  policy: A2CBasePolicy
                  ) -> None:
         
+        base_config = self.get_standard_config()
+        
+        config = join_configs(config, base_config)
+        
         self.name = config['name']
         
         self.config = config
@@ -31,10 +38,15 @@ class BaseAlgorithm(ABC):
         
         self.policy = policy
         
-        self.num_actors = env.num_envs * env.get_num_actors_per_env()
+        self.num_envs = env.num_envs
+        self.num_actors = env.get_num_actors_per_env()
         
+        
+        self.value_size = config.get('value_size',1)
         self.actor_obs_space: MultiSpace = env.actor_obs
         self.critic_obs_space: MultiSpace = env.critic_obs
+        
+        self.action_space: gym.spaces.Space = env.action_space
         
         self.weight_decay = config.get('weight_decay', 0.0)
         
@@ -88,11 +100,15 @@ class BaseAlgorithm(ABC):
         self.gamma = self.config['gamma']
         self.gae_lambda = self.config['gae_lambda']
         
-        self.batch_size = self.horizon_length * self.num_actors 
+        self.batch_size = self.horizon_length * self.num_actors * self.num_envs
+        self.batch_size_envs = self.horizon_length * self.num_actors
         
         self.minibatch_size = self.config['minibatch_size']
         self.mini_epochs_num = self.config['mini_epochs']
         self.num_minibatches = self.batch_size // self.minibatch_size
+        
+        
+        assert(self.batch_size % self.minibatch_size == 0), "The Batch size must be divisible by the minibatch_size"
         
         
         self.mixed_precision = self.config.get('mixed_precision', False)
@@ -107,6 +123,10 @@ class BaseAlgorithm(ABC):
         self.value_bootstrap = self.config.get('value_bootstrap')
         
         
+        self.optimizer = torch.optim.Adam(self.model.parameters(), float(self.last_lr), eps=1e-08, weight_decay=self.weight_decay)
+
+        
+        
     def set_eval(self):
         self.policy.eval() 
         if self.normalize_value:
@@ -116,3 +136,100 @@ class BaseAlgorithm(ABC):
         self.policy.train() 
         if self.normalize_value:
             self.value_mean_std.train()
+            
+    def discount_values(self, fdones, last_extrinsic_values, mb_fdones, mb_extrinsic_values, mb_rewards):
+        lastgaelam = 0
+        mb_advs = torch.zeros_like(mb_rewards)
+
+        for t in reversed(range(self.horizon_length)):
+            if t == self.horizon_length - 1:
+                nextnonterminal = 1.0 - fdones
+                nextvalues = last_extrinsic_values
+            else:
+                nextnonterminal = 1.0 - mb_fdones[t+1]
+                nextvalues = mb_extrinsic_values[t+1]
+            nextnonterminal = nextnonterminal.unsqueeze(1)
+
+            delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal - mb_extrinsic_values[t]
+            mb_advs[t] = lastgaelam = delta + self.gamma * self.gae_lambda * nextnonterminal * lastgaelam
+        return mb_advs
+            
+    def init_tensors(self):
+        
+        batch_size = self.num_envs * self.num_actors
+        self.experience_buffer = DictExperienceBuffer(
+            self.horizon_length, 
+            self.critic_obs_space, 
+            self.actor_obs_space, 
+            self.action_space,
+            store_device=self.device,
+            out_device=self.device,
+            n_envs=self.num_envs,
+            n_actors= self.num_actors)
+    
+        reward_shape = (batch_size, self.value_size)
+        self.current_rewards = torch.zeros(reward_shape, dtype=torch.float32, device= self.device)
+        self.current_lengths = torch.zeros(batch_size, dtype= torch.float32, device= self.device)
+        self.dones = torch.ones((batch_size, ), dtype=torch.uint8, device=self.device)
+
+    def env_reset(self):
+        return self.env.reset()
+    
+    @abstractmethod
+    def train(self) -> None:
+        raise NotImplementedError()
+        
+    @abstractmethod
+    def save(self, path: str):
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def load(self, path: str):
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def learn(self, n_steps: int, 
+              verbose: bool = True, 
+              early_stopping: bool = False,
+              early_stopping_patience: int = 1e8, 
+              reset_num_timesteps: bool = True):
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def calc_gradients(self):
+        pass
+    
+    @abstractmethod
+    def update_epoch(self):
+        pass
+    
+    def get_action_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]]):
+        self.policy.eval()
+        
+        with torch.no_grad():
+            res = self.policy(actor_obs, critic_obs)
+        
+    
+    def get_standard_config(self) -> Dict:
+        """Retreives the standard config for the algo
+
+        Returns:
+            Dict: config
+        """
+        dirname = os.path.dirname(__file__)
+        base_config_path = os.path.join(dirname, 'config_base_algo.yaml')
+        
+          # open the config file 
+        with open(base_config_path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:    
+                raise FileNotFoundError( f"Base Config : {base_config_path} not found")
+            
+    def play_steps(self):
+        
+        for n in range(self.horizon_length):
+            pass
+            
+            
+    

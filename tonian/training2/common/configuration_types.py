@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from tonian.common.spaces import MultiSpace, MultiSpaceIterator
 from tonian.training2.common.aliases import ActivationFn, InitializerFn
-from tonian.training2.common.networks import MultispaceNet, MultispaceNetElement
+from tonian.training2.networks import MultispaceNet, MultispaceNetElement
 
 import torch
 
