@@ -14,7 +14,7 @@ from tonian.training2.common.buffers import DictExperienceBuffer
 from tonian.common.utils import join_configs
 
 
-import torch, gym, os, yaml
+import torch, gym, os, yaml, time
 
 class BaseAlgorithm(ABC):
     
@@ -207,9 +207,30 @@ class BaseAlgorithm(ABC):
         self.policy.eval()
         
         with torch.no_grad():
-            res = self.policy(actor_obs, critic_obs)
+            res = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
         
-    
+        if self.normalize_value:
+            res['values'] = self.value_mean_std(res['values'], True)
+        
+        return res
+        
+    def get_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor]):
+        
+        # TODO Do this faster 
+        with torch.no_grad():
+            self.policy.eval()
+            result = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
+            
+            value = result['values']
+            
+            if self.normalize_value:
+                value = self.value_mean_std(value, True)
+            
+            return value
+            
+        
+            
+            
     def get_standard_config(self) -> Dict:
         """Retreives the standard config for the algo
 
@@ -229,7 +250,49 @@ class BaseAlgorithm(ABC):
     def play_steps(self):
         
         for n in range(self.horizon_length):
-            pass
+            
+            res_dict = self.get_action_values(self.actor_obs, self.critic_obs)
+            
+            neglogpacs = res_dict['neglogpacs']
+            values = res_dict['values']
+            entropy = res_dict['entropy']
+            mus = res_dict['mus']
+            sigmas = res_dict['sigmas']
+            
+            
+            step_time_start = time.time()
+            
+            obs, rewards, self.dones, infos, reward_constituents = self.env.step(res_dict['actions'])
+            
+            if isinstance(obs, Tuple):
+                self.actor_obs = obs[0]
+                if len(obs) == 2:
+                    self.critic_obs = obs[1]
+            else:
+                self.actor_obs = obs 
+            
+            step_time_end = time.time()
+
+            step_time += (step_time_end - step_time_start)
+            
+            shaped_rewards = self.reward_shaper(rewards)
+            
+            if self.value_bootstrap and 'time_outs' in infos:
+                shaped_rewards += self.gamma * res_dict['values'] * self.cast_obs(infos['time_outs']).unsqueeze(1).float()
+                
+            self.experience_buffer.add(
+                actor_obs: , 
+                critic_obs: , 
+                actions: , 
+                rewards: , 
+                dones: , 
+                values: , 
+                neglogpacs: , 
+                action_means: , 
+                action_stds: )
+            
+            
+            
             
             
     

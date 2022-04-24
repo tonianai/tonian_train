@@ -50,7 +50,7 @@ class A2CBasePolicy(A2CBasePolicy):
         return self.a2c_net
     
     
-    def forward(self, is_train: bool,   actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor], prev_actions: Optional[torch.Tensor]) -> Dict:
+    def forward(self, is_train: bool,   actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor], prev_actions: Optional[torch.Tensor] = None) -> Dict:
         """
 
         Args:
