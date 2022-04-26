@@ -345,7 +345,7 @@ class WalkingTask(VecTask):
     
     def get_num_actors_per_env(self) -> int:
         return 1
-        
+            
 
 @torch.jit.script
 def compute_robot_rewards(root_states: torch.Tensor,
@@ -445,7 +445,7 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     linear_actor_obs = torch.cat((sensor_states, dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions), dim=-1)
      
     
-    linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
+    linear_critic_obs = torch.cat(( velocity, torso_position), dim=-1)
      
     
     return  linear_actor_obs,   linear_critic_obs

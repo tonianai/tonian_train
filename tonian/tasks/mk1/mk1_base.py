@@ -383,7 +383,7 @@ class Mk1BaseClass(VecTask, ABC):
             MultiSpace: [description]
         """
 
-        num_critic_obs = 132
+        num_critic_obs = 6
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })
@@ -427,9 +427,6 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_root_states[: , 7] = self.intitial_velocities[0]()  # vel in -y axis
         self.initial_root_states[:, 8] = self.intitial_velocities[1]() # vel in -x axis
         self.initial_root_states[:, 9] = self.intitial_velocities[2]() # vel in -z axis
-        
-        
-        
         
         
             
@@ -544,7 +541,7 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     
     linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions), dim=-1)
     
-    linear_critic_obs = torch.cat((linear_actor_obs, torso_rotation, velocity, torso_position, actions), dim=-1)
+    linear_critic_obs = torch.cat(( velocity, torso_position), dim=-1)
     
     return  linear_actor_obs,   linear_critic_obs
 

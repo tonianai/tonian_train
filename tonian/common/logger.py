@@ -55,12 +55,12 @@ class DummyLogger(BaseLogger):
         BaseLogger (_type_): 
     """
     def __init__(self) -> None:
-        super().__init__('')
+        super().__init__('', 0)
     
     def log(self, key: str, value: Union[int, float], step: int):
         pass
         
-    def log_config(self, config: Dict):
+    def log_config(self, tag:str, config: Dict):
         pass
      
 class TensorboardLogger(BaseLogger):

@@ -1,4 +1,4 @@
-from tonian.training2.common.configuration_types import MultiSpaceNetworkConfiguration
+from tonian.training2.networks import MultiSpaceNetworkConfiguration
 from tonian.common.spaces import MultiSpace
 
 import yaml, gym, torch

@@ -40,10 +40,10 @@ class A2CBasePolicy(nn.Module, ABC):
         raise NotImplementedError()
     
 
-class A2CBasePolicy(A2CBasePolicy):
+class A2CSequentialLogStdPolicy(A2CBasePolicy):
     
-    def __init__(self, a2c_net: A2CBaseNet) -> None:
-        super().__init__()
+    def __init__(self, a2c_net: A2CSequentialNetLogStd) -> None:
+        super().__init__(a2c_net)
         self.a2c_net = a2c_net
         
     def is_rnn(self):
@@ -62,8 +62,14 @@ class A2CBasePolicy(A2CBasePolicy):
             Dict: result_dict following keys: 
         """
         mu, logstd, value = self.a2c_net(actor_obs, critic_obs)
+        print('mu')
+        print(mu)
+        
         
         sigma = torch.exp(logstd)
+        print('sigma')
+        print(sigma)
+        
         distr = torch.distributions.Normal(mu, sigma)
         
         if is_train:

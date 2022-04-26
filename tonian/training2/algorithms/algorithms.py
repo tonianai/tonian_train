@@ -68,6 +68,7 @@ class A2CBaseAlgorithm(ABC):
         self.device = device
         
         self.policy = policy
+        self.policy.to(self.device)
         
         self.num_envs = env.num_envs
         self.num_actors = env.get_num_actors_per_env()
@@ -77,8 +78,8 @@ class A2CBaseAlgorithm(ABC):
         
         
         self.value_size = config.get('value_size',1)
-        self.actor_obs_space: MultiSpace = env.actor_obs
-        self.critic_obs_space: MultiSpace = env.critic_obs
+        self.actor_obs_space: MultiSpace = env.actor_observation_spaces
+        self.critic_obs_space: MultiSpace = env.critic_observation_spaces
         
         self.action_space: gym.spaces.Space = env.action_space
         
@@ -126,7 +127,7 @@ class A2CBaseAlgorithm(ABC):
         
         
         if self.normalize_value:
-            self.value_mean_std = RunningMeanStd((1,)).to(self.ppo_device)
+            self.value_mean_std = RunningMeanStd((1,)).to(self.device)
         
         
         self.critic_coef = config['critic_coef']
@@ -154,7 +155,7 @@ class A2CBaseAlgorithm(ABC):
         
         self.value_bootstrap = self.config.get('value_bootstrap')
         
-        self.optimizer = torch.optim.Adam(self.model.parameters(), float(self.last_lr), eps=1e-08, weight_decay=self.weight_decay)
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), float(self.last_lr), eps=1e-08, weight_decay=self.weight_decay)
         
         self.epoch_num = 0
         self.play_time = 0
@@ -201,7 +202,8 @@ class A2CBaseAlgorithm(ABC):
             store_device=self.device,
             out_device=self.device,
             n_envs=self.num_envs,
-            n_actors= self.num_actors)
+            n_actors= self.num_actors,
+            n_values=self.value_size )
     
         reward_shape = (batch_size, self.value_size)
         self.current_rewards = torch.zeros(reward_shape, dtype=torch.float32, device= self.device)
@@ -221,14 +223,6 @@ class A2CBaseAlgorithm(ABC):
     
     @abstractmethod
     def load(self, path: str):
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def learn(self, n_steps: int, 
-              verbose: bool = True, 
-              early_stopping: bool = False,
-              early_stopping_patience: int = 1e8, 
-              reset_num_timesteps: bool = True):
         raise NotImplementedError()
     
     @abstractmethod
@@ -289,6 +283,15 @@ class A2CBaseAlgorithm(ABC):
             except yaml.YAMLError as exc:    
                 raise FileNotFoundError( f"Base Config : {base_config_path} not found")
             
+    def env_step(self, actions):
+        actions = self.preprocess_actions(actions)
+        obs, rewards, dones, infos, reward_constituents = self.env.step(actions)
+ 
+        if self.value_size == 1:
+            rewards = rewards.unsqueeze(1)
+        return obs, rewards.to(self.device), dones.to(self.device), infos, reward_constituents
+
+    
     def play_steps(self):
         
         
@@ -301,22 +304,23 @@ class A2CBaseAlgorithm(ABC):
             
             self.experience_buffer.update_value('critic_obs', n, self.critic_obs)
             self.experience_buffer.update_value('actor_obs', n, self.actor_obs)
+            self.experience_buffer.update_value('dones', n, self.dones)
             
             neglogpacs = res_dict['neglogpacs']
             values = res_dict['values']
-            entropy = res_dict['entropy']
+            actions = res_dict['actions']
             mus = res_dict['mus']
             sigmas = res_dict['sigmas']
             self.experience_buffer.update_value('neglogpacs', n, neglogpacs)
             self.experience_buffer.update_value('values', n, values)
-            self.experience_buffer.update_value('entropy', n, entropy)
+            self.experience_buffer.update_value('actions', n, actions)
             self.experience_buffer.update_value('mus', n, mus)
             self.experience_buffer.update_value('sigmas', n, sigmas)
             
             
             step_time_start = time.time()
             
-            obs, rewards, self.dones, infos, reward_constituents = self.env.step(res_dict['actions'])
+            obs, rewards, self.dones, infos, reward_constituents = self.env_step(actions)
             
             if isinstance(obs, Tuple):
                 self.actor_obs = obs[0]
@@ -332,7 +336,16 @@ class A2CBaseAlgorithm(ABC):
             shaped_rewards = self.reward_shaper(rewards)
             
             if self.value_bootstrap and 'time_outs' in infos:
-                shaped_rewards += self.gamma * res_dict['values'] * self.cast_obs(infos['time_outs']).unsqueeze(1).float()
+                test = self.gamma * res_dict['values'] 
+                
+                # time_outs = torch.FloatTensor(infos['time_outs'])
+                
+                # time_outs = time_outs.to(self.device).unsqueeze(1).float()
+                print(test.shape)
+                print(infos['time_outs'].unsqueeze(1).shape)
+                print(shaped_rewards.shape)
+                
+                shaped_rewards += self.gamma * res_dict['values'] * infos['time_outs'].unsqueeze(1).float()
                 
             
             self.experience_buffer.update_value('rewards', n, shaped_rewards)
@@ -349,7 +362,7 @@ class A2CBaseAlgorithm(ABC):
             self.current_rewards = self.current_rewards * not_dones.unsqueeze(1)
             self.current_lengths = self.current_lengths * not_dones
             
-        last_values = self.get_values(self.obs)
+        last_values = self.get_values(self.actor_obs, self.critic_obs)
 
         fdones = self.dones.float()
         mb_fdones = self.experience_buffer.tensor_dict['dones'].float()
@@ -463,7 +476,9 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             
     def train(self):
         
-        self.critic_obs, self.actor_obs = self.env_reset()
+        self.init_tensors()
+        
+        self.actor_obs, self.critic_obs = self.env_reset()
         
         while True:
             epoch_num = self.update_epoch()
@@ -565,11 +580,31 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         with torch.cuda.amp.autocast(enabled=self.mixed_precision):
             res_dict = self.policy(is_train= True, actor_obs= actor_obs_batch, critic_obs = critic_obs_batch, prev_actions = actions_batch)
             
+            print('train mu')
+            print(res_dict['mus'])
+            print('train')
+            
             action_log_probs = res_dict['prev_neglogprob']
             values = res_dict['values']
             entropy = res_dict['entropy']
             mu = res_dict['mus']
             sigma = res_dict['sigmas']
+            
+            print('inputs')
+            print(action_log_probs)
+            print(values)
+            print(entropy)
+            print(mu)
+            print(sigma)
+            
+            print('train mu')
+            print(res_dict['mus'])
+            print(mu)
+            print('train sigma')
+            print(res_dict['sigmas'])
+            print(sigma)
+            print('-----')
+            
             
             a_loss = actor_loss(old_action_log_probs_batch, action_log_probs, advantage, True,  curr_e_clip)
             
@@ -582,17 +617,28 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             b_loss = self.bound_loss(mu).unsqueeze(1)
             entropy_loss = entropy.unsqueeze(1)
             
+            
+            print('a_loss')
+            print(a_loss)
+            
             a_loss = torch.mean(a_loss)
             b_loss = torch.mean(b_loss)
             c_loss = torch.mean(c_loss)
             entropy_loss = torch.mean(entropy_loss)
+            print(a_loss)
+            print(c_loss)
+            print(self.critic_coef)
+            print(entropy)
+            print(b_loss)
             
-            
+            print(self.bounds_loss_coef)
             loss = a_loss + 0.5 * c_loss * self.critic_coef - entropy * self.entropy_coef + b_loss * self.bounds_loss_coef
             
             for param in self.policy.parameters():
                 param.grad = None
             
+        print('loss')
+        print(loss)
         self.scaler.scale(loss).backward()
         
         if self.truncate_grads:
@@ -609,25 +655,16 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             kl_dist, self.last_lr, lr_mul, \
             mu.detach(), sigma.detach(), b_loss)
         
-    def train_actor_critic(self, 
-                       value_preds_batch: torch.Tensor, 
-                       old_action_log_probs_batch: torch.Tensor,
-                       advantage: torch.Tensor,
-                       old_mu_batch: torch.Tensor,
-                       old_sigma_batch: torch.Tensor,
-                       return_batch: torch.Tensor,
-                       actions_batch: torch.Tensor,
-                       actor_obs_batch: torch.Tensor,
-                       critic_obs_batch: torch.Tensor):
-        self.calc_gradients(value_preds_batch, 
-                            old_action_log_probs_batch,
-                            advantage,
-                            old_mu_batch,
-                            old_sigma_batch,
-                            return_batch,
-                            actions_batch,
-                            actor_obs_batch,
-                            critic_obs_batch)
+    def train_actor_critic(self, input_dict: Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]):
+        self.calc_gradients(value_preds_batch = input_dict['old_values'], 
+                            old_action_log_probs_batch = input_dict['old_logp_actions'],
+                            advantage = input_dict['advantages'],
+                            old_mu_batch = input_dict['mu'],
+                            old_sigma_batch = input_dict['sigma'],
+                            return_batch = input_dict['returns'],
+                            actions_batch = input_dict['actions'],
+                            actor_obs_batch = input_dict['actor_obs'],
+                            critic_obs_batch = input_dict['critic_obs'])
         return self.train_result
         
     def bound_loss(self, mu):

@@ -59,10 +59,12 @@ class DictExperienceBuffer(BaseBuffer):
                  store_device: Union[str, torch.device] = "cuda:0",
                  out_device: Union[str, torch.device] = "cuda:0",
                  n_envs: int = 1,
-                 n_actors: int = 1
+                 n_actors: int = 1,
+                 n_values: int = 1
                  ) -> None:
         super().__init__()
         
+        self.n_values = n_values
         self.horizon_length = horizon_length
         self.critic_obs_space = critic_obs_space
         self.actor_obs_space = actor_obs_space
@@ -99,10 +101,10 @@ class DictExperienceBuffer(BaseBuffer):
         
         # store everything in torch tensors on the gpu
         self.actions = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype=torch.float32, device=self.store_device)
-        self.rewards = torch.zeros((self.horizon_length, self.n_actors_per_step), dtype=torch.float32, device=self.store_device)
+        self.rewards = torch.zeros((self.horizon_length, self.n_actors_per_step, self.n_values), dtype=torch.float32, device=self.store_device)
         self.returns = torch.zeros((self.horizon_length, self.n_actors_per_step), dtype=torch.float32, device=self.store_device)
         self.dones = torch.zeros((self.horizon_length, self.n_actors_per_step), dtype=torch.int8, device=self.store_device)
-        self.values = torch.zeros((self.horizon_length, self.n_actors_per_step), dtype=torch.float32, device=self.store_device)
+        self.values = torch.zeros((self.horizon_length, self.n_actors_per_step, self.n_values), dtype=torch.float32, device=self.store_device)
         self.neglogpacs = torch.zeros((self.horizon_length, self.n_actors_per_step), dtype=torch.float32, device=self.store_device)
         
         # the mean of the action distributions
@@ -196,6 +198,23 @@ class DictExperienceBuffer(BaseBuffer):
     def get_transformed(self, transform_op):
         res_dict = {}
         for k, v in self.tensor_dict.items():
+            if type(v) is dict:
+                transformed_dict = {}
+                for kd,vd in v.items():
+                    transformed_dict[kd] = transform_op(vd)
+                res_dict[k] = transformed_dict
+            else:
+                res_dict[k] = transform_op(v)
+        
+        return res_dict
+    
+
+    def get_transformed_list(self, transform_op, tensor_list):
+        res_dict = {}
+        for k in tensor_list:
+            v = self.tensor_dict.get(k)
+            if v is None:
+                continue
             if type(v) is dict:
                 transformed_dict = {}
                 for kd,vd in v.items():
