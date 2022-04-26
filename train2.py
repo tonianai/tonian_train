@@ -7,8 +7,8 @@ import yaml
 from tonian.training2.algorithms.algorithms import PPOAlgorithm
 from tonian.training2.networks import A2CSequentialNetLogStd, build_A2CSequientialNetLogStd
 from tonian.training2.policies import A2CSequentialLogStdPolicy
-from tonian.common.logger import DummyLogger
-
+from tonian.common.logger import DummyLogger, TensorboardLogger
+from tonian.common.config_utils import create_new_run_directory
 from tonian.common.utils import set_random_seed
 
 
@@ -33,8 +33,13 @@ network = build_A2CSequientialNetLogStd(config['policy'],
 
 policy = A2CSequentialLogStdPolicy(network)
 
+# create the run folder here
+run_folder_name, run_id = create_new_run_directory(config)
+    
+logger = TensorboardLogger(run_folder_name, run_id)
 
-logger = DummyLogger()
+logger.log_config('policy',config['policy'])
+logger.log_config('algo',config['algo'])
 
 logger.log_config('policy',config['policy'])
 logger.log_config('algo',config['algo'])

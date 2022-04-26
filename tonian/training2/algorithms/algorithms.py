@@ -63,9 +63,13 @@ class A2CBaseAlgorithm(ABC):
         
         self.name = config['name']
         
+        self.logger = logger
+        
         self.config = config
         self.env = env
         self.device = device
+        
+        self.frame = 0
         
         self.policy = policy
         self.policy.to(self.device)
@@ -477,12 +481,12 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
                     self.last_lr, self.entropy_coef = self.scheduler.update(self.last_lr, self.entropy_coef, self.epoch_num, 0,kl.item())
                     self.update_lr(self.last_lr)
                 
-                av_kls = torch.mean(torch.stack(ep_kls))  
+            av_kls = torch.mean(torch.stack(ep_kls))  
                 
             if self.schedule_type == 'standard': 
                 self.last_lr, self.entropy_coef = self.scheduler.update(self.last_lr, self.entropy_coef, self.epoch_num, 0,av_kls.item())
                 self.update_lr(self.last_lr)
-                kls.append(av_kls)
+            kls.append(av_kls)
                 
         if self.schedule_type == 'standard_epoch':
             self.last_lr, self.entropy_coef = self.scheduler.update(self.last_lr, self.entropy_coef, self.epoch_num, 0,av_kls.item())
@@ -506,11 +510,43 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
         self.actor_obs, self.critic_obs = self.env_reset()
         
+        total_time = 0
+        
         while True:
             epoch_num = self.update_epoch()
             
             step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
             
+            print(kls)
+            
+            total_time += sum_time
+            curr_frames = self.curr_frames
+            self.frame += curr_frames
+            total_time += sum_time
+            
+            # cleaning memory to optimize space
+            self.dataset.update_values_dict(None)
+             
+            
+            frame = self.frame
+            
+            scaled_time = sum_time #self.num_agents * sum_time
+            scaled_play_time = play_time #self.num_agents * play_time
+            
+            self.logger.log('performance/step_inference_rl_update_fps', curr_frames / scaled_time, frame)
+            self.logger.log('performance/step_inference_fps', curr_frames / scaled_play_time, frame)
+            self.logger.log('performance/step_fps', curr_frames / step_time, frame)
+            self.logger.log('performance/rl_update_time', update_time, frame)
+            self.logger.log('performance/step_inference_time', play_time, frame)
+            self.logger.log('performance/step_time', step_time, frame)
+            self.logger.log('losses/a_loss', torch.mean(torch.stack(a_losses)).item(), frame)
+            self.logger.log('losses/c_loss', torch.mean(torch.stack(c_losses)).item(), frame)
+            self.logger.log('losses/entropy', torch.mean(torch.stack(entropies)).item(), frame)
+            self.logger.log('info/last_lr', last_lr * lr_mul, frame)
+            self.logger.log('info/lr_mul', lr_mul, frame)
+            self.logger.log('info/e_clip', self.e_clip * lr_mul, frame)
+            self.logger.log('info/kl', torch.mean(torch.stack(kls)).item(), frame)
+            self.logger.log('info/epochs', epoch_num, frame)
             # TODO Add Logging and shit
             
             
