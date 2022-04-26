@@ -62,14 +62,9 @@ class A2CSequentialLogStdPolicy(A2CBasePolicy):
             Dict: result_dict following keys: 
         """
         mu, logstd, value = self.a2c_net(actor_obs, critic_obs)
-        print('mu')
-        print(mu)
-        
-        
+ 
         sigma = torch.exp(logstd)
-        print('sigma')
-        print(sigma)
-        
+   
         distr = torch.distributions.Normal(mu, sigma)
         
         if is_train:

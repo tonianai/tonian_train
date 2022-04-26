@@ -8,7 +8,7 @@ from tonian.common.spaces import MultiSpace
 from tonian.training2.common.schedulers import AdaptiveScheduler, LinearScheduler, IdentityScheduler
 from tonian.training2.policies import A2CBasePolicy
 from tonian.training2.common.helpers import DefaultRewardsShaper
-from tonian.training2.common.running_mean_std import RunningMeanStd
+from tonian.training2.common.running_mean_std import RunningMeanStd, RunningMeanStdObs
 from tonian.training2.common.buffers import DictExperienceBuffer
 from tonian.training2.common.common_losses import critic_loss, actor_loss
 from tonian.training2.common.dataset import PPODataset
@@ -117,10 +117,11 @@ class A2CBaseAlgorithm(ABC):
             scale_value=reward_shaper_config.get('scale_value', 1),
             shift_value=reward_shaper_config.get('shift_value', 0),
             min_val= reward_shaper_config.get('min_val', -np.Inf),
-            max_val= reward_shaper_config.get('max_val', -np.Inf)
+            max_val= reward_shaper_config.get('max_val', np.Inf)
             )
         
         
+        self.normalize_input = self.config['normalize_input']
         self.normalize_advantage = config['normalize_advantage'] 
         self.normalize_value = self.config.get('normalize_value', False)
         self.truncate_grads = self.config.get('truncate_grads', False)
@@ -128,6 +129,12 @@ class A2CBaseAlgorithm(ABC):
         
         if self.normalize_value:
             self.value_mean_std = RunningMeanStd((1,)).to(self.device)
+            
+        if self.normalize_input:
+            
+            self.actor_obs_mean_std = RunningMeanStdObs(self.actor_obs_space.dict_shape).to(self.device)
+            if self.critic_obs_space:
+                self.critic_obs_mean_std = RunningMeanStdObs(self.critic_obs_space.dict_shape).to(self.device)
         
         
         self.critic_coef = config['critic_coef']
@@ -168,12 +175,19 @@ class A2CBaseAlgorithm(ABC):
         self.policy.eval() 
         if self.normalize_value:
             self.value_mean_std.eval()
+        if self.normalize_input:
+            self.actor_obs_mean_std.eval()
+            self.critic_obs_mean_std.eval()
 
     def set_train(self):
         self.policy.train() 
         if self.normalize_value:
             self.value_mean_std.train()
-            
+        
+        if self.normalize_input:
+            self.actor_obs_mean_std.train()
+            self.critic_obs_mean_std.train()    
+        
     def discount_values(self, fdones, last_extrinsic_values, mb_fdones, mb_extrinsic_values, mb_rewards):
         lastgaelam = 0
         mb_advs = torch.zeros_like(mb_rewards)
@@ -237,12 +251,32 @@ class A2CBaseAlgorithm(ABC):
         self.policy.eval()
         
         with torch.no_grad():
-            res = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
+            proc_actor_obs, proc_critic_obs = self._preproc_obs(actor_obs, critic_obs)
+            
+            res = self.policy(is_train= False, actor_obs= proc_actor_obs, critic_obs= proc_critic_obs, prev_actions= None)
         
         if self.normalize_value:
             res['values'] = self.value_mean_std(res['values'], True)
         
         return res
+        
+    def _preproc_obs(self, actor_obs_batch: Dict[str, torch.Tensor], critic_obs_batch: Optional[Dict[str, torch.Tensor]]):
+        
+        res_actor_obs_batch = None
+        res_critic_obs_batch = None
+        
+        if self.normalize_input:
+            
+            res_actor_obs_batch = self.actor_obs_mean_std(actor_obs_batch)
+            if critic_obs_batch:
+                res_critic_obs_batch = self.critic_obs_mean_std(critic_obs_batch)
+            
+            return  res_actor_obs_batch, res_critic_obs_batch
+        
+        return actor_obs_batch, critic_obs_batch
+        
+        
+        
         
     def get_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor]):
         
@@ -304,18 +338,18 @@ class A2CBaseAlgorithm(ABC):
             
             self.experience_buffer.update_value('critic_obs', n, self.critic_obs)
             self.experience_buffer.update_value('actor_obs', n, self.actor_obs)
-            self.experience_buffer.update_value('dones', n, self.dones)
+            self.experience_buffer.update_value('dones', n, self.dones.detach().clone())
             
             neglogpacs = res_dict['neglogpacs']
             values = res_dict['values']
             actions = res_dict['actions']
             mus = res_dict['mus']
             sigmas = res_dict['sigmas']
-            self.experience_buffer.update_value('neglogpacs', n, neglogpacs)
-            self.experience_buffer.update_value('values', n, values)
-            self.experience_buffer.update_value('actions', n, actions)
-            self.experience_buffer.update_value('mus', n, mus)
-            self.experience_buffer.update_value('sigmas', n, sigmas)
+            self.experience_buffer.update_value('neglogpacs', n, neglogpacs.detach().clone())
+            self.experience_buffer.update_value('values', n, values.detach().clone())
+            self.experience_buffer.update_value('actions', n, actions.detach().clone())
+            self.experience_buffer.update_value('mus', n, mus.detach().clone())
+            self.experience_buffer.update_value('sigmas', n, sigmas.detach().clone())
             
             
             step_time_start = time.time()
@@ -336,14 +370,6 @@ class A2CBaseAlgorithm(ABC):
             shaped_rewards = self.reward_shaper(rewards)
             
             if self.value_bootstrap and 'time_outs' in infos:
-                test = self.gamma * res_dict['values'] 
-                
-                # time_outs = torch.FloatTensor(infos['time_outs'])
-                
-                # time_outs = time_outs.to(self.device).unsqueeze(1).float()
-                print(test.shape)
-                print(infos['time_outs'].unsqueeze(1).shape)
-                print(shaped_rewards.shape)
                 
                 shaped_rewards += self.gamma * res_dict['values'] * infos['time_outs'].unsqueeze(1).float()
                 
@@ -429,7 +455,7 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         entropies = [] # entropy losses
         kls = [] # kl divergences 
         
-        for _ in range(self.mini_epochs_num):
+        for _ in range(0,self.mini_epochs_num):
             
             ep_kls = []
             
@@ -483,7 +509,7 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         while True:
             epoch_num = self.update_epoch()
             
-            step_time, play_time, update_time, sum_time, a_losses, c_losses, entropies, kls, last_lr, lr_mul = self.train_epoch()
+            step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
             
             # TODO Add Logging and shit
             
@@ -569,41 +595,25 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
                        old_sigma_batch: torch.Tensor,
                        return_batch: torch.Tensor,
                        actions_batch: torch.Tensor,
-                       actor_obs_batch: torch.Tensor,
-                       critic_obs_batch: torch.Tensor
+                       actor_obs_batch: Dict[str, torch.Tensor],
+                       critic_obs_batch: Dict[str, torch.Tensor]
                        ):
         
         lr_mul = 1.0
         
         curr_e_clip = lr_mul * self.e_clip
         
+        actor_obs_batch, critic_obs_batch = self._preproc_obs(actor_obs_batch, critic_obs_batch)
+        
         with torch.cuda.amp.autocast(enabled=self.mixed_precision):
             res_dict = self.policy(is_train= True, actor_obs= actor_obs_batch, critic_obs = critic_obs_batch, prev_actions = actions_batch)
-            
-            print('train mu')
-            print(res_dict['mus'])
-            print('train')
+             
             
             action_log_probs = res_dict['prev_neglogprob']
             values = res_dict['values']
             entropy = res_dict['entropy']
             mu = res_dict['mus']
             sigma = res_dict['sigmas']
-            
-            print('inputs')
-            print(action_log_probs)
-            print(values)
-            print(entropy)
-            print(mu)
-            print(sigma)
-            
-            print('train mu')
-            print(res_dict['mus'])
-            print(mu)
-            print('train sigma')
-            print(res_dict['sigmas'])
-            print(sigma)
-            print('-----')
             
             
             a_loss = actor_loss(old_action_log_probs_batch, action_log_probs, advantage, True,  curr_e_clip)
@@ -618,27 +628,16 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             entropy_loss = entropy.unsqueeze(1)
             
             
-            print('a_loss')
-            print(a_loss)
-            
             a_loss = torch.mean(a_loss)
             b_loss = torch.mean(b_loss)
             c_loss = torch.mean(c_loss)
-            entropy_loss = torch.mean(entropy_loss)
-            print(a_loss)
-            print(c_loss)
-            print(self.critic_coef)
-            print(entropy)
-            print(b_loss)
+            entropy = torch.mean(entropy_loss)
             
-            print(self.bounds_loss_coef)
             loss = a_loss + 0.5 * c_loss * self.critic_coef - entropy * self.entropy_coef + b_loss * self.bounds_loss_coef
             
             for param in self.policy.parameters():
                 param.grad = None
             
-        print('loss')
-        print(loss)
         self.scaler.scale(loss).backward()
         
         if self.truncate_grads:

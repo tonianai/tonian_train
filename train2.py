@@ -23,7 +23,7 @@ with open(config_path, 'r') as stream:
         config = yaml.safe_load(stream)
     except yaml.YAMLError as exc:    
         raise FileNotFoundError( f"File {config_path} not found")
-
+    
 task = Mk1WalkingTask(config['task'], 'cuda:0', 0, False)
 
 network = build_A2CSequientialNetLogStd(config['policy'], 

@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import numpy as np
+
+from typing import Dict, Tuple
+
 '''
 updates statistic from a full data
 '''
@@ -77,13 +80,14 @@ class RunningMeanStd(nn.Module):
         return y
 
 class RunningMeanStdObs(nn.Module):
-    def __init__(self, insize, epsilon=1e-05, per_channel=False, norm_only=False):
-        assert(insize is dict)
+    def __init__(self, insize: Dict[str, Tuple], epsilon=1e-05, per_channel=False, norm_only=False):
+        
         super(RunningMeanStdObs, self).__init__()
         self.running_mean_std = nn.ModuleDict({
             k : RunningMeanStd(v, epsilon, per_channel, norm_only) for k,v in insize.items()
         })
     
     def forward(self, input, unnorm=False):
-        res = {k : self.running_mean_std(v, unnorm) for k,v in input.items()}
+
+        res = {k : self.running_mean_std[k](v, unnorm) for k,v in input.items()}
         return res

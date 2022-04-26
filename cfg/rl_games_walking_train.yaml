@@ -40,9 +40,8 @@ params:
     full_experiment_name: Mk1_Walking
     env_name: rlgpu
     multi_gpu: False
-    mixed_precision: True
-    #normalize_input: True
-    normalize_input: False
+    mixed_precision: True 
+    normalize_input: True
     normalize_value: True
     value_bootstrap: True
     num_actors: 1024

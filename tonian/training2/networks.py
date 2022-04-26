@@ -77,8 +77,7 @@ class ActivationConfiguration(DictConfigurationType):
         'softplus': nn.Softplus,
         'None': nn.Identity
         }
-        
-        print(activation_fn_class_map[self.name])
+         
         assert self.name in activation_fn_class_map, f"The activation function {self.name} was not found. Please check your config."
     
         return activation_fn_class_map[self.name](**self.kwargs) 
@@ -208,7 +207,6 @@ class MultispaceNetElement(nn.Module):
         self.out_size = out_size
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print(self.name)
         return self.net(x)
 
 class MultispaceNet(nn.Module):
@@ -367,8 +365,7 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
                 ]
         """
         super().__init__(config)
-        
-        print(config)
+         
         self.config = config
         
         self.mlp_networks = []
@@ -409,10 +406,7 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
 
         Returns:
             MultispaceNet: Network as described int the config
-        """
-        
-        print(self.config)
-        print(multi_space)
+        """ 
                 
         for space_key in multi_space.keys():
             assert space_key not in [mlp_net['name'] for mlp_net in  self.mlp_networks], "The name of a net cannot be the same as any multispace key name"

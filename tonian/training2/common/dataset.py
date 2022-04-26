@@ -16,7 +16,6 @@ class PPODataset(Dataset):
         self.num_games_batch = self.minibatch_size // self.seq_len
         self.game_indexes = torch.arange(total_games, dtype=torch.long, device=self.device)
         self.flat_indexes = torch.arange(total_games * self.seq_len, dtype=torch.long, device=self.device).reshape(total_games, self.seq_len)
-        print("PPO Dataset")
         self.special_names = ['rnn_states']
 
     def update_values_dict(self, values_dict):

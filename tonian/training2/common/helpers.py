@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class DefaultRewardsShaper:
-    def __init__(self, scale_value = 1, shift_value = 0, min_val=-np.inf, max_val=np.inf, is_torch=True):
+    def __init__(self, scale_value = 1, shift_value = 0, min_val=-np.inf, max_val= np.inf, is_torch=True):
         self.scale_value = scale_value
         self.shift_value = shift_value
         self.min_val = min_val

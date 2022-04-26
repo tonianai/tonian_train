@@ -78,6 +78,7 @@ class DictExperienceBuffer(BaseBuffer):
         self.store_device = store_device
         self.out_device = out_device
         
+        
         # save the dict shape of the actor and the critic
         self.critic_obs_dict_shape = critic_obs_space.dict_shape
         self.actor_obs_dict_shape = actor_obs_space.dict_shape
@@ -108,9 +109,9 @@ class DictExperienceBuffer(BaseBuffer):
         self.neglogpacs = torch.zeros((self.horizon_length, self.n_actors_per_step), dtype=torch.float32, device=self.store_device)
         
         # the mean of the action distributions
-        self.mus = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype=torch.float32)
+        self.mus = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype=torch.float32, device=self.store_device)
         # the std(sigma) of the action distributions   
-        self.sigmas = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype= torch.float32)
+        self.sigmas = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype= torch.float32, device=self.store_device)
         
         
         # critic obs and actor obs must be dicts, because this enables multispace environments
