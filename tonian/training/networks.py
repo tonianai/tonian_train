@@ -782,6 +782,7 @@ def build_A2CSequientialNetLogStd(config: Dict,
         A2CSequentialNetLogStd
     """
     
+    print(config)
     
     actor_net = MultiSpaceNetworkConfiguration(config['actor_net']).build(actor_obs_space)
     

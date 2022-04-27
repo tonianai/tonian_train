@@ -54,7 +54,8 @@ class A2CBaseAlgorithm(ABC):
                  config: Dict,
                  device: Union[str, torch.device],
                  logger: BaseLogger,
-                 policy: A2CBasePolicy
+                 policy: A2CBasePolicy,
+                 verbose: bool = True
                  ) -> None:
         
         base_config = self.get_standard_config()
@@ -63,13 +64,14 @@ class A2CBaseAlgorithm(ABC):
         
         self.name = config['name']
         
+        self.verbose = verbose
+        
         self.logger = logger
         
         self.config = config
         self.env = env
         self.device = device
         
-        self.frame = 0
         
         self.policy = policy
         self.policy.to(self.device)
@@ -171,6 +173,10 @@ class A2CBaseAlgorithm(ABC):
         self.epoch_num = 0
         self.play_time = 0
         self.update_time = 0
+        
+        # the total amount of timesteps playes across all environments
+        self.num_timesteps = 0
+        
         
 
         
@@ -345,6 +351,18 @@ class A2CBaseAlgorithm(ABC):
         
         step_time = 0.0
         
+        # cumulative sum of  episode rewards within rollout ()
+        sum_ep_reward = 0
+        
+        # cumulative sum of the amount of completed episodes
+        n_completed_episodes = 0
+        
+        # cumulative sum of all the steps taken in all the episodes
+        sum_steps_per_episode = 0
+        
+        # the cumulative reweard constituents, if they exist
+        sum_reward_consituents = {}
+        
         for n in range(self.horizon_length):
             
             res_dict = self.get_action_values(self.actor_obs, self.critic_obs)
@@ -394,13 +412,30 @@ class A2CBaseAlgorithm(ABC):
             self.current_rewards += rewards
             self.current_lengths += 1
             
-            # todo add rewards and legnth stats and log all the writer stats
+            
+            # add all the episodes that were completed whitin the last time step to the counter
+            n_completed_episodes +=  torch.sum(self.dones).item()
+            
+            
+            # sum of all rewards of all completed episodes
+            sum_ep_reward += torch.sum(infos["episode_reward"]).item()
+            
+            # sum all the steps of all completed episodes
+            sum_steps_per_episode  += torch.sum(infos["episode_steps"]).item()
+            
+            if not sum_reward_consituents:
+                sum_reward_consituents = reward_constituents
+            else:
+                for key, value in reward_constituents.items():
+                    sum_reward_consituents[key] += value    
             
             
             not_dones = 1.0 - self.dones.float()
 
             self.current_rewards = self.current_rewards * not_dones.unsqueeze(1)
             self.current_lengths = self.current_lengths * not_dones
+            
+        self.num_timesteps += self.batch_size
             
         last_values = self.get_values(self.actor_obs, self.critic_obs)
 
@@ -416,13 +451,28 @@ class A2CBaseAlgorithm(ABC):
         batch_dict['returns'] = swap_and_flatten01(mb_returns)
         batch_dict['played_frames'] = self.batch_size
         batch_dict['step_time'] = step_time
+        
+        # log the information
+        if n_completed_episodes != 0:
+            self.logger.log("run/episode_rewards", sum_ep_reward / n_completed_episodes, self.num_timesteps)
+            
+            self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
+        
+            self.current_avg_reward = sum_ep_reward / n_completed_episodes
+        
+        
+            if sum_reward_consituents:
+                # log the reward constituents
+                for key, value in sum_reward_consituents.items():
+                    self.logger.log(f"run_rewards_per_step/{key}", value / self.horizon_length, self.num_timesteps )
             
         return batch_dict
     
+    
 class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
     
-    def __init__(self, env: VecTask, config: Dict, device: Union[str, torch.device], logger: BaseLogger, policy: A2CBasePolicy) -> None:
-        super().__init__(env, config, device, logger, policy)
+    def __init__(self, env: VecTask, config: Dict, device: Union[str, torch.device], logger: BaseLogger, policy: A2CBasePolicy, verbose: bool ) -> None:
+        super().__init__(env, config, device, logger, policy, verbose)
 
         self.is_discrete = False
         self.bounds_loss_coef = config.get('bounds_loss_coef', 0.001)
@@ -543,36 +593,31 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
             
             total_time += sum_time
-            curr_frames = self.curr_frames
-            self.frame += curr_frames
             total_time += sum_time
             
             # cleaning memory to optimize space
             self.dataset.update_values_dict(None)
+            
+            steps_per_second = self.batch_size / (play_time + update_time)
              
+            self.logger.log("z_speed/steps_per_second", steps_per_second , self.num_timesteps)
+            self.logger.log("z_speed/time_on_rollout", play_time, self.num_timesteps)
+            self.logger.log("z_speed/time_on_train", update_time, self.num_timesteps)
+            self.logger.log("z_speed/step_time", step_time, self.num_timesteps)
             
-            frame = self.frame
-            
-            scaled_time = sum_time #self.num_agents * sum_time
-            scaled_play_time = play_time #self.num_agents * play_time
-            
-            self.logger.log('performance/step_inference_rl_update_fps', curr_frames / scaled_time, frame)
-            self.logger.log('performance/step_inference_fps', curr_frames / scaled_play_time, frame)
-            self.logger.log('performance/step_fps', curr_frames / step_time, frame)
-            self.logger.log('performance/rl_update_time', update_time, frame)
-            self.logger.log('performance/step_inference_time', play_time, frame)
-            self.logger.log('performance/step_time', step_time, frame)
-            self.logger.log('losses/a_loss', torch.mean(torch.stack(a_losses)).item(), frame)
-            self.logger.log('losses/c_loss', torch.mean(torch.stack(c_losses)).item(), frame)
-            self.logger.log('losses/entropy', torch.mean(torch.stack(entropies)).item(), frame)
-            self.logger.log('info/last_lr', last_lr * lr_mul, frame)
-            self.logger.log('info/lr_mul', lr_mul, frame)
-            self.logger.log('info/e_clip', self.e_clip * lr_mul, frame)
-            self.logger.log('info/kl', torch.mean(torch.stack(kls)).item(), frame)
-            self.logger.log('info/epochs', epoch_num, frame)
+            self.logger.log('losses/a_loss', torch.mean(torch.stack(a_losses)).item(), self.num_timesteps)
+            self.logger.log('losses/c_loss', torch.mean(torch.stack(c_losses)).item(), self.num_timesteps)
+            self.logger.log('losses/entropy', torch.mean(torch.stack(entropies)).item(), self.num_timesteps)
+            self.logger.log('info/last_lr', last_lr * lr_mul, self.num_timesteps)
+            self.logger.log('info/lr_mul', lr_mul, self.num_timesteps)
+            self.logger.log('info/e_clip', self.e_clip * lr_mul, self.num_timesteps)
+            self.logger.log('info/kl', torch.mean(torch.stack(kls)).item(), self.num_timesteps)
+            self.logger.log('info/epochs', epoch_num, self.num_timesteps)
             if len(b_losses) > 0:
-                self.logger.log('losses/bounds_loss', torch.mean(torch.stack(b_losses)), frame)
+                self.logger.log('losses/bounds_loss', torch.mean(torch.stack(b_losses)), self.num_timesteps)
             
+            if self.verbose: 
+                print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,self.epoch_num, self.num_timesteps, steps_per_second, play_time / (update_time + play_time)))
             
         
             
@@ -626,13 +671,12 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
 class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
     
-    def __init__(self, env: VecTask, config: Dict, device: Union[str, torch.device], logger: BaseLogger, policy: A2CBasePolicy) -> None:
-        super().__init__(env, config, device, logger, policy)
+    def __init__(self, env: VecTask, config: Dict, device: Union[str, torch.device], logger: BaseLogger, policy: A2CBasePolicy, verbose: bool) -> None:
+        super().__init__(env, config, device, logger, policy, verbose)
         
         self.last_lr = float(self.last_lr)
         
         self.has_value_loss = True
-        
         
         
     def update_epoch(self):

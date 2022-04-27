@@ -13,7 +13,7 @@ from tonian.common.config_utils import create_new_run_directory
 from tonian.common.utils import set_random_seed, join_configs
 
 
-def train(config_path: str, seed: int = 0,  config_overrides: Dict = {}, headless: bool = False, batch_id: Optional[str] = None ):
+def train(config_path: str, seed: int = 0,  config_overrides: Dict = {}, headless: bool = False, batch_id: Optional[str] = None, verbose: bool = True ):
     """Train the given config
 
     Args:
@@ -27,8 +27,6 @@ def train(config_path: str, seed: int = 0,  config_overrides: Dict = {}, headles
         FileNotFoundError: the config was not found
     """
     set_random_seed(seed)
-    
-    config_path = './cfg/mk1-walking-test2.yaml'
         
             
     # open the config file 
@@ -39,6 +37,7 @@ def train(config_path: str, seed: int = 0,  config_overrides: Dict = {}, headles
             raise FileNotFoundError( f"File {config_path} not found")
         
     config = join_configs(config, config_overrides)
+    
         
     task = Mk1WalkingTask(config['task'], 'cuda:0', 0, headless)
 
@@ -58,22 +57,23 @@ def train(config_path: str, seed: int = 0,  config_overrides: Dict = {}, headles
     logger.log_config('algo',config['algo'])
     logger.log_config('task', config['task'])
 
-    algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy)
+    algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose)
 
     algo.train()
     
 if __name__ == '__main__':
     
     ap = argparse.ArgumentParser()
-    ap.add_argument("-seed", required=False, help="Seed for running the env")
+    ap.add_argument("-seed", required=False, default = 0, help="Seed for running the env")
     ap.add_argument("-cfg", required= True, help="path to the config")
+    ap.add_argument("-batch_id", required= False, default= None,  help="name of the running batch")
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--no-headless', action='store_false')
     ap.set_defaults(feature= False)
     
     args = vars(ap.parse_args())
     
-    train(ap['cfg'], ap['seed'], {}, ap['headless'], None)
+    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id'), None)
 
 
 
