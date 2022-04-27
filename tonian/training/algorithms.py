@@ -604,7 +604,9 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             self.logger.log("z_speed/time_on_rollout", play_time, self.num_timesteps)
             self.logger.log("z_speed/time_on_train", update_time, self.num_timesteps)
             self.logger.log("z_speed/step_time", step_time, self.num_timesteps)
-            
+            self.logger.log("z_speed/time_fraq_on_rollout", play_time / ( update_time + play_time), self.num_timesteps)
+            self.logger.log("z_speed/time_fraq_on_train", update_time / (update_time + play_time), self.num_timesteps)
+
             self.logger.log('losses/a_loss', torch.mean(torch.stack(a_losses)).item(), self.num_timesteps)
             self.logger.log('losses/c_loss', torch.mean(torch.stack(c_losses)).item(), self.num_timesteps)
             self.logger.log('losses/entropy', torch.mean(torch.stack(entropies)).item(), self.num_timesteps)

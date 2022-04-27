@@ -6,7 +6,7 @@ vec_task:
   physics_engine: physx
   num_envs: 512
   env_spacing: 10
-  max_episode_length: 1000
+  max_episode_length: 10000
 
   control_freq_invariant: 1
 

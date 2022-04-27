@@ -9,11 +9,16 @@ from tonian.training.algorithms import PPOAlgorithm
 from tonian.training.networks import A2CSequentialNetLogStd, build_A2CSequientialNetLogStd
 from tonian.training.policies import A2CSequentialLogStdPolicy
 from tonian.common.logger import DummyLogger, TensorboardLogger
-from tonian.common.config_utils import create_new_run_directory
+from tonian.common.config_utils import create_new_run_directory, task_from_config
 from tonian.common.utils import set_random_seed, join_configs
 
 
-def train(config_path: str, seed: int = 0,  config_overrides: Dict = {}, headless: bool = False, batch_id: Optional[str] = None, verbose: bool = True ):
+def train(config_path: str, 
+          seed: int = 0,  
+          config_overrides: Dict = {}, 
+          headless: bool = False, 
+          batch_id: Optional[str] = None,
+          verbose: bool = True ):
     """Train the given config
 
     Args:
@@ -38,8 +43,8 @@ def train(config_path: str, seed: int = 0,  config_overrides: Dict = {}, headles
         
     config = join_configs(config, config_overrides)
     
-        
-    task = Mk1WalkingTask(config['task'], 'cuda:0', 0, headless)
+    
+    task = task_from_config(config['task'], headless)
 
     network = build_A2CSequientialNetLogStd(config['policy'], 
                                             actor_obs_space=task.actor_observation_spaces, 

@@ -8,7 +8,7 @@ task:
 
   vec_task: 
     num_envs: 1024
-  
+    
 
   mk1: {}
 
@@ -16,40 +16,47 @@ task:
 
 
 policy: 
-    name: "SimpleActorCritic"
-    is_std_param: False
-    init_log_std: 0.0  # Only makes sence, when the is_std_param is true
-    log_std:  # only makes sence, if the is_std_param is false
-      interpolation: 'linear'
-      schedule:
-        - [0,-0.5]   
-        - [12e8, -0.5]    
-        - [14e8, -0.6]    
-        - [15e8, -1.0]    
-        - [17e8, -1.3]    
 
-    
-    actor_hidden_layers:
-      - 128
-      - 256
-      - 128
-      - 64
-    critic_hidden_layers:
-      - 128
-      - 256
-      - 128
-      - 64
-    lr: 3e-4
+
+  actor_net:
+    - name: actor_linear_obs_net
+      input: 
+          - obs: linear
+      mlp:
+          units: [512, 256, 128]
+          activation: elu
+          initializer: default
+
 
 
 algo:
-  name: "PPO" 
+  name: "PPO"
+  grad_norm: 1.0
   gamma: 0.99
-  n_epochs: 8
-  eps_clip: 0.2
-  n_steps: 128 # the amount of steps taken per env between training and update
-  batch_size: 8192
-  target_kl: 0.008
-  gae_lamda: 0.95
+  mixed_precision: True
+  gae_lambda: 0.95
+  truncate_grads: True
+  normalize_value: True
+  normalize_input: True
+  normalize_advantage: True
+  value_size: 1 # the amount of values the critic outputs
+  weight_decay: 0.0
+  learning_rate: 5e-4
+  lr_schedule: adaptive
+  kl_threshold: 0.008
+  e_clip: 0.2
+  clip_value: True
+  horizon_length: 32
+  minibatch_size: 32768
+  mini_epochs: 5
+  reward_shaper:
+    scale_value: 0.01
+    shift_value: 0
+
+  value_bootstrap: True
+  critic_coef: 4
   entropy_coef: 0
-  value_f_coef: 4
+
+  bounds_loss_coef: 0.0001
+
+
