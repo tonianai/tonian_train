@@ -287,6 +287,7 @@ class A2CBaseAlgorithm(ABC):
         # TODO Do this faster 
         with torch.no_grad():
             self.policy.eval()
+            actor_obs, critic_obs = self._preproc_obs(actor_obs_batch=actor_obs, critic_obs_batch=critic_obs)
             result = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
             
             value = result['values']
@@ -517,8 +518,6 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             
             step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
             
-            print(kls)
-            
             total_time += sum_time
             curr_frames = self.curr_frames
             self.frame += curr_frames
@@ -547,7 +546,8 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             self.logger.log('info/e_clip', self.e_clip * lr_mul, frame)
             self.logger.log('info/kl', torch.mean(torch.stack(kls)).item(), frame)
             self.logger.log('info/epochs', epoch_num, frame)
-            # TODO Add Logging and shit
+            if len(b_losses) > 0:
+                self.logger.log('losses/bounds_loss', torch.mean(torch.stack(b_losses)), frame)
             
             
         
@@ -600,7 +600,6 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
     def train_actor_critic(self):
         pass
         
-         
 class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
     
     def __init__(self, env: VecTask, config: Dict, device: Union[str, torch.device], logger: BaseLogger, policy: A2CBasePolicy) -> None:
