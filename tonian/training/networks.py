@@ -8,7 +8,7 @@ import torch.nn as nn
 import numpy as np
 
 from tonian.common.spaces import MultiSpace
-from tonian.training2.common.aliases import ActivationFn, InitializerFn
+from tonian.training.common.aliases import ActivationFn, InitializerFn
 from tonian.common.spaces import MultiSpace
 
 import torch

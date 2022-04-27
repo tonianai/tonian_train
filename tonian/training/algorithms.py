@@ -5,13 +5,13 @@ import numpy as np
 from tonian.tasks.base.vec_task import VecTask
 from tonian.common.logger import BaseLogger
 from tonian.common.spaces import MultiSpace
-from tonian.training2.common.schedulers import AdaptiveScheduler, LinearScheduler, IdentityScheduler
-from tonian.training2.policies import A2CBasePolicy
-from tonian.training2.common.helpers import DefaultRewardsShaper
-from tonian.training2.common.running_mean_std import RunningMeanStd, RunningMeanStdObs
-from tonian.training2.common.buffers import DictExperienceBuffer
-from tonian.training2.common.common_losses import critic_loss, actor_loss
-from tonian.training2.common.dataset import PPODataset
+from tonian.training.common.schedulers import AdaptiveScheduler, LinearScheduler, IdentityScheduler
+from tonian.training.policies import A2CBasePolicy
+from tonian.training.common.helpers import DefaultRewardsShaper
+from tonian.training.common.running_mean_std import RunningMeanStd, RunningMeanStdObs
+from tonian.training.common.buffers import DictExperienceBuffer
+from tonian.training.common.common_losses import critic_loss, actor_loss
+from tonian.training.common.dataset import PPODataset
 
 from tonian.common.utils import join_configs
 
@@ -282,7 +282,16 @@ class A2CBaseAlgorithm(ABC):
         
         
         
-    def get_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor]):
+    def get_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]]):
+        """Get the values of a given observation
+
+        Args:
+            actor_obs (Dict[str, torch.Tensor]): The shared obervations of the actor
+            critic_obs (Dict[str, torch.Tensor]): The observations on
+
+        Returns:
+            _type_: _description_
+        """
         
         # TODO Do this faster 
         with torch.no_grad():
@@ -427,7 +436,16 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         self.dataset = PPODataset(self.batch_size, self.minibatch_size, self.is_discrete, False, self.device, self.seq_len)
         
         
-    def preprocess_actions(self, actions):
+    def preprocess_actions(self, actions: torch.Tensor):
+        """preprocess the actions
+
+        Args:
+            actions torch.Tensor: 
+
+        Returns:
+            _type_: _description_
+        """
+        
         if self.clip_actions:
             clamped_actions = torch.clamp(actions, -1.0, 1.0)
             rescaled_actions = rescale_actions(self.actions_low, self.actions_high, clamped_actions)
@@ -437,6 +455,12 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         return rescaled_actions
     
     def train_epoch(self):
+        """Play and train the policy once
+
+        Returns:
+            _type_: _description_
+        """
+        
         super().train_epoch()
         
         self.set_eval()
@@ -609,7 +633,6 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         
         self.has_value_loss = True
         
-        # TODO Implement input normalization
         
         
     def update_epoch(self):

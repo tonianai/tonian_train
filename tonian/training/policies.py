@@ -2,8 +2,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Union, Tuple, Any, Optional
 
-from tonian.training2.networks import A2CBaseNet, A2CSequentialNetLogStd
-from tonian.training2.common.aliases import ActivationFn, InitializerFn
+from tonian.training.networks import A2CBaseNet, A2CSequentialNetLogStd
+from tonian.training.common.aliases import ActivationFn, InitializerFn
 
 
 import torch, gym

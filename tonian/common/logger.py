@@ -6,8 +6,7 @@ import torch.nn as nn
 
 from abc import ABC, abstractmethod
 import json
-
-from tonian.training.policies.policies import BasePolicy
+ 
 
 # This logger is similar to the logger used in stable-baselines3
 

@@ -5,4 +5,4 @@ from train import train
 
 args = { "cfg": "./cfg/mk1-walking-test.yaml", "seed": 10}
 
-train(args)
+train(config_path="./cfg/mk1-walking-test.yaml" )
