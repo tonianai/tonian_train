@@ -175,10 +175,10 @@ class A2CBaseAlgorithm(ABC):
         self.update_time = 0
         
         # the total amount of timesteps playes across all environments
-        self.num_timesteps = 0
+        self.num_timesteps  = 0
         
-        
-
+        # the average reward that was the highest as an average over an epoch play
+        self.most_avg_reward_received = 0 
         
         
     def set_eval(self):
@@ -240,13 +240,13 @@ class A2CBaseAlgorithm(ABC):
     @abstractmethod
     def train(self) -> None:
         raise NotImplementedError()
-        
+    
     @abstractmethod
-    def save(self, path: str):
+    def save(self) -> None:
         raise NotImplementedError()
     
     @abstractmethod
-    def load(self, path: str):
+    def load(self) -> None:
         raise NotImplementedError()
     
     @abstractmethod
@@ -446,6 +446,7 @@ class A2CBaseAlgorithm(ABC):
         mb_advs = self.discount_values(fdones, last_values, mb_fdones, mb_values, mb_rewards)
         mb_returns = mb_advs + mb_values
         
+        
         tensor_list = ['actions', 'neglogpacs', 'values', 'mus', 'sigmas', 'states', 'dones', 'critic_obs', 'actor_obs']
         batch_dict = self.experience_buffer.get_transformed_list(swap_and_flatten01, tensor_list)
         batch_dict['returns'] = swap_and_flatten01(mb_returns)
@@ -459,6 +460,10 @@ class A2CBaseAlgorithm(ABC):
             self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
         
             self.current_avg_reward = sum_ep_reward / n_completed_episodes
+            
+            if self.current_avg_reward > self.most_avg_reward_received:
+                self.most_avg_reward_received = self.current_avg_reward
+                self.save()
         
         
             if sum_reward_consituents:
@@ -471,7 +476,12 @@ class A2CBaseAlgorithm(ABC):
     
 class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
     
-    def __init__(self, env: VecTask, config: Dict, device: Union[str, torch.device], logger: BaseLogger, policy: A2CBasePolicy, verbose: bool ) -> None:
+    def __init__(self, env: VecTask, 
+                 config: Dict, 
+                 device: Union[str, torch.device], 
+                 logger: BaseLogger, 
+                 policy: A2CBasePolicy, 
+                 verbose: bool) -> None:
         super().__init__(env, config, device, logger, policy, verbose)
 
         self.is_discrete = False
@@ -482,6 +492,8 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
         self.actions_low = torch.from_numpy(self.action_space.low.copy()).float().to(self.device)
         self.actions_high = torch.from_numpy(self.action_space.high.copy()).float().to(self.device)
+        
+        self.best_episode_reward = -np.inf
         
         self.dataset = PPODataset(self.batch_size, self.minibatch_size, self.is_discrete, False, self.device, self.seq_len)
         
@@ -522,6 +534,8 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
         play_time_end = time.time()
         update_time_start = play_time_end
+        
+        
         
         self.set_train()
         self.curr_frames = batch_dict.pop('played_frames')
@@ -673,22 +687,63 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
 class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
     
-    def __init__(self, env: VecTask, config: Dict, device: Union[str, torch.device], logger: BaseLogger, policy: A2CBasePolicy, verbose: bool) -> None:
+    def __init__(self, 
+                 env: VecTask, 
+                 config: Dict, 
+                 device: Union[str, torch.device], 
+                 logger: BaseLogger, 
+                 policy: A2CBasePolicy, 
+                 verbose: bool = True,
+                 model_out_name: Optional[str] = None) -> None:
+        """Run the ppo algorithm on a given environment
+
+        Args:
+            env (VecTask): environment 
+            config (Dict): train section of the config
+            device (Union[str, torch.device]): ppo device
+            logger (BaseLogger): logger
+            policy (A2CBasePolicy): _description_
+            verbose (bool, optional): Determines whether prints are written to console. Defaults to True.
+            model_out_name (Optional[str], optional): Optional name under which the model will be saved in the models folder. Defaults to None.
+        """
         super().__init__(env, config, device, logger, policy, verbose)
         
         self.last_lr = float(self.last_lr)
         
         self.has_value_loss = True
+        self.model_out_name = model_out_name
         
+        
+        if 'start_model' in config:
+            start_model_config = config['start_model']
+            # load the starting point - possibly only load parts of the network
+            baseline_model = torch.load(os.path.join('models', start_model_config['name'] + '.pth'))
+            print(baseline_model)
+            for name, param in baseline_model.items():
+                    print('name:')
+                    print(name)
         
     def update_epoch(self):
         self.epoch_num += 1
         return self.epoch_num
     
-    def save(self, path: str):
-        pass
+    
+    def save(self): 
+        
+        run_save_dir = os.path.join(self.logger.folder, 'saves')
+        torch.save(self.policy.state_dict(), os.path.join(run_save_dir, 'best_model_full.pth'))
+
+        
+        
+        print(self.model_out_name)
+        if self.model_out_name :
+            # register the model unter the given name 
+            torch.save(  self.policy.state_dict() ,os.path.join('models', self.model_out_name + '.pth'))
     
     def load(self, path: str):
+        return super().load(path) 
+    
+    def load_partial(self, path: str):
         pass
     
     def calc_gradients(self, 

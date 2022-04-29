@@ -1,6 +1,6 @@
 ./venv
 Keys
-
+./models
 
 /isaacgymenvs/logs
 *train_dir*

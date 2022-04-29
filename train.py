@@ -1,7 +1,6 @@
 from typing import Dict, Optional
 
-from tonian.tasks.cartpole.cartpole_task import Cartpole
-from tonian.tasks.mk1.mk1_walking.mk1_walking_task import Mk1WalkingTask
+from tonian.tasks.cartpole.cartpole_task import Cartpole 
 
 import yaml, argparse
 
@@ -18,6 +17,7 @@ def train(config_path: str,
           config_overrides: Dict = {}, 
           headless: bool = False, 
           batch_id: Optional[str] = None,
+          model_out_name: Optional[str] = None, 
           verbose: bool = True ):
     """Train the given config
 
@@ -62,7 +62,7 @@ def train(config_path: str,
     logger.log_config('algo',config['algo'])
     logger.log_config('task', config['task'])
 
-    algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose)
+    algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name)
 
     algo.train()
     
@@ -70,15 +70,16 @@ if __name__ == '__main__':
     
     ap = argparse.ArgumentParser()
     ap.add_argument("-seed", required=False, default = 0, help="Seed for running the env")
-    ap.add_argument("-cfg", required= True, help="path to the config")
+    ap.add_argument("-cfg", required= False, default= 'cfg/mk1-running-test.yaml', help="path to the config")
     ap.add_argument("-batch_id", required= False, default= None,  help="name of the running batch")
+    ap.add_argument("-model_out", required=False,default= None, help="The name under wich the model will be registered in the models folder" )
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--no-headless', action='store_false')
+
     ap.set_defaults(feature= False)
     
     args = vars(ap.parse_args())
     
-    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id'), None)
-
+    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id', None), args.get('model_out', None), True)
 
 

@@ -2,8 +2,9 @@
 
 from typing import Callable, Dict, Union, List, Any, Tuple, Optional
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 
-import torch, gym
+import torch, gym, os
 import torch.nn as nn
 import numpy as np
 
@@ -11,7 +12,6 @@ from tonian.common.spaces import MultiSpace
 from tonian.training.common.aliases import ActivationFn, InitializerFn
 from tonian.common.spaces import MultiSpace
 
-import torch
 
 
 
@@ -201,6 +201,7 @@ class MultispaceNetElement(nn.Module):
             out_size (int): The size of the flattened output of the network 
         """
         super().__init__()
+        assert self.name != 'residual', "A Multispace element cannot be called residual, since this is a protected name for residual nets"
         self.name = name
         self.input_names = inputs_names
         self.net = net
@@ -256,6 +257,32 @@ class MultispaceNet(nn.Module):
                 else: 
                     
                     return element(input)
+                
+    def save(self, path: str, nets_to_save: Optional[List[str]] = None):
+        """Save all state dicts of the network children as separate files in the given folder
+
+        Args:
+            path (str): base folder for the models
+            nets_to_save (Optional[List[str]], optional): All the nets, that must be saved. If it is none all nets will be saved. Defaults to None.
+        """
+        
+        for layer in self.network_layers:
+            for network in layer:
+                if not nets_to_save or network.name in nets_to_save:
+                    torch.save(network.state_dict(), os.path.join(path, network.name + '.pth'))
+        
+    def load(self, path: str, nets_to_load: Optional[List[str]] = None):
+        
+        for layer in self.network_layers:
+            for network in layer:
+                if not nets_to_load or network.name in nets_to_load:
+                    # check if network exists
+                    file_name = os.path.join(path, network.name + '.pth')
+                    if os.path.exists(file_name):
+                        network.load_state_dict(torch.load(file_name))
+                    else:
+                        print("Warning, loading of mulispacenet requested sumnets, that do not exist")
+        
         
 
     
@@ -652,6 +679,7 @@ class A2CBaseNet(nn.Module):
         raise NotImplementedError()
     
     
+    
 class A2CSequentialNetLogStd(A2CBaseNet):
     
     def __init__(self, shared_actor_net: MultispaceNet,
@@ -725,6 +753,73 @@ class A2CSequentialNetLogStd(A2CBaseNet):
     
     def has_critic_obs(self):
         return self._has_critic_obs
+        
+    
+    def save(self, 
+             folder: str,  
+             actor_subnets: Optional[List[str]] = None, 
+             critic_subnets: Optional[List[str]] = None) -> None:
+        """Save the parts of the network, that were specified in the actor_subnets and critic_subnets params
+
+        Args:
+            folder (str): base folder where the parameters will be saved
+            actor_subnets (Optional[List[str]]): none indicate all subnets will be saved
+            critic_subnets (Optional[List[str]]): none indicates all subnets will be saved
+        """
+        
+        # save all important activation functions
+        
+        torch.save( self.action_mu_activation.state_dict(), folder + '/action_mu_activation.pth')
+            
+        torch.save(self.value_activation.state_dict(), folder + '/value_activation.pth')
+        
+        torch.save(self.std_activation.state_dict(), folder + '/std_activation.pth')
+        
+        actor_folder = os.path.join(folder, 'actor')
+        os.makedirs(actor_folder)
+        
+        self.shared_actor_net.save( path= actor_folder,nets_to_save=actor_subnets)
+        
+        # save the residual network
+        torch.save(self.residual_actor_net.state_dict(), os.path.join(actor_folder, 'residual.pth'))
+        
+        # save the action std
+        torch.save(self.action_std.state_dict(), os.path.join(actor_folder, 'action_std.pth'))
+        
+        critic_folder = os.path.join(folder, 'critic')
+        os.makedirs(critic_folder)
+        
+        # save the residual critic net
+        torch.save(self.residual_critic_net.state_dict(), os.path.join(critic_folder, 'residual.pth'))
+        
+        if self.has_critic_obs():
+            self.critic_net.save(path= critic_folder, nets_to_save=critic_subnets)
+        
+    
+    def load(self, 
+             folder: str,
+             actor_subnets: Optional[List[str]] = None,
+             critic_subnets: Optional[List[str]] = None) -> None:
+        """Load the network parameters for each subnet and parameter manually
+
+        Args:
+            folder (str): _description_
+            actor_subnets (Optional[List[str]], optional): _description_. Defaults to None.
+            critic_subnets (Optional[List[str]], optional): _description_. Defaults to None.
+        """
+        
+    
+        self.action_mu_activation.load_state_dict(torch.load(folder +))
+        
+        
+        actor_folder = os.path.join(folder, 'actor')
+        
+        
+
+        critic_folder = os.path.join(folder, 'critic')
+        
+    
+        
         
         
     def forward(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]] = None ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:

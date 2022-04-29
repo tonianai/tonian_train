@@ -313,9 +313,30 @@ class Mk1BaseClass(VecTask, ABC):
             dof_force= self.dof_force_tensor, 
             actions= self.actions
         )
+        
+        self.actor_obs = {**self.actor_obs, **self.get_additional_actor_obs()}
+        
+        
+        self.actor_obs = {**self.actor_obs, **self.get_additional_critic_obs()}
+        
          
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
         
+    @abstractmethod 
+    def get_additional_actor_obs(self) -> Dict[str, torch.Tensor]:
+        """get additional actor observation, like commands or visual
+        
+        if the environment has none, return an empty dict
+        """
+        
+    @abstractmethod 
+    def get_additional_critic_obs(self) -> Dict[str, torch.Tensor]:
+        """get additional critic only observations, like states unbenonced to the actor
+        
+        if the environment has none, return an empty dict
+        """
+    
+    
     def reset_envs(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor) -> None:
         """
         Reset the envs of the given env_ids

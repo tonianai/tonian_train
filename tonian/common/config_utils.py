@@ -5,7 +5,7 @@ from typing import Callable, Dict, Tuple
 from tonian.common.logger import BaseLogger
 from tonian.tasks.walking.walking_task import WalkingTask
 from tonian.tasks.cartpole.cartpole_task import Cartpole
-from tonian.tasks.mk1.mk1_walking.mk1_walking_task import Mk1WalkingTask
+from tonian.tasks.mk1.mk1_running.mk1_running_task import Mk1RunningTask
 
 from gym.spaces import space
 from tonian.tasks.common.command import Command
@@ -49,7 +49,7 @@ def task_from_config(config: Dict, headless: bool = False) -> VecTask:
     name_to_task_map=  {
      "00_cartpole": Cartpole,
      "01_walking": WalkingTask,
-     "02_mk1_walking": Mk1WalkingTask
+     "02_mk1_running": Mk1RunningTask
     }
     return name_to_task_map[config["name"]](config, sim_device="cuda", graphics_device_id=0, headless= headless)
 
