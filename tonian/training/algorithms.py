@@ -736,8 +736,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             torch.save(self.actor_obs_mean_std.state_dict(), os.path.join(run_save_dir, 'actor_obs_mean_std.pth'))
             torch.save(self.critic_obs_mean_std.state_dict(), os.path.join(run_save_dir, 'critic_obs_mean_std.pth'))
         
-      
-        print(self.model_out_name)
+        
         if self.model_out_name :
             save_dir = os.path.join('models', self.model_out_name)
  
@@ -748,6 +747,10 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             if self.normalize_input:
                 torch.save(self.actor_obs_mean_std.state_dict(), os.path.join(save_dir, 'actor_obs_mean_std.pth'))
                 torch.save(self.critic_obs_mean_std.state_dict(), os.path.join(save_dir, 'critic_obs_mean_std.pth'))
+            
+            if self.normalize_value:
+                torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))
+            
     
     def load(self, path: str):
         
@@ -757,13 +760,9 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             self.actor_obs_mean_std.load_state_dict(torch.load(os.path.join(path, 'actor_obs_mean_std.pth')))
             self.critic_obs_mean_std.load_state_dict(torch.load(os.path.join(path, 'critic_obs_mean_std.pth')))
         
+        if self.normalize_value:
+            self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
         
-        
-        
-        print('sdfdsf')
-    
-    def load_partial(self, path: str):
-        pass
     
     def calc_gradients(self, 
                        value_preds_batch: torch.Tensor, 

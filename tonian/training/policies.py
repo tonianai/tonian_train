@@ -97,9 +97,6 @@ class A2CSequentialLogStdPolicy(A2CBasePolicy):
                 + 0.5 * np.log(2.0 * np.pi) * x.size()[-1] \
                 + logstd.sum(dim=-1)
                 
-    def save(self, folder: str, actor_subnets: Optional[List[str]] = None, critic_subnets: Optional[List[str]] = None):
-        
-        self.a2c_net.save(folder, actor_subnets=actor_subnets, critic_subnets=critic_subnets)
         
         
 

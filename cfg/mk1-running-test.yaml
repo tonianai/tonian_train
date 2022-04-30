@@ -1,0 +1,65 @@
+
+seed: 42
+
+#start_model: 'start_models/02_mk1_walking.pth'
+
+task:
+  name: "02_mk1_running"
+
+  vec_task: 
+    num_envs: 1024
+    
+
+  mk1: {}
+
+  mk1_walking: {}
+
+
+policy: 
+
+
+  actor_net:
+    - name: actor_linear_obs_net
+      input: 
+          - obs: linear
+      mlp:
+          units: [512, 256, 128]
+          activation: elu
+          initializer: default
+
+
+
+algo:
+  name: "PPO"
+  grad_norm: 1.0
+  gamma: 0.99
+  mixed_precision: True
+  gae_lambda: 0.95
+  truncate_grads: True
+  normalize_value: True
+  normalize_input: True
+  normalize_advantage: True
+  value_size: 1 # the amount of values the critic outputs
+  weight_decay: 0.0
+  learning_rate: 5e-4
+  lr_schedule: adaptive
+  kl_threshold: 0.008
+  e_clip: 0.2
+  clip_value: True
+  horizon_length: 32
+  minibatch_size: 32768
+  mini_epochs: 5
+  reward_shaper:
+    scale_value: 0.01
+    shift_value: 0
+
+  value_bootstrap: True
+  critic_coef: 4
+  entropy_coef: 0
+
+  bounds_loss_coef: 0.0001
+
+  start_model:
+    name: 'running2'
+
+
