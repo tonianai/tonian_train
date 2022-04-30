@@ -5,8 +5,7 @@ from tonian.tasks.cartpole.cartpole_task import Cartpole
 import yaml, argparse
 
 from tonian.training.algorithms import PPOAlgorithm
-from tonian.training.networks import A2CSequentialNetLogStd, build_A2CSequientialNetLogStd
-from tonian.training.policies import A2CSequentialLogStdPolicy
+from tonian.training.policies import A2CSequentialLogStdPolicy, build_A2CSequentialLogStdPolicy
 from tonian.common.logger import DummyLogger, TensorboardLogger
 from tonian.common.config_utils import create_new_run_directory, task_from_config
 from tonian.common.utils import set_random_seed, join_configs
@@ -46,12 +45,11 @@ def train(config_path: str,
     
     task = task_from_config(config['task'], headless)
 
-    network = build_A2CSequientialNetLogStd(config['policy'], 
+    policy = build_A2CSequentialLogStdPolicy(config['policy'], 
                                             actor_obs_space=task.actor_observation_spaces, 
                                             critic_obs_space=task.critic_observation_spaces, 
                                             action_space= task.action_space)
-
-    policy = A2CSequentialLogStdPolicy(network)
+ 
 
     # create the run folder here
     run_folder_name, run_id = create_new_run_directory(config, batch_id)

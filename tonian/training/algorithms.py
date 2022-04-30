@@ -127,7 +127,6 @@ class A2CBaseAlgorithm(ABC):
             )
         
         
-        self.normalize_input = self.config['normalize_input']
         self.normalize_advantage = config['normalize_advantage'] 
         self.normalize_value = self.config.get('normalize_value', False)
         self.truncate_grads = self.config.get('truncate_grads', False)
@@ -136,12 +135,6 @@ class A2CBaseAlgorithm(ABC):
         if self.normalize_value:
             self.value_mean_std = RunningMeanStd((1,)).to(self.device)
             
-        if self.normalize_input:
-            
-            self.actor_obs_mean_std = RunningMeanStdObs(self.actor_obs_space.dict_shape).to(self.device)
-            if self.critic_obs_space:
-                self.critic_obs_mean_std = RunningMeanStdObs(self.critic_obs_space.dict_shape).to(self.device)
-        
         
         self.critic_coef = config['critic_coef']
         self.grad_norm = config['grad_norm']
@@ -184,19 +177,13 @@ class A2CBaseAlgorithm(ABC):
     def set_eval(self):
         self.policy.eval() 
         if self.normalize_value:
-            self.value_mean_std.eval()
-        if self.normalize_input:
-            self.actor_obs_mean_std.eval()
-            self.critic_obs_mean_std.eval()
+            self.value_mean_std.eval() 
 
     def set_train(self):
         self.policy.train() 
         if self.normalize_value:
             self.value_mean_std.train()
-        
-        if self.normalize_input:
-            self.actor_obs_mean_std.train()
-            self.critic_obs_mean_std.train()    
+         
         
     def discount_values(self, fdones, last_extrinsic_values, mb_fdones, mb_extrinsic_values, mb_rewards):
         lastgaelam = 0
@@ -261,31 +248,12 @@ class A2CBaseAlgorithm(ABC):
         self.policy.eval()
         
         with torch.no_grad():
-            proc_actor_obs, proc_critic_obs = self._preproc_obs(actor_obs, critic_obs)
-            
-            res = self.policy(is_train= False, actor_obs= proc_actor_obs, critic_obs= proc_critic_obs, prev_actions= None)
+            res = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
         
         if self.normalize_value:
             res['values'] = self.value_mean_std(res['values'], True)
         
         return res
-        
-    def _preproc_obs(self, actor_obs_batch: Dict[str, torch.Tensor], critic_obs_batch: Optional[Dict[str, torch.Tensor]]):
-        
-        res_actor_obs_batch = None
-        res_critic_obs_batch = None
-        
-        if self.normalize_input:
-            
-            res_actor_obs_batch = self.actor_obs_mean_std(actor_obs_batch)
-            if critic_obs_batch:
-                res_critic_obs_batch = self.critic_obs_mean_std(critic_obs_batch)
-            
-            return  res_actor_obs_batch, res_critic_obs_batch
-        
-        return actor_obs_batch, critic_obs_batch
-        
-        
         
         
     def get_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]]):
@@ -302,7 +270,6 @@ class A2CBaseAlgorithm(ABC):
         # TODO Do this faster 
         with torch.no_grad():
             self.policy.eval()
-            actor_obs, critic_obs = self._preproc_obs(actor_obs_batch=actor_obs, critic_obs_batch=critic_obs)
             result = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
             
             value = result['values']
@@ -731,11 +698,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         run_save_dir = os.path.join(self.logger.folder, 'saves')
         
         torch.save(self.policy.state_dict(), os.path.join(run_save_dir, 'best_model_full.pth'))
-        
-        if self.normalize_input:
-            torch.save(self.actor_obs_mean_std.state_dict(), os.path.join(run_save_dir, 'actor_obs_mean_std.pth'))
-            torch.save(self.critic_obs_mean_std.state_dict(), os.path.join(run_save_dir, 'critic_obs_mean_std.pth'))
-        
+     
         
         if self.model_out_name :
             save_dir = os.path.join('models', self.model_out_name)
@@ -744,10 +707,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             
             # register the model unter the given name 
             torch.save(  self.policy.state_dict() ,os.path.join(save_dir, 'model.pth'))   
-            if self.normalize_input:
-                torch.save(self.actor_obs_mean_std.state_dict(), os.path.join(save_dir, 'actor_obs_mean_std.pth'))
-                torch.save(self.critic_obs_mean_std.state_dict(), os.path.join(save_dir, 'critic_obs_mean_std.pth'))
-            
+           
             if self.normalize_value:
                 torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))
             
@@ -756,10 +716,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         
         self.policy.load_state_dict(torch.load(os.path.join(path, 'model.pth' )))
         
-        if self.normalize_input: 
-            self.actor_obs_mean_std.load_state_dict(torch.load(os.path.join(path, 'actor_obs_mean_std.pth')))
-            self.critic_obs_mean_std.load_state_dict(torch.load(os.path.join(path, 'critic_obs_mean_std.pth')))
-        
+         
         if self.normalize_value:
             self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
         
@@ -779,8 +736,6 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         lr_mul = 1.0
         
         curr_e_clip = lr_mul * self.e_clip
-        
-        actor_obs_batch, critic_obs_batch = self._preproc_obs(actor_obs_batch, critic_obs_batch)
         
         with torch.cuda.amp.autocast(enabled=self.mixed_precision):
             res_dict = self.policy(is_train= True, actor_obs= actor_obs_batch, critic_obs = critic_obs_batch, prev_actions = actions_batch)

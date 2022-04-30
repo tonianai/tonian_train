@@ -19,7 +19,8 @@ policy:
           units: [512, 256, 128]
           activation: elu
           initializer: default
-
+    
+  normalize_input: True
 
 
 algo:
@@ -30,7 +31,6 @@ algo:
   gae_lambda: 0.95
   truncate_grads: True
   normalize_value: True
-  normalize_input: True
   normalize_advantage: True
   value_size: 1 # the amount of values the critic outputs
   weight_decay: 0.0
