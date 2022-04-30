@@ -4,7 +4,9 @@ seed: 42
 task:
   name: "01_walking"
 
-  vec_task: {}
+  vec_task: {
+    num_envs: 1024
+  }
  
 
 
@@ -51,3 +53,6 @@ algo:
   entropy_coef: 0
 
   bounds_loss_coef: 0.0001
+
+  start_model:
+    name: 'walking'

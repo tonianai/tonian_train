@@ -313,7 +313,7 @@ class WalkingTask(VecTask):
         Returns:
             MultiSpace: [description]
         """
-        num_critic_obs = 134
+        num_critic_obs = 6
         return MultiSpace({
             "linear": spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })

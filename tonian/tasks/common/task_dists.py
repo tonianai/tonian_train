@@ -60,10 +60,13 @@ class TaskGaussianDistribution(TaskDistribution):
         
         self.mean = float(config['mean'])
         self.std = float(config['std']) 
-        
+        self.randomize = bool(config.get('randomize', True))
         
     def sample(self) -> float:
-        return np.random.normal(self.mean, self.std, (1,))[0]
+        if self.randomize:
+            return np.random.normal(self.mean, self.std, (1,))[0]
+        else:
+            return self.mean
 
 class TaskSelectionDistribution(TaskDistribution):
     

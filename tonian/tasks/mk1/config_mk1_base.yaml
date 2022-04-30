@@ -48,7 +48,7 @@ mk1:
       foot_2: 10
 
     # mass stamdard deviation 
-    default_mass_std: 0.1
+    default_mass_std: 0.0
 
 
 

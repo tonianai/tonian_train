@@ -716,7 +716,6 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         
         self.policy.load_state_dict(torch.load(os.path.join(path, 'model.pth' )))
         
-         
         if self.normalize_value:
             self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
         

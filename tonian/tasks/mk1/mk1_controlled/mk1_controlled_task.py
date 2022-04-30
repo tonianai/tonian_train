@@ -80,6 +80,10 @@ class Mk1ControlledTask(Mk1BaseClass):
             
         )
         
+    def allocate_buffers(self):
+        super().allocate_buffers()
+        
+        self.target_positions = torch.zeros((self.num_envs, 2), device= self.device, dtype=torch.float32)
     
     
     def _add_to_env(self, env_ptr): 

@@ -12,8 +12,8 @@ walking:
   reward_weighting:
     directional_factor: 10
     death_cost: 2
-    energy_cost: 0.5
-    alive_reward: 0.2
+    energy_cost: 0
+    alive_reward: 1
 
 
     

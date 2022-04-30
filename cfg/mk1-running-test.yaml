@@ -12,7 +12,18 @@ task:
 
   mk1: {}
 
-  mk1_walking: {}
+  mk1_walking:
+    reward_weighting:
+
+        death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
+        directional_factor: 0.8
+        zero_clip_direction_reward: True
+        death_cost: 10
+        energy_cost: 0.005
+        alive_reward: 2
+        upright_punishment_factor: 20 # higher values punish the actor more for bad posture
+        jitter_cost: 0.25
+        overextend_cost: 4
 
 
 policy: 
@@ -59,7 +70,7 @@ algo:
 
   bounds_loss_coef: 0.0001
 
-  #start_model:
-  #  name: 'running2'
+  start_model:
+    name: 'running'
 
 

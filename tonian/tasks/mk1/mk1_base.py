@@ -95,10 +95,15 @@ class Mk1BaseClass(VecTask, ABC):
         # Retrieves buffer for force sensors. Buffer has shape (num_sensors,  6). 
         # Each force sensor state has forces (3) and torques (3) data.
         
+        
+        contact_force_tensor = self.gym.acquire_net_contact_force_tensor(self.sim)
+        # Retrieves buffer for net contract forces. Buffer has shape (num_environments, num_bodies * 3). 
+        # Each contact force state contains one value for each X, Y, Z axis.
       
         # --- wrap pointers to torch tensors (The iaacgym simulation tensors must be wrapped to get a torch.Tensor)
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
+        self.contact_forces = gymtorch.wrap_tensor(contact_force_tensor).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
         
         # view is necesary, because of the linear shape provided by the self.gym.acuire_dof_force_tensor
         self.dof_force_tensor = gymtorch.wrap_tensor(dof_force_tensor).view(self.num_envs, self.num_dof)
@@ -169,7 +174,14 @@ class Mk1BaseClass(VecTask, ABC):
             env_ptr = self.gym.create_env(
                 self.sim, lower, upper, num_per_row
             )
-            robot_handle = self.gym.create_actor(env_ptr, self.mk1_robot_asset, start_pose, "mk1", i, 1, 0)
+            robot_handle = self.gym.create_actor(
+                env= env_ptr, 
+                asset = self.mk1_robot_asset,
+                pose = start_pose,
+                name = "mk1",
+                group = i, 
+                filter = 1,
+                segmentationId = 0)
             
              
             dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
