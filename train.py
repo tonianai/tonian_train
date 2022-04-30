@@ -5,7 +5,7 @@ from tonian.tasks.cartpole.cartpole_task import Cartpole
 import yaml, argparse
 
 from tonian.training.algorithms import PPOAlgorithm
-from tonian.training.policies import A2CSequentialLogStdPolicy, build_A2CSequentialLogStdPolicy
+from tonian.training.policies import  build_A2CSequentialLogStdPolicy
 from tonian.common.logger import DummyLogger, TensorboardLogger
 from tonian.common.config_utils import create_new_run_directory, task_from_config
 from tonian.common.utils import set_random_seed, join_configs
