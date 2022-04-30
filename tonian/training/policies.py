@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from typing import Dict, Union, Tuple, Any, Optional
+from typing import Dict, Union, Tuple, Any, Optional, List
 
 from tonian.training.networks import A2CBaseNet, A2CSequentialNetLogStd
 from tonian.training.common.aliases import ActivationFn, InitializerFn
@@ -96,6 +96,12 @@ class A2CSequentialLogStdPolicy(A2CBasePolicy):
         return 0.5 * (((x - mean) / std)**2).sum(dim=-1) \
                 + 0.5 * np.log(2.0 * np.pi) * x.size()[-1] \
                 + logstd.sum(dim=-1)
+                
+    def save(self, folder: str, actor_subnets: Optional[List[str]] = None, critic_subnets: Optional[List[str]] = None):
+        
+        self.a2c_net.save(folder, actor_subnets=actor_subnets, critic_subnets=critic_subnets)
+        
+        
 
         
         

@@ -201,8 +201,9 @@ class MultispaceNetElement(nn.Module):
             out_size (int): The size of the flattened output of the network 
         """
         super().__init__()
-        assert self.name != 'residual', "A Multispace element cannot be called residual, since this is a protected name for residual nets"
         self.name = name
+        assert self.name != 'residual', "A Multispace element cannot be called residual, since this is a protected name for residual nets"
+        
         self.input_names = inputs_names
         self.net = net
         self.out_size = out_size
@@ -807,17 +808,25 @@ class A2CSequentialNetLogStd(A2CBaseNet):
             actor_subnets (Optional[List[str]], optional): _description_. Defaults to None.
             critic_subnets (Optional[List[str]], optional): _description_. Defaults to None.
         """
-        
     
-        self.action_mu_activation.load_state_dict(torch.load(folder +))
-        
+        self.action_mu_activation.load_state_dict(torch.load(os.path.join(folder , 'action_mu_activation.pth')))
+        self.value_activation.load_state_dict(torch.load(os.path.join(folder ,  'value_activation.pth')))
+        self.std_activation.load_state_dict(torch.load( os.path.join(folder ,'std_activation.pth')))
         
         actor_folder = os.path.join(folder, 'actor')
         
+        self.residual_actor_net.load_state_dict(torch.load(os.path.join(actor_folder, 'residual.pth')))
         
-
+        self.action_std.load_state_dict(torch.load(os.path.join(actor_folder, 'action_std.pth')))
+        
+        self.shared_actor_net.load(actor_folder, actor_subnets)
+        
         critic_folder = os.path.join(folder, 'critic')
         
+        self.residual_critic_net.load_state_dict(torch.load( os.path.join(critic_folder, 'residual.pth')))
+        
+        if self.has_critic_obs():
+            self.critic_net.load(critic_folder, critic_subnets)
     
         
         

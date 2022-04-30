@@ -73,7 +73,7 @@ class A2CBaseAlgorithm(ABC):
         self.device = device
         
         
-        self.policy = policy
+        self.policy: A2CBasePolicy = policy
         self.policy.to(self.device)
         
         self.num_envs = env.num_envs
@@ -717,11 +717,9 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         if 'start_model' in config:
             start_model_config = config['start_model']
             # load the starting point - possibly only load parts of the network
-            baseline_model = torch.load(os.path.join('models', start_model_config['name'] + '.pth'))
-            print(baseline_model)
-            for name, param in baseline_model.items():
-                    print('name:')
-                    print(name)
+            print(f"Using Startingpoint {start_model_config['name']}")
+            self.load(os.path.join('models', start_model_config['name']))
+            
         
     def update_epoch(self):
         self.epoch_num += 1
@@ -731,17 +729,38 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
     def save(self): 
         
         run_save_dir = os.path.join(self.logger.folder, 'saves')
+        
         torch.save(self.policy.state_dict(), os.path.join(run_save_dir, 'best_model_full.pth'))
-
         
+        if self.normalize_input:
+            torch.save(self.actor_obs_mean_std.state_dict(), os.path.join(run_save_dir, 'actor_obs_mean_std.pth'))
+            torch.save(self.critic_obs_mean_std.state_dict(), os.path.join(run_save_dir, 'critic_obs_mean_std.pth'))
         
+      
         print(self.model_out_name)
         if self.model_out_name :
+            save_dir = os.path.join('models', self.model_out_name)
+ 
+            os.makedirs(save_dir, exist_ok=True)
+            
             # register the model unter the given name 
-            torch.save(  self.policy.state_dict() ,os.path.join('models', self.model_out_name + '.pth'))
+            torch.save(  self.policy.state_dict() ,os.path.join(save_dir, 'model.pth'))   
+            if self.normalize_input:
+                torch.save(self.actor_obs_mean_std.state_dict(), os.path.join(save_dir, 'actor_obs_mean_std.pth'))
+                torch.save(self.critic_obs_mean_std.state_dict(), os.path.join(save_dir, 'critic_obs_mean_std.pth'))
     
     def load(self, path: str):
-        return super().load(path) 
+        
+        self.policy.load_state_dict(torch.load(os.path.join(path, 'model.pth' )))
+        
+        if self.normalize_input: 
+            self.actor_obs_mean_std.load_state_dict(torch.load(os.path.join(path, 'actor_obs_mean_std.pth')))
+            self.critic_obs_mean_std.load_state_dict(torch.load(os.path.join(path, 'critic_obs_mean_std.pth')))
+        
+        
+        
+        
+        print('sdfdsf')
     
     def load_partial(self, path: str):
         pass
