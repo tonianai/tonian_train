@@ -15,7 +15,7 @@ task:
   mk1_walking:
     reward_weighting:
 
-        death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
+        death_height: 0 # the height of the base at which the episode is terminated and the actor is considered dead
         directional_factor: 0.8
         zero_clip_direction_reward: True
         death_cost: 10
@@ -70,7 +70,5 @@ algo:
 
   bounds_loss_coef: 0.0001
 
-  start_model:
-    name: 'running'
 
 

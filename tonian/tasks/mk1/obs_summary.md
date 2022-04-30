@@ -72,3 +72,19 @@ Lower Limit Tensor
 -1 -1 -1 -1  0 -1 -1 -1  0 -1 -1 -1 -1  0 -1 -1 -1
 -1 -1 -1 -1  0 -1 -1 -1  0 -1 -1 -1 -1  0 -1 -1 -1
 -1 -1 -1 -1  0 -1 -1 -1  0 -1 -1 -1 -1  0 -1 -1 -1
+
+
+
+['upper_torso',
+ 'shoulder-connector',
+  'shoulder', 
+  'upper_arm',
+   'forearm', 
+   'shoulder-connector_2', 
+   'shoulder_2',
+    'upper_arm_2', 
+    'forearm_2', 
+    'lower_torso', 
+    'torso_leg_connector', 
+    'upper_leg', 
+    'lower_leg', 'foot', ...]

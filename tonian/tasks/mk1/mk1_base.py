@@ -138,7 +138,9 @@ class Mk1BaseClass(VecTask, ABC):
         self.gym.refresh_actor_root_state_tensor(self.sim) # root state tensor contains ground truth information about the root link of the actor
         self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
         self.gym.refresh_dof_force_tensor(self.sim) # dof force tensor contains foces applied to the joints
-    
+        self.gym.refresh_net_contact_force_tensor(self.sim)
+        
+        
     def _create_envs(self, spacing: float, num_per_row: int) -> None:
         """Create all the environments and initialize the agens in those environments
 
@@ -197,6 +199,8 @@ class Mk1BaseClass(VecTask, ABC):
         # get all dofs and assign the action index to the dof name in the dof_name_index_dict
         self.dof_name_index_dict = self.gym.get_actor_dof_dict(env_ptr, robot_handle)
         
+        self.left_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot')
+        self.right_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot_2')
         
         # take the last one as an example (All should be the same)
         dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
@@ -284,6 +288,8 @@ class Mk1BaseClass(VecTask, ABC):
             self.gym.create_asset_force_sensor(mk1_robot_asset, part_idx, sensor_pose)
 
         return mk1_robot_asset
+    
+        
     
     @abstractmethod
     def _add_to_env(self, env_ptr):

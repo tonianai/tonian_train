@@ -9,7 +9,8 @@ name: "02_mk1_walking"
 mk1_walking:
   reward_weighting:
 
-      death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
+      death_height: 0 # 1.25 works great # the height of the base at which the episode is terminated and the actor is considered dead
+      die_on_contact: True # die when anything other than the foot touches the ground
       directional_factor: 0.8
       zero_clip_direction_reward: True
       death_cost: 10
