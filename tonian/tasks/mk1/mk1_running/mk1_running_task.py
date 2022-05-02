@@ -50,6 +50,7 @@ class Mk1RunningTask(Mk1BaseClass):
         self.death_height = reward_weight_dict["death_height"]
         self.overextend_cost = reward_weight_dict["overextend_cost"]
         self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
+        self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -150,11 +151,18 @@ class Mk1RunningTask(Mk1BaseClass):
         summed_contact_forces[:,self.left_foot_index] = 0.0
         summed_contact_forces[:, self.right_foot_index] = 0.0
         
-        summed_contact_forces = torch.sum(summed_contact_forces, dim=1) # sum all the contact forces of the other indices together, to see if there is any other contact other than the feet
+        total_summed_contact_forces = torch.sum(summed_contact_forces, dim=1) # sum all the contact forces of the other indices together, to see if there is any other contact other than the feet
         
-        has_contact = torch.where(summed_contact_forces > torch.zeros_like(summed_contact_forces), torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
+        has_contact = torch.where(total_summed_contact_forces > torch.zeros_like(total_summed_contact_forces), torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
         
-        has_fallen += has_contact
+        if self.die_on_contact:
+            has_fallen += has_contact
+        else:
+            n_times_contact = (summed_contact_forces > 0 ).to(dtype=torch.float32).sum(dim=1)
+            
+            contact_punishment = n_times_contact * self.contact_punishment_factor
+            
+            reward -= contact_punishment
         
         # ------------- cost for dying ----------
         # root_states[:, 2] defines the y positon of the root body 
@@ -169,6 +177,10 @@ class Mk1RunningTask(Mk1BaseClass):
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
+        if not self.die_on_contact:
+            contact_punishment = -float(torch.mean(contact_punishment).item())
+        else:
+            contact_punishment = 0.0
         
         total_avg_reward = self.alive_reward + upright_punishment + direction_reward + jitter_punishment + energy_punishment
         
@@ -179,6 +191,7 @@ class Mk1RunningTask(Mk1BaseClass):
                                 'jitter_punishment':   jitter_punishment,
                                 'energy_punishment':   energy_punishment,
                                 'overextend_punishment': overextend_punishment,
+                                'contact_punishment': contact_punishment,
                                 'total_reward': total_avg_reward
                             }
         
