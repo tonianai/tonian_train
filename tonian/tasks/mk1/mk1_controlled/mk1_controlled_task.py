@@ -99,13 +99,46 @@ class Mk1ControlledTask(Mk1BaseClass):
         
     def reset_envs(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor) -> None:
         
-        super().reset_envs(env_ids, do_reset_bool_tensor)
-
         
         self.target_pos[env_ids, 0] = torch.normal(mean= self.x_target_mean, std= self.x_target_std)[env_ids]
         self.target_pos[env_ids, 1] = torch.normal(mean= self.y_target_mean, std= self.y_target_std)[env_ids]
         
+        super().reset_envs(env_ids, do_reset_bool_tensor)
         
+    
+
+    def _create_envs(self, spacing: float, num_per_row: int) -> None:
+        
+        asset_options = gymapi.AssetOptions()
+        asset_options.fix_base_link = True
+        self.target_asset = self.gym.create_sphere(self.sim, 0.5, asset_options)
+        
+        return super()._create_envs(spacing, num_per_row)
+    
+    def _get_amount_of_actors_per_env(self):
+        return 2
+    
+        
+      
+    def _add_to_env(self, env_ptr, env_id: int ): 
+        """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
+
+        Args:
+            env_ptr (_type_): pointer to the env
+            env_id (int): int of the env
+        """
+        print("add to env ptr")
+        print(env_id)
+        
+        pose = gymapi.Transform()
+        print(pose.p)
+        
+        #target_asset = self.gym.create_actor(env_ptr, self.target_asset, pose , "target", env_id, 1, 1)
+        
+        
+        
+        
+        pass
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -282,17 +315,7 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         return (reward, do_terminate, reward_constituents)
             
-    
-    def _add_to_env(self, env_ptr): 
-        """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
-
-        Args:
-            env_ptr (_type_): pointer to the env
-        """
-        
-        
-        
-        pass
+  
     
     def _get_standard_config(self) -> Dict:
         """Get the dict of the standard configuration

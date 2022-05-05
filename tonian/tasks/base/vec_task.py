@@ -384,6 +384,7 @@ class VecTask(BaseEnv, ABC):
         
         do_reset_tensor = torch.ones(self.num_envs).to(self.device).to(dtype=torch.bool)
         every_env_id_tensor = torch.arange(start=0, end= self.num_envs).to(self.device).to(dtype=torch.int64)
+        print(every_env_id_tensor, do_reset_tensor)
         self.reset_envs(every_env_id_tensor, do_reset_tensor )
         
         self.initial_domain_randomization()

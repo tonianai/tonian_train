@@ -9,8 +9,8 @@ name: "03_mk1_controlled"
 mk1_controlled:
   target_positions: 
     x_pos: 
-      mean: 0
-      std: 10
+      mean: 50
+      std: 1
       dist_type: gaussian
 
     y_pos:
