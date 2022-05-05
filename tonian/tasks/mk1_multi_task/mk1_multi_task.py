@@ -107,8 +107,7 @@ class Mk1Multitask(VecTask):
         # --- set initial tensors
         self.initial_dof_pos = torch.zeros_like(self.dof_pos, device=self.device, dtype=torch.float)
         self.initial_root_states = self.root_states.clone()
-        
-        print(self.initial_root_states.shape)
+         
         # 7:13 describe velocities
         self.initial_root_states[:, 7:13] = 0
         
@@ -314,7 +313,6 @@ class Mk1Multitask(VecTask):
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
         
     
-    
     def reset_envs(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor) -> None:
         """
         Reset the envs of the given env_ids
@@ -364,7 +362,8 @@ class Mk1Multitask(VecTask):
         """
         num_actor_obs = 108
         return  MultiSpace({
-            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
+            "command": gym.spaces.Box(low= -1.0, high = 1.0, shape = (1, )) 
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
@@ -491,16 +490,58 @@ class Mk1Multitask(VecTask):
         
         reward_weight_dict = self.config["mk1_multitask"]["reward_weighting"]  
         
-        self.energy_cost = reward_weight_dict["energy_cost"]
-        self.forward_directional_factor = reward_weight_dict["forward_directional_factor"]
-        self.death_cost = reward_weight_dict["death_cost"]
-        self.alive_reward = float(reward_weight_dict["alive_reward"])
-        self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
-        self.jitter_cost = reward_weight_dict["jitter_cost"] /  self.action_size
-        self.death_height = reward_weight_dict["death_height"]
-        self.overextend_cost = reward_weight_dict["overextend_cost"]
-        self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
-        self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
+        
+        self.to_target_prob = float(reward_weight_dict['to_target_prob'])
+        self.to_target_reward_factors = reward_weight_dict['to_target']
+        
+        self.idle_prob = float(reward_weight_dict['idle_prob'])
+        self.idle_reward_factors = reward_weight_dict['idle']
+        
+    def allocate_buffers(self):
+        super().allocate_buffers()
+        
+        
+        command_state_distribution = torch.distributions.OneHotCategorical(torch.tensor((self.idle_prob, self.to_target_prob), dtype= torch.float32, device= self.device))
+        self.command_state_tensor = command_state_distribution.sample(sample_shape=(self.num_envs, )).to(self.device).to(torch.int8)
+        # 
+        print(self.command_state_tensor)
+        self.update_reward_factor_buffers()
+        
+    def weight_prop_state_dep_tensor(self, key: str, dtype: torch.dtype = torch.float16):
+        value_tensor = torch.zeros((self.num_envs,), dtype=dtype, device= self.device )
+        value_tensor += self.command_state_tensor[:, 0] * self.idle_reward_factors[key]
+        value_tensor += self.command_state_tensor[: ,1] * self.to_target_reward_factors[key]
+        return value_tensor
+    
+    
+    def weight_prop_state_dep_tensor_int(self, key: str, dtype: torch.dtype = torch.float16):
+        value_tensor = torch.zeros((self.num_envs,), dtype=dtype, device= self.device )
+        print(self.command_state_tensor)
+        value_tensor += self.command_state_tensor[:, 0] * int(self.idle_reward_factors[key])
+        value_tensor += self.command_state_tensor[: ,1] * int(self.to_target_reward_factors[key])
+        return value_tensor
+        
+        
+    def update_reward_factor_buffers(self):
+        
+        self.alive_reward = self.weight_prop_state_dep_tensor('alive_reward')        
+        self.energy_cost = self.weight_prop_state_dep_tensor("energy_cost")
+        self.forward_directional_factor = self.weight_prop_state_dep_tensor("forward_directional_factor")
+        self.death_cost = self.weight_prop_state_dep_tensor("death_cost")
+        self.alive_reward = self.weight_prop_state_dep_tensor("alive_reward")
+        self.upright_punishment_factor = self.weight_prop_state_dep_tensor("upright_punishment_factor")
+        self.jitter_cost = self.weight_prop_state_dep_tensor("jitter_cost")
+        self.death_height = self.weight_prop_state_dep_tensor("death_height")
+        self.overextend_cost = self.weight_prop_state_dep_tensor("overextend_cost")
+        self.die_on_contact = self.weight_prop_state_dep_tensor("die_on_contact", dtype= torch.int8)
+        self.contact_punishment_factor = self.weight_prop_state_dep_tensor("contact_punishment")
+        self.velocity_reward_factor = self.weight_prop_state_dep_tensor('velocity_reward_factor')
+         
+        print(self.alive_reward)
+        
+        pass
+        
+        
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -512,13 +553,12 @@ class Mk1Multitask(VecTask):
                    has_fallen: torch.Tensor shape(num_envs, )
                    constituents: Dict[str, int] contains all the average values, that make up the reward (i.e energy_punishment, directional_reward)
         """
-    
-    
+        
+        
         # -------------- base reward for being alive --------------  
         
         reward = torch.ones_like(self.root_states[:, 0]) * self.alive_reward  
-        
-        
+         
         quat_rotation = self.root_states[: , 3:7]
         
         #  -------------- reward for an upright torso -------------- 
@@ -556,9 +596,15 @@ class Mk1Multitask(VecTask):
     
         reward += forward_direction_reward  
         
+        # ------------- reward or punish for any root state velocity -----------
+        
+        velocity_reward =  vel_norm * self.velocity_reward_factor
+        reward += velocity_reward
+        
+        
         # -------------- Punish for jittery motion (see ./research/2022-03-27_reduction-of-jittery-motion-in-action.md)--------------
         
-        jitter_punishment = torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * self.jitter_cost
+        jitter_punishment = torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * (self.jitter_cost / self.action_size)
         reward -= jitter_punishment
         
         
@@ -574,10 +620,11 @@ class Mk1Multitask(VecTask):
         at_lower_limit[:, 8] = 0
         at_upper_limit[: , 8] = 0
         
-        clipped_upper_punishment = torch.clamp(at_upper_limit, min=0) * self.overextend_cost
-        clipped_lower_punishment = torch.clamp(at_lower_limit, min=0) * self.overextend_cost
         
-        overextend_punishment = torch.sum(clipped_lower_punishment + clipped_upper_punishment, dim=1) / clipped_lower_punishment.shape[1]
+        clipped_upper_punishment = torch.sum(torch.clamp(at_upper_limit, min=0), dim = 1) * self.overextend_cost
+        clipped_lower_punishment = torch.sum(torch.clamp(at_lower_limit, min=0), dim = 1) * self.overextend_cost
+        
+        overextend_punishment = clipped_lower_punishment + clipped_upper_punishment
         
         reward -= overextend_punishment
         
@@ -606,14 +653,16 @@ class Mk1Multitask(VecTask):
         
         has_contact = torch.where(total_summed_contact_forces > torch.zeros_like(total_summed_contact_forces), torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
         
-        if self.die_on_contact:
-            has_fallen += has_contact
-        else:
-            n_times_contact = (summed_contact_forces > 0 ).to(dtype=torch.float32).sum(dim=1)
-            
-            contact_punishment = n_times_contact * self.contact_punishment_factor
-            
-            reward -= contact_punishment
+        has_fallen += has_contact * self.die_on_contact
+        
+        # if self.die_on_contact:
+        #     has_fallen += has_contact
+        # else:
+        #     n_times_contact = (summed_contact_forces > 0 ).to(dtype=torch.float32).sum(dim=1)
+        #     
+        #     contact_punishment = n_times_contact * self.contact_punishment_factor
+        #     
+        #     reward -= contact_punishment
         
         # ------------- cost for dying ----------
         # root_states[:, 2] defines the y positon of the root body 
@@ -623,29 +672,33 @@ class Mk1Multitask(VecTask):
         
         # average rewards per step
          
+        alive_reward = float(torch.mean(self.alive_reward).item())
         upright_punishment = float(torch.mean(upright_punishment).item())
         forward_direction_reward = float(torch.mean(forward_direction_reward).item())
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
+        velocity_reward = float(torch.mean(velocity_reward).item())
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
-        if not self.die_on_contact:
-            contact_punishment = -float(torch.mean(contact_punishment).item())
-        else:
-            contact_punishment = 0.0
         
-        total_avg_reward = self.alive_reward + upright_punishment + forward_direction_reward + jitter_punishment + energy_punishment
+        #contact_punishment = -float(torch.mean(contact_punishment).item()) 
+        
+        contact_punishment = 0
+        
+        total_avg_reward = float(torch.mean(reward).item())
         
         reward_constituents = {
-                                'alive_reward': self.alive_reward,
+                                'alive_reward': alive_reward,
                                 'upright_punishment':  upright_punishment,
                                 'forward_direction_reward':    forward_direction_reward,
                                 'jitter_punishment':   jitter_punishment,
+                                'velocity_reward': velocity_reward,
                                 'energy_punishment':   energy_punishment,
                                 'overextend_punishment': overextend_punishment,
                                 'contact_punishment': contact_punishment,
                                 'total_reward': total_avg_reward
                             }
-        
+ 
+         
         
         return (reward, has_fallen, reward_constituents)
             

@@ -187,7 +187,7 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         # compare the two_d_heading_direction with the linear_velocity_x_y using the angle between them
         # magnitude of the velocity (2 norm)
-        vel_norm = torch.linalg.vector_norm(direction_to_target, dim=1)
+        vel_norm = torch.linalg.vector_norm(linear_velocity_x_y, dim=1)
         
             
         #heading_to_velocity_angle = torch.arccos( torch.dot(two_d_heading_direction, linear_velocity_x_y)  / vel_norm )
