@@ -308,6 +308,8 @@ class Mk1Multitask(VecTask):
             actions= self.actions
         )
         
+        self.actor_obs["state"] = self.command_state_tensor
+        
         
          
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
@@ -363,7 +365,7 @@ class Mk1Multitask(VecTask):
         num_actor_obs = 108
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
-            "command": gym.spaces.Box(low= -1.0, high = 1.0, shape = (1, )) 
+            "state": gym.spaces.Box(low= -1.0, high = 1.0, shape = (2, )) 
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
@@ -501,6 +503,7 @@ class Mk1Multitask(VecTask):
         super().allocate_buffers()
         
         
+        self.state_names = ['idle', 'to target']
         command_state_distribution = torch.distributions.OneHotCategorical(torch.tensor((self.idle_prob, self.to_target_prob), dtype= torch.float32, device= self.device))
         self.command_state_tensor = command_state_distribution.sample(sample_shape=(self.num_envs, )).to(self.device).to(torch.int8)
         # 
@@ -540,6 +543,15 @@ class Mk1Multitask(VecTask):
         print(self.alive_reward)
         
         pass
+        
+    
+    def get_tensor_state_means(self,input_name: str,  input: torch.Tensor) -> Dict[str, float]:
+        """_summary_
+
+        Args:
+            input (torch.Tensor): _description_
+        """
+        return {self.state_names[i] +'/'  +  input_name : torch.mean(input[self.command_state_tensor[:, i].to(torch.bool)]).item() for i in range(len(self.state_names)) }
         
         
 
@@ -604,8 +616,8 @@ class Mk1Multitask(VecTask):
         
         # -------------- Punish for jittery motion (see ./research/2022-03-27_reduction-of-jittery-motion-in-action.md)--------------
         
-        jitter_punishment = torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * (self.jitter_cost / self.action_size)
-        reward -= jitter_punishment
+        jitter_punishment = torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * (self.jitter_cost / self.action_size) * -1
+        reward += jitter_punishment
         
         
         
@@ -633,8 +645,8 @@ class Mk1Multitask(VecTask):
         
         # -------------- cost of power --------------
         
-        energy_punishment = torch.sum(self.actions ** 2, dim=-1) * self.energy_cost
-        reward -= energy_punishment
+        energy_punishment = torch.sum(self.actions ** 2, dim=-1) * self.energy_cost * -1
+        reward += energy_punishment
          
         terminations_height = self.death_height
         
@@ -670,35 +682,15 @@ class Mk1Multitask(VecTask):
         
     
         
-        # average rewards per step
-         
-        alive_reward = float(torch.mean(self.alive_reward).item())
-        upright_punishment = float(torch.mean(upright_punishment).item())
-        forward_direction_reward = float(torch.mean(forward_direction_reward).item())
-        jitter_punishment = - float(torch.mean(jitter_punishment).item())
-        energy_punishment = - float(torch.mean(energy_punishment).item())
-        velocity_reward = float(torch.mean(velocity_reward).item())
-        overextend_punishment = - float(torch.mean(overextend_punishment).item())
-        
-        #contact_punishment = -float(torch.mean(contact_punishment).item()) 
-        
-        contact_punishment = 0
-        
-        total_avg_reward = float(torch.mean(reward).item())
-        
-        reward_constituents = {
-                                'alive_reward': alive_reward,
-                                'upright_punishment':  upright_punishment,
-                                'forward_direction_reward':    forward_direction_reward,
-                                'jitter_punishment':   jitter_punishment,
-                                'velocity_reward': velocity_reward,
-                                'energy_punishment':   energy_punishment,
-                                'overextend_punishment': overextend_punishment,
-                                'contact_punishment': contact_punishment,
-                                'total_reward': total_avg_reward
-                            }
- 
-         
+        # average rewards per step 
+        reward_constituents = {**self.get_tensor_state_means("alive_reward", self.alive_reward),
+                               **self.get_tensor_state_means("upright_punishment", upright_punishment),
+                               **self.get_tensor_state_means("forward_direction_reward", forward_direction_reward),
+                               **self.get_tensor_state_means("jitter_punishment", jitter_punishment),
+                               **self.get_tensor_state_means("velocity_reward", velocity_reward),
+                               **self.get_tensor_state_means("energy_punishment", overextend_punishment), 
+                               **self.get_tensor_state_means("total_reward", reward)}
+          
         
         return (reward, has_fallen, reward_constituents)
             
