@@ -9,7 +9,7 @@ name: "04_mk1_multitask"
 mk1_multitask:
   reward_weighting:
 
-      to_target_prob: 0.8
+      to_target_prob: 1.0
       to_target:
         death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
         death_cost: 80      
@@ -21,13 +21,13 @@ mk1_multitask:
         jitter_cost: 0.25
         overextend_cost: 4
 
-        velocity_reward_factor: 1.0
+        velocity_reward_factor: 0.0
 
 
-        die_on_contact: True # die when anything other than the foot touches the ground
-        contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
+        die_on_contact: False # die when anything other than the foot touches the ground
+        contact_punishment: 0 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
-      idle_prob: 0.2
+      idle_prob: 0.0
       idle:
         death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
         death_cost: 160      

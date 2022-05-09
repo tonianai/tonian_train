@@ -127,7 +127,6 @@ class Mk1Multitask(VecTask):
         self.gym.refresh_dof_force_tensor(self.sim) # dof force tensor contains foces applied to the joints
         self.gym.refresh_net_contact_force_tensor(self.sim)
         
-        
     def _create_envs(self, spacing: float, num_per_row: int) -> None:
         """Create all the environments and initialize the agens in those environments
 
@@ -203,7 +202,6 @@ class Mk1Multitask(VecTask):
         self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
         
-        
     def _create_effort_tensor(self, mk1_robot_asset) -> torch.Tensor:
         """Create the motor effort tensor, that defines how strong each motor is 
 
@@ -274,8 +272,6 @@ class Mk1Multitask(VecTask):
 
         return mk1_robot_asset
     
-
-        
     def pre_physics_step(self, actions: torch.Tensor):
         """Apply the action given to all the envs
         Args:
@@ -336,6 +332,9 @@ class Mk1Multitask(VecTask):
         self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
         self.dof_vel[env_ids] = velocities
         
+        command_state_distribution = torch.distributions.OneHotCategorical(torch.tensor((self.idle_prob, self.to_target_prob), dtype= torch.float32, device= self.device))
+        self.command_state_tensor[env_ids] = command_state_distribution.sample(sample_shape=(len(env_ids), )).to(self.device).to(torch.int8)
+         
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         
         self.apply_domain_randomization(env_ids=env_ids_int32, do_reset_bool_tensor= do_reset_bool_tensor)
@@ -516,13 +515,6 @@ class Mk1Multitask(VecTask):
         value_tensor += self.command_state_tensor[: ,1] * self.to_target_reward_factors[key]
         return value_tensor
     
-    
-    def weight_prop_state_dep_tensor_int(self, key: str, dtype: torch.dtype = torch.float16):
-        value_tensor = torch.zeros((self.num_envs,), dtype=dtype, device= self.device )
-        print(self.command_state_tensor)
-        value_tensor += self.command_state_tensor[:, 0] * int(self.idle_reward_factors[key])
-        value_tensor += self.command_state_tensor[: ,1] * int(self.to_target_reward_factors[key])
-        return value_tensor
         
         
     def update_reward_factor_buffers(self):
@@ -540,7 +532,6 @@ class Mk1Multitask(VecTask):
         self.contact_punishment_factor = self.weight_prop_state_dep_tensor("contact_punishment")
         self.velocity_reward_factor = self.weight_prop_state_dep_tensor('velocity_reward_factor')
          
-        print(self.alive_reward)
         
         pass
         
@@ -636,11 +627,9 @@ class Mk1Multitask(VecTask):
         clipped_upper_punishment = torch.sum(torch.clamp(at_upper_limit, min=0), dim = 1) * self.overextend_cost
         clipped_lower_punishment = torch.sum(torch.clamp(at_lower_limit, min=0), dim = 1) * self.overextend_cost
         
-        overextend_punishment = clipped_lower_punishment + clipped_upper_punishment
+        overextend_punishment = (clipped_lower_punishment + clipped_upper_punishment) * -1
         
-        reward -= overextend_punishment
-        
-    
+        reward += overextend_punishment
         
         
         # -------------- cost of power --------------
@@ -688,7 +677,8 @@ class Mk1Multitask(VecTask):
                                **self.get_tensor_state_means("forward_direction_reward", forward_direction_reward),
                                **self.get_tensor_state_means("jitter_punishment", jitter_punishment),
                                **self.get_tensor_state_means("velocity_reward", velocity_reward),
-                               **self.get_tensor_state_means("energy_punishment", overextend_punishment), 
+                               **self.get_tensor_state_means("overextend_punishment", overextend_punishment), 
+                               **self.get_tensor_state_means("energy_punishment", energy_punishment), 
                                **self.get_tensor_state_means("total_reward", reward)}
           
         
