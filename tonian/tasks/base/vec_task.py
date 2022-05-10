@@ -451,12 +451,24 @@ class VecTask(BaseEnv, ABC):
     
     @abstractmethod
     def get_num_actors_per_env(self) -> int:
-        """Return the amount of actors each environment has
+        """Return the amount of actors each environment has, this includes actors, that are not playable
+        This distincion is stupid and only exists, because isaacgym currently does anot support any way of adding objects to environments, that are not actors
 
         Returns:
             int
         """
         raise NotImplementedError()
+    
+    
+    def get_num_playable_actors_per_env(self) -> int:
+        """Return the amount of actors each environment has, this only includes actors, that are playable
+        This distincion is stupid and only exists, because isaacgym currently does anot support any way of adding objects to environments, that are not actors
+
+        Returns:
+            int
+        """
+        return self.get_num_actors_per_env()
+    
     
     @property
     def action_size(self):

@@ -77,7 +77,7 @@ class A2CBaseAlgorithm(ABC):
         self.policy.to(self.device)
         
         self.num_envs = env.num_envs
-        self.num_actors = env.get_num_actors_per_env()
+        self.num_actors = env.get_num_playable_actors_per_env()
         
         
         self.seq_len = self.config.get('seq_length', 4)
