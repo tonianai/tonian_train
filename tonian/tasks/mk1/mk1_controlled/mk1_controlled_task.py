@@ -97,13 +97,13 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         
         
-    def reset_envs(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor) -> None:
+    def reset_envs(self, env_ids: torch.Tensor) -> None:
         
         
         self.target_pos[env_ids, 0] = torch.normal(mean= self.x_target_mean, std= self.x_target_std)[env_ids]
         self.target_pos[env_ids, 1] = torch.normal(mean= self.y_target_mean, std= self.y_target_std)[env_ids]
         
-        super().reset_envs(env_ids, do_reset_bool_tensor)
+        super().reset_envs(env_ids)
         
     
 

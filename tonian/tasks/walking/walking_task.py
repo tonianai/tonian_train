@@ -183,7 +183,7 @@ class WalkingTask(VecTask):
             energy_cost= self.energy_cost
         )
         
-    def reset_envs(self, env_ids: torch.Tensor, do_reset_tensor: torch.Tensor):
+    def reset_envs(self, env_ids: torch.Tensor):
         # Randomization can only happen at reset time, since it can reset actor positions on GPU
 
          
@@ -326,16 +326,15 @@ class WalkingTask(VecTask):
         num_actions = 21
         return spaces.Box(low=-1.0, high=1.0, shape=(num_actions, )) 
     
-    def apply_domain_randomization(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor):
+    def apply_domain_randomization(self, env_ids: torch.Tensor):
         """Apply domain randomisation to the parameters given in the config file
         
         This Function should be called by subclasses on env reset, either by using the super() or by calling directly
         Args:
-            env_ids (torch.Tensor): ids where dr should be performed (typically the env_ids, that are resetting)
-            do_reset_bool_tensor (torch.Tensor): Carries the same information as the env_ids tensor, but encoded as a boolean tensor at the position indices that do reset with a 1 and env positions that do not reset with a zero
+            env_ids (torch.Tensor): ids where dr should be performed (typically the env_ids, that are resetting) 
        
         """
-        super().apply_domain_randomization(env_ids, do_reset_bool_tensor)
+        super().apply_domain_randomization(env_ids)
     
     def reward_range(self):
         return (-1e100, 1e100)

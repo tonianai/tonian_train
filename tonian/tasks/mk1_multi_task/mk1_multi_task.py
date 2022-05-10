@@ -311,18 +311,14 @@ class Mk1Multitask(VecTask):
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
         
     
-    def reset_envs(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor) -> None:
+    def reset_envs(self, env_ids: torch.Tensor) -> None:
         """
         Reset the envs of the given env_ids
 
         Args:
             env_ids (torch.Tensor): A tensor on device, that contains all the ids of the envs that need a reset
                 example 
-                : tensor([ 0,  10,  22,  43,  51,  64,  81,  82, 99], device='cuda:0')
-
-            do_reset_bool_tensor (torch.Tensor): Carries the same information as the env_ids tensor, but encoded as a boolean tensor at the position indices that do reset with a 1 and env positions that do not reset with a zero
-                example
-                : tensor([0,0,0,0,0,1,0,0,1,0,0,0,0,0], device='cuda:0')
+                : tensor([ 0,  10,  22,  43,  51,  64,  81,  82, 99], device='cuda:0') 
         """
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
         
@@ -335,11 +331,11 @@ class Mk1Multitask(VecTask):
         command_state_distribution = torch.distributions.OneHotCategorical(torch.tensor((self.idle_prob, self.to_target_prob), dtype= torch.float32, device= self.device))
         self.command_state_tensor[env_ids] = command_state_distribution.sample(sample_shape=(len(env_ids), )).to(self.device).to(torch.int8)
          
-        env_ids_int32 = env_ids.to(dtype=torch.int32)
         
-        self.apply_domain_randomization(env_ids=env_ids_int32, do_reset_bool_tensor= do_reset_bool_tensor)
+        self.apply_domain_randomization(env_ids=env_ids)
         
          
+        env_ids_int32 = env_ids.to(dtype=torch.int32)
  
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.initial_root_states),
@@ -415,23 +411,22 @@ class Mk1Multitask(VecTask):
         
         
             
-    def apply_domain_randomization(self, env_ids: torch.Tensor, do_reset_bool_tensor: torch.Tensor):
+    def apply_domain_randomization(self, env_ids: torch.Tensor):
         """Apply domain randomisation to the parameters given in the config file
         
         This Function should be called by subclasses on env reset, either by using the super() or by calling directly
         Args:
-            env_ids (torch.Tensor): ids where dr should be performed (typically the env_ids, that are resetting)
-            do_reset_bool_tensor (torch.Tensor): Carries the same information as the env_ids tensor, but encoded as a boolean tensor at the position indices that do reset with a 1 and env positions that do not reset with a zero
+            env_ids (torch.Tensor): ids where dr should be performed (typically the env_ids, that are resetting) 
        
         """
-        super().apply_domain_randomization(env_ids, do_reset_bool_tensor)
+        super().apply_domain_randomization(env_ids)
         
         # ---- actor linear velocity domain randomization ----
         
         # update the initial root state linear velocities with the randomized values given by the task std
-        self.initial_root_states[do_reset_bool_tensor , 7] = self.intitial_velocities[0]()  # vel in -y axis
-        self.initial_root_states[do_reset_bool_tensor , 8] = self.intitial_velocities[1]() # vel in -x axis
-        self.initial_root_states[do_reset_bool_tensor , 9] = self.intitial_velocities[2]() # vel in -z axis
+        self.initial_root_states[env_ids , 7] = self.intitial_velocities[0]()  # vel in -y axis
+        self.initial_root_states[env_ids , 8] = self.intitial_velocities[1]() # vel in -x axis
+        self.initial_root_states[env_ids , 9] = self.intitial_velocities[2]() # vel in -z axis
         
         shape_properties = self.gym.get_actor_rigid_shape_properties(self.envs[0], self.robot_handles[0])
         
