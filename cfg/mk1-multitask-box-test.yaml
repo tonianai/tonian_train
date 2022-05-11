@@ -65,6 +65,7 @@ policy:
       input: 
           - obs: linear
           - obs: state
+          - obs: target_pos
       mlp:
           units: [512 ,256, 128]
           activation: elu

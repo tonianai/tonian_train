@@ -324,6 +324,8 @@ class Mk1MultitaskBox(VecTask):
         
         self.actor_obs["state"] = self.command_state_tensor
         
+        self.actor_obs["target_pos"] = self.target_pos
+        
         
         
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
@@ -396,7 +398,8 @@ class Mk1MultitaskBox(VecTask):
         num_actor_obs = 108
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
-            "state": gym.spaces.Box(low= -1.0, high = 1.0, shape = (2, )) 
+            "state": gym.spaces.Box(low= -1.0, high = 1.0, shape = (2, )),
+            "target_pos": gym.spaces.Box(low=-np.inf, high= np.inf, shape = (2, ))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
