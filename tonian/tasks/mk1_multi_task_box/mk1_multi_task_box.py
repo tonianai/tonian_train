@@ -13,7 +13,7 @@ from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
 from tonian.common.spaces import MultiSpace
 
-from tonian.common.torch_jit_utils import batch_dot_product
+from tonian.common.torch_jit_utils import batch_dot_product, normalized_batch_dot_product, get_batch_tensor_2_norm
  
 
 from typing import Dict, Any, Tuple, Union, Optional, List
@@ -58,6 +58,8 @@ class Mk1MultitaskBox(VecTask):
         
         self.default_friction = task_dist_from_config(mk1_config.get('default_friction', 1.0))
         self.friction_properties = { key: task_dist_from_config(friction) for key, friction in mk1_config.get('frictions', {}).items()}
+        
+        
         
     def _get_gpu_gym_state_tensors(self) -> None:
         """
@@ -166,7 +168,7 @@ class Mk1MultitaskBox(VecTask):
         box_opts.density = 400
             
         
-        box_asset = self.gym.create_box(self.sim, 0.10, 0.10, 0.10, box_opts)
+        box_asset = self.gym.create_box(self.sim, 0.20, 0.40, 0.20, box_opts)
         
         for i in range(self.num_envs):
             # create env instance
@@ -326,7 +328,6 @@ class Mk1MultitaskBox(VecTask):
         
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
  
-        
     def reset_envs(self, env_ids: torch.Tensor,) -> None:
         """
         Reset the envs of the given env_ids
@@ -334,8 +335,7 @@ class Mk1MultitaskBox(VecTask):
         Args:
             env_ids (torch.Tensor): A tensor on device, that contains all the ids of the envs that need a reset
                 example 
-                : tensor([ 0,  10,  22,  43,  51,  64,  81,  82, 99], device='cuda:0')
- )
+                : tensor([ 0,  10,  22,  43,  51,  64,  81,  82, 99], device='cuda:0'))
         """
         
         robot_ids = env_ids * self.get_num_actors_per_env() # the act
@@ -359,10 +359,23 @@ class Mk1MultitaskBox(VecTask):
         self.apply_domain_randomization(env_ids=env_ids)
         
         robot_ids_int32 = robot_ids.to(dtype=torch.int32)
+        box_ids_int32 = robot_ids_int32 + 1       
+        
+        robot_and_box_int32_ids = torch.cat((robot_ids_int32, box_ids_int32))
+        
+        # reset the rarget positions
+        self.target_pos[env_ids, 0] = torch.normal(mean= self.x_target_mean, std= self.x_target_std)[env_ids]
+        self.target_pos[env_ids, 1] = torch.normal(mean= self.y_target_mean, std= self.y_target_std)[env_ids]
+        
+        self.initial_root_states[box_ids, 0] = self.target_pos[env_ids, 0]
+        self.initial_root_states[box_ids, 1] = self.target_pos[env_ids, 1]        
+        self.initial_root_states[box_ids, 2] = 0.1
  
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.initial_root_states),
-                                                   gymtorch.unwrap_tensor(robot_ids_int32), len(robot_ids_int32))
+                                                   gymtorch.unwrap_tensor(robot_and_box_int32_ids), len(robot_and_box_int32_ids))
+        
+        
 
         self.gym.set_dof_state_tensor_indexed(self.sim,
                                               gymtorch.unwrap_tensor(self.dof_state),
@@ -441,8 +454,7 @@ class Mk1MultitaskBox(VecTask):
         super().apply_domain_randomization(env_ids)
         
         # ---- actor linear velocity domain randomization ----
-        
-        env_ids = env_ids.to(dtype=torch.int64)
+         
         
         robot_ids = env_ids * self.get_num_actors_per_env()
         box_ids = robot_ids +1 
@@ -500,10 +512,8 @@ class Mk1MultitaskBox(VecTask):
             #    print(property.friction)
             pass
     
-    
     def get_num_actors_per_env(self) -> int:
         return 2
-    
     
     def get_num_playable_actors_per_env(self) -> int:
         return 1
@@ -524,6 +534,12 @@ class Mk1MultitaskBox(VecTask):
         self.idle_prob = float(reward_weight_dict['idle_prob'])
         self.idle_reward_factors = reward_weight_dict['idle']
         
+        
+        target_positions = self.config["mk1_multitask"]["target_positions"]
+        
+        self.target_x_dist = target_positions['x_pos']
+        self.target_y_dist = target_positions['y_pos']
+        
     def allocate_buffers(self):
         super().allocate_buffers()
         
@@ -533,9 +549,20 @@ class Mk1MultitaskBox(VecTask):
         self.state_names = ['idle', 'to target']
         command_state_distribution = torch.distributions.OneHotCategorical(torch.tensor((self.idle_prob, self.to_target_prob), dtype= torch.float32, device= self.device))
         self.command_state_tensor = command_state_distribution.sample(sample_shape=(self.num_envs, )).to(self.device).to(torch.int8)
-        #  
-        self.update_reward_factor_buffers()
         
+        self.x_target_mean = torch.ones((self.num_envs, ), device= self.device) * self.target_x_dist['mean']
+        self.x_target_std = torch.ones((self.num_envs, ), device= self.device) * self.target_x_dist['std']
+        x_cordinate = torch.normal(mean= self.x_target_mean, std= self.x_target_std).unsqueeze(dim=1)
+        
+               
+        self.y_target_mean = torch.ones((self.num_envs, ), device= self.device) * self.target_y_dist['mean']
+        self.y_target_std = torch.ones((self.num_envs, ), device= self.device) * self.target_y_dist['std']
+        y_cordinate = torch.normal(mean= self.y_target_mean, std= self.y_target_std).unsqueeze(dim=1)
+        
+        self.target_pos =  torch.cat((x_cordinate, y_cordinate), dim= 1)
+         
+        self.update_reward_factor_buffers()
+           
     def weight_prop_state_dep_tensor(self, key: str, dtype: torch.dtype = torch.float16):
         value_tensor = torch.zeros((self.num_envs,), dtype=dtype, device= self.device )
         value_tensor += self.command_state_tensor[:, 0] * self.idle_reward_factors[key]
@@ -556,10 +583,11 @@ class Mk1MultitaskBox(VecTask):
         self.die_on_contact = self.weight_prop_state_dep_tensor("die_on_contact", dtype= torch.int8)
         self.contact_punishment_factor = self.weight_prop_state_dep_tensor("contact_punishment")
         self.velocity_reward_factor = self.weight_prop_state_dep_tensor('velocity_reward_factor')
-         
+        self.forward_velocity_factor = self.weight_prop_state_dep_tensor('forward_velocity_factor')
+        self.to_target_directional_factor = self.weight_prop_state_dep_tensor('to_target_directional_factor')
+        self.target_reached_reward_factor = self.weight_prop_state_dep_tensor('target_reached_reward_factor')
         
-        pass
-        
+          
     def get_tensor_state_means(self,input_name: str,  input: torch.Tensor) -> Dict[str, float]:
         """_summary_
 
@@ -581,11 +609,15 @@ class Mk1MultitaskBox(VecTask):
         
         
         robot_ids = self.all_env_ids * self.get_num_actors_per_env()
+        num_bots = len(self.all_env_ids)
         # -------------- base reward for being alive --------------  
-        
-        reward = torch.ones_like(self.root_states[robot_ids, 0]) * self.alive_reward  
+        do_terminate = torch.zeros((num_bots, ), dtype= torch.int8, device= self.device)
+        reward = torch.ones((num_bots, ), device=self.device, dtype= torch.float32 ) * self.alive_reward  
          
         quat_rotation = self.root_states[robot_ids , 3:7]
+        
+        robot_x_y_pos = self.root_states[robot_ids, 0:2]
+        
         
         #  -------------- reward for an upright torso -------------- 
         
@@ -598,7 +630,7 @@ class Mk1MultitaskBox(VecTask):
         
         reward += upright_punishment
         
-        #  -------------- reward for speed in the forward direction -------------- 
+        #  -------------- reward for facing in the forward direction -------------- 
         # Note; When we want the robot to go to a taret, it should not go backwards to that target, but actually turn and then walk forward in the direction of that target
         
         linear_velocity_x_y = self.root_states[robot_ids , 7:9]
@@ -618,9 +650,38 @@ class Mk1MultitaskBox(VecTask):
         #heading_to_velocity_angle = torch.arccos( torch.dot(two_d_heading_direction, linear_velocity_x_y)  / vel_norm )
         heading_to_velocity_angle = torch.arccos( batch_dot_product(two_d_heading_direction, linear_velocity_x_y) / vel_norm)
         
-        forward_direction_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_norm * self.forward_directional_factor, torch.zeros_like(reward))
+        forward_direction_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), torch.ones_like(vel_norm) * self.forward_directional_factor, torch.zeros_like(reward))
     
         reward += forward_direction_reward  
+        
+        # --------------- reward for heading direction aligning with the target position ----------
+        
+        to_target_direction = robot_x_y_pos - self.target_pos
+        
+        vel_dot_target_direction = normalized_batch_dot_product(linear_velocity_x_y, to_target_direction)
+        
+        to_target_direction_reward = vel_dot_target_direction * self.to_target_directional_factor
+        
+        reward += to_target_direction_reward
+        
+        # --------------- reward and terminate for having reached target ----------
+        
+        
+        distance_to_target = get_batch_tensor_2_norm(to_target_direction)
+        
+        
+        has_target_reached = torch.where(distance_to_target < 1.0, torch.ones_like(reward), torch.zeros_like(reward)) 
+        target_reach_reward = has_target_reached * self.target_reached_reward_factor
+        
+        do_terminate += has_target_reached.to(dtype=torch.int8)
+        reward += target_reach_reward
+        
+        # --------------- reward for forward speed ---------------
+        
+        
+        forward_velocity_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_norm * self.forward_velocity_factor, torch.zeros_like(reward))
+    
+        reward += forward_velocity_reward  
         
         # ------------- reward or punish for any root state velocity -----------
         
@@ -679,6 +740,8 @@ class Mk1MultitaskBox(VecTask):
         
         has_fallen += has_contact * self.die_on_contact
         
+        
+        do_terminate += has_fallen
         # if self.die_on_contact:
         #     has_fallen += has_contact
         # else:
@@ -698,6 +761,9 @@ class Mk1MultitaskBox(VecTask):
         reward_constituents = {**self.get_tensor_state_means("alive_reward", self.alive_reward),
                                **self.get_tensor_state_means("upright_punishment", upright_punishment),
                                **self.get_tensor_state_means("forward_direction_reward", forward_direction_reward),
+                               **self.get_tensor_state_means("forward_velocity_reward", forward_velocity_reward),
+                               **self.get_tensor_state_means("to_target_direction_reward", to_target_direction_reward),
+                               **self.get_tensor_state_means("target_reach_reward", target_reach_reward),
                                **self.get_tensor_state_means("jitter_punishment", jitter_punishment),
                                **self.get_tensor_state_means("velocity_reward", velocity_reward),
                                **self.get_tensor_state_means("overextend_punishment", overextend_punishment), 
@@ -705,34 +771,7 @@ class Mk1MultitaskBox(VecTask):
                                **self.get_tensor_state_means("total_reward", reward)}
           
         
-        return (reward, has_fallen, reward_constituents)
-            
-    def _compute_linear_robot_obs(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Compute the linear observations observed by the robot
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: shared_actor_obs, critic_obs 
-        """
-        
-        robot_ids = self.all_env_ids * self.get_num_actors_per_env()
-        
-        torso_position = self.root_states[robot_ids, 0:3]
-        torso_rotation = self.root_states[robot_ids, 3:7]
-        velocity = self.root_states[robot_ids, 7:10]
-        ang_velocity = self.root_states[robot_ids, 10:13]
-        
-        forces = self.vec_force_sensor_tensor[robot_ids].view(len(robot_ids), -1)
-        
-        
-        
-        linear_actor_obs = torch.cat((forces,  self.dof_pos, self.dof_vel, self.dof_force_tensor, ang_velocity, torso_rotation, self.actions, torso_position), dim=-1)
-    
-        linear_critic_obs = torch.cat(( velocity, torso_position), dim=-1)
-    
-        return  linear_actor_obs,   linear_critic_obs
-        
-        
-        
+        return (reward, do_terminate, reward_constituents)
             
     def _get_standard_config(self) -> Dict:
         """Get the dict of the standard configuration
@@ -750,7 +789,7 @@ class Mk1MultitaskBox(VecTask):
             except yaml.YAMLError as exc:    
                 raise FileNotFoundError( f"Base Config : {base_config_path} not found")
             
-
+            
 
 @torch.jit.script
 def compute_linear_robot_observations(
