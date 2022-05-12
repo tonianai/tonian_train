@@ -9,8 +9,7 @@ from tonian.tasks.mk1.mk1_running.mk1_running_task import Mk1RunningTask
 from tonian.tasks.mk1_multi_task.mk1_multi_task import Mk1Multitask
 from tonian.tasks.mk1_multi_task_box.mk1_multi_task_box import Mk1MultitaskBox
 
-from gym.spaces import space
-from tonian.tasks.common.command import Command
+from gym.spaces import space 
 from tonian.tasks.base.vec_task import  VecTask
 from tonian.common.schedule import Schedule 
 from tonian.common.spaces import MultiSpace

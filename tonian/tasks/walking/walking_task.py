@@ -1,6 +1,5 @@
 from gym.spaces import space
-import numpy as np
-from tonian.tasks.common.command import Command
+import numpy as np 
 from tonian.tasks.base.vec_task import VecTask
 from tonian.common.utils import join_configs
 

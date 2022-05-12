@@ -2,8 +2,7 @@
 from abc import ABC, abstractmethod
 
 from gym.spaces import space
-import numpy as np
-from tonian.tasks.common.command import Command
+import numpy as np 
 from tonian.tasks.base.vec_task import VecTask
 from tonian.tasks.common.task_dists import task_dist_from_config
 from tonian.common.utils import join_configs
