@@ -14,7 +14,7 @@ from typing import Dict, Any, Tuple, Union, Optional
 
 from isaacgym import gymtorch, gymapi
 
-import yaml, os, torch, math
+import yaml, os, torch, gym
 
 
 class Mk1RunningTask(Mk1BaseClass):
@@ -223,10 +223,130 @@ class Mk1RunningTask(Mk1BaseClass):
             except yaml.YAMLError as exc:    
                 raise FileNotFoundError( f"Base Config : {base_config_path} not found")
             
-    def get_additional_critic_obs(self) -> Dict[str, torch.Tensor]:
-        return {}
-    
-    def get_additional_actor_obs(self) -> Dict[str, torch.Tensor]:
-        return {}
+            
+    def get_obs(self) -> Tuple[ Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+        """Return all the observations made by the actor and the critic
 
+        Returns:
+            Tuple[str, torch.Tensor]: _description_
+        """
+        
+        # use jit script to compute the observations
+        self.actor_obs["linear"][:], self.critic_obs["linear"][:] = compute_linear_robot_observations(
+            root_states = self.root_states, 
+            sensor_states=self.vec_force_sensor_tensor,
+            dof_vel=self.dof_vel,
+            dof_pos= self.dof_pos,
+            dof_limits_lower=self.dof_limits_lower,
+            dof_limits_upper=self.dof_limits_upper,
+            dof_force= self.dof_force_tensor, 
+            actions= self.actions
+        )  
+    
+    
+    def get_num_playable_actors_per_env(self) -> int:
+        """Return the amount of actors each environment has, this only includes actors, that are playable
+        This distincion is stupid and only exists, because isaacgym currently does anot support any way of adding objects to environments, that are not actors
+
+        Returns:
+            int
+        """
+        return self.get_num_actors_per_env()
+    
+    
+    def get_num_actors_per_env(self) -> int:
+        """Get the total amount of actor per environment this includes non active actors like boxes or other inaminate matter
+
+        Returns:
+            int
+        """
+        
+        return 1
+    
+    def _get_actor_observation_spaces(self) -> MultiSpace:
+        """Define the different observation the actor of the agent
+         (this includes linear observations, viusal observations, commands)
+         
+         The observations will later be combined with other inputs like commands to create the actor input space
+        
+        This is an asymmetric actor critic implementation  -> The actor observations differ from the critic observations
+        and unlike the critic inputs the actor inputs have to be things that a real life robot could also observe in inference
+
+        Returns:
+            MultiSpace: [description]
+        """
+        num_actor_obs = 108
+        return  MultiSpace({
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
+        })
+        
+    def _get_critic_observation_spaces(self) -> MultiSpace:
+        """Define the different observations for the critic of the agent
+        
+        
+         The observations will later be combined with other inputs like commands to create the critic input space
+        
+        This is an asymmetric actor critic implementation  -> The critic observations differ from the actor observations
+        and unlike the actor inputs the actor inputs don't have to be things that a real life robot could also observe in inference.
+        
+        Things like distance to target position, that can not be observed on site can be included in the critic input
+    
+        Returns:
+            MultiSpace: [description]
+        """
+
+        num_critic_obs = 6
+        return  MultiSpace({
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
+        })
+    
  
+@torch.jit.script
+def compute_linear_robot_observations(root_states: torch.Tensor, 
+                                sensor_states: torch.Tensor, 
+                                dof_vel: torch.Tensor, 
+                                dof_pos: torch.Tensor, 
+                                dof_limits_lower: torch.Tensor,
+                                dof_limits_upper: torch.Tensor,
+                                dof_force: torch.Tensor,
+                                actions: torch.Tensor
+                                ):
+    
+    
+    """Calculate the observation tensors for the crititc and the actor for the humanoid robot
+    
+    Note: The resulting tensors must be in the same shape as the multispaces: 
+        - self.actor_observation_spaces
+        - self.critic_observatiom_spaces
+
+    Args:
+        root_states (torch.Tensor): Root states contain things like positions, velcocities, angular velocities and orientation of the root of the robot 
+        sensor_states (torch.Tensor): state of the sensors given 
+        dof_vel (torch.Tensor): velocity tensor of the dofs
+        dof_pos (torch.Tensor): position tensor of the dofs
+        dof_force (torch.Tensor): force tensor of the dofs
+        actions (torch.Tensor): actions of the previous 
+
+    Returns:
+        Tuple[Dict[torch.Tensor]]: (actor observation tensor, critic observation tensor)
+    """
+    
+    
+    torso_position = root_states[:, 0:3]
+    torso_rotation = root_states[:, 3:7]
+    velocity = root_states[:, 7:10]
+    ang_velocity = root_states[:, 10:13]
+     
+    
+    
+    # todo add some other code to deal with initial information, that might be required
+    
+    
+    linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions, torso_position), dim=-1)
+    
+    linear_critic_obs = torch.cat(( velocity, torso_position), dim=-1)
+    
+    return  linear_actor_obs,   linear_critic_obs
+
+
+

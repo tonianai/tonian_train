@@ -5,8 +5,7 @@ from typing import Callable, Dict, Tuple
 from tonian.common.logger import BaseLogger
 from tonian.tasks.walking.walking_task import WalkingTask
 from tonian.tasks.cartpole.cartpole_task import Cartpole
-from tonian.tasks.mk1.mk1_running.mk1_running_task import Mk1RunningTask
-from tonian.tasks.mk1.mk1_controlled.mk1_controlled_task import Mk1ControlledTask
+from tonian.tasks.mk1.mk1_running.mk1_running_task import Mk1RunningTask 
 from tonian.tasks.mk1_multi_task.mk1_multi_task import Mk1Multitask
 from tonian.tasks.mk1_multi_task_box.mk1_multi_task_box import Mk1MultitaskBox
 
@@ -52,8 +51,7 @@ def task_from_config(config: Dict, headless: bool = False) -> VecTask:
     name_to_task_map=  {
      "00_cartpole": Cartpole,
      "01_walking": WalkingTask,
-     "02_mk1_running": Mk1RunningTask,
-     "03_mk1_controlled": Mk1ControlledTask,
+     "02_mk1_running": Mk1RunningTask, 
      "04_mk1_multitask": Mk1Multitask,
      "05_mk1_multitask_box": Mk1MultitaskBox
     }
