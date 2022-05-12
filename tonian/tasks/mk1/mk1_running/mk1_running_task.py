@@ -274,7 +274,7 @@ class Mk1RunningTask(Mk1BaseClass):
         Returns:
             MultiSpace: [description]
         """
-        num_actor_obs = 108
+        num_actor_obs = 142
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
         })
@@ -339,9 +339,9 @@ def compute_linear_robot_observations(root_states: torch.Tensor,
     
     
     # todo add some other code to deal with initial information, that might be required
+     
     
-    
-    linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_force, ang_velocity, torso_rotation, actions, torso_position), dim=-1)
+    linear_actor_obs = torch.cat((sensor_states.view(root_states.shape[0], -1), dof_pos, dof_vel, dof_limits_upper.tile(( root_states.shape[0], 1)),dof_limits_lower.tile(( root_states.shape[0],1 )),  dof_force, ang_velocity, torso_rotation, actions, torso_position), dim=-1)
     
     linear_critic_obs = torch.cat(( velocity, torso_position), dim=-1)
     
