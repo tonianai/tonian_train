@@ -51,6 +51,8 @@ class Mk1BaseClass(VecTask, ABC):
         # The initial velcoities after the environment resets
         self.intitial_velocities = [  task_dist_from_config(vel) for vel in mk1_config.get('initial_velocities', [0,0,0])]
         
+        
+        
         self.spawn_height = mk1_config.get('spawn_height', 1.7)
         
         self.default_friction = task_dist_from_config(mk1_config.get('default_friction', 1.0))
@@ -359,6 +361,7 @@ class Mk1BaseClass(VecTask, ABC):
         self.apply_domain_randomization(env_ids=env_ids)
         
         env_ids_int32 = env_ids.to(dtype=torch.int32)
+        
         
         
          

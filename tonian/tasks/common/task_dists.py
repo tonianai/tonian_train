@@ -107,3 +107,61 @@ def task_dist_from_config(config_or_value: Union[Dict, Any]) -> TaskDistribution
         return dist_types[config_or_value['dist_type']](config_or_value)
     else:
         return TaskFixedDistribution(config_or_value)
+    
+    
+def sample_tensor_dist(dist_config_or_value: Union[Dict, float, int], sample_shape: Tuple[int, ...], device: Union[str, torch.device] ):
+    """Directly sample from a given distribution 
+    following dist_config_or_value shapes are acceptable:
+    
+    value: int or float returns a torch tensor with the shape and on the device, that are given
+    
+    dist:
+        # gaussian
+            mean: float
+            std: float or int
+            dist_type: gaussian
+            
+            
+            
+        # linear_drawn
+            dist_type: linear_drawn
+            values: [0,0,1,2,2, 2, 3,4]
+            
+            # The example would sample from a random point on the x axis from this plot and take the 
+            4              /
+            3        ___ /
+            2      /
+            1____/
+             0 1 2 3 4 5 6 7   
+            
+
+    Args:
+        dist_config_or_value (Dict): _description_
+        sample_shape (Tuple[int, ...]): _description_
+        device (Union[str, torch.device]): _description_
+    """
+    
+    if not isinstance(dist_config_or_value, Dict):    
+        return torch.ones(sample_shape, device= device) * dist_config_or_value
+     
+    dist_config = dist_config_or_value
+    
+    distribution_type = dist_config['dist_type']
+    if distribution_type == 'gaussian':
+        mean = torch.ones(sample_shape, device=device) * dist_config['mean']
+        std = torch.ones(sample_shape, device=device) * dist_config['std']
+        return torch.normal(mean = mean, std = std).unsqueeze(dim=1)
+    
+    if distribution_type == 'linear_drawn':
+        values = dist_config['values']
+        x_sample = (torch.rand(*sample_shape, device= device) * (len(values) - 1))
+        value_torch = torch.tensor(values, device= device)
+        lower = value_torch[x_sample.to(torch.int64)]
+        upper = value_torch[torch.ceil(x_sample).to(torch.int64)]
+        ratio = x_sample - torch.floor(x_sample)
+         
+        return (1 - ratio) * lower + ratio * upper
+        
+        
+        
+    

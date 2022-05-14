@@ -39,6 +39,7 @@ policy:
     - name: actor_linear_obs_net
       input: 
           - obs: linear
+          - obs: command
       mlp:
           units: [512, 256, 128]
           activation: elu

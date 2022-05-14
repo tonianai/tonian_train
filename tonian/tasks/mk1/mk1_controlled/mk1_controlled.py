@@ -13,6 +13,8 @@ from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 from tonian.common.spaces import MultiSpace
 from tonian.common.torch_jit_utils import batch_dot_product
 
+from tonian.tasks.common.task_dists import sample_tensor_dist
+
  
 
 from typing import Dict, Any, Tuple, Union, Optional, List
@@ -36,6 +38,17 @@ class Mk1ControlledTask(Mk1BaseClass):
         self._get_gpu_gym_state_tensors()
         
         
+    def reset_envs(self, env_ids: torch.Tensor) -> None:
+        super().reset_envs(env_ids)  
+        
+        n_envs_reset =  len(env_ids)
+        
+        self.target_velocity[env_ids] = sample_tensor_dist(self.target_velocity_dist, sample_shape=(n_envs_reset, ), device = self.device)
+        
+        self.target_direction[env_ids, 0] = torch.normal(mean = self.x_direction_mean[env_ids], std = self.x_direction_std[env_ids])
+        self.target_direction[env_ids, 1] = torch.normal(mean = self.y_direction_mean[env_ids], std = self.y_direction_std[env_ids])
+    
+        
         
     def _extract_params_from_config(self) -> None:
         """
@@ -47,7 +60,6 @@ class Mk1ControlledTask(Mk1BaseClass):
         reward_weight_dict = self.config["mk1_controlled"]["reward_weighting"]  
         
         self.energy_cost = reward_weight_dict["energy_cost"]
-        self.directional_factor = reward_weight_dict["directional_factor"]
         self.death_cost = reward_weight_dict["death_cost"]
         self.alive_reward = float(reward_weight_dict["alive_reward"])
         self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
@@ -56,6 +68,40 @@ class Mk1ControlledTask(Mk1BaseClass):
         self.overextend_cost = reward_weight_dict["overextend_cost"]
         self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
         self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
+        self.slowdown_punish_difference = reward_weight_dict["slowdown_punish_difference"]
+        
+        self.target_velocity_factor = reward_weight_dict["target_velocity_factor"]
+        
+        self.target_direction_factor = reward_weight_dict["target_direction_factor"]
+
+        controls_dict = self.config['mk1_controlled']['controls']
+
+        self.target_velocity_dist =  controls_dict['velocity']
+        self.target_x_dist = controls_dict['direction_x']
+        self.target_y_dist = controls_dict['direction_y']
+        
+    def allocate_buffers(self):
+        """Allocate all important tensors and buffers
+        """
+        super().allocate_buffers()
+        
+        self.x_direction_mean = torch.ones((self.num_envs, ), device=self.device) * self.target_x_dist['mean']
+        self.x_direction_std = torch.ones((self.num_envs, ), device=self.device) * self.target_x_dist['std']
+        x_direction = torch.normal(mean = self.x_direction_mean, std = self.x_direction_std).unsqueeze(dim=1)
+        
+        self.y_direction_mean = torch.ones((self.num_envs, ), device=self.device) * self.target_y_dist['mean']
+        self.y_direction_std = torch.ones((self.num_envs, ), device=self.device) * self.target_y_dist['std']
+        y_direction = torch.normal(mean = self.y_direction_mean, std = self.y_direction_std).unsqueeze(dim=1)
+        
+        
+        
+        self.target_direction =  torch.cat((x_direction, y_direction), dim= 1)
+        
+        self.target_velocity = sample_tensor_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
+        
+        
+        
+
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -102,13 +148,18 @@ class Mk1ControlledTask(Mk1BaseClass):
         # magnitude of the velocity (2 norm)
         vel_norm = torch.linalg.vector_norm(linear_velocity_x_y, dim=1)
         
-            
+        # positive is to fast and neg is to slow 
+        vel_difference = vel_norm - self.target_velocity 
+        
+        vel_reward_factor = torch.where(vel_difference > 0 , compute_velocity_reward_factor(vel_difference, self.slowdown_punish_difference, self.target_velocity_factor), compute_velocity_reward_factor(- vel_difference, self.target_velocity, self.target_velocity_factor))
+         
         #heading_to_velocity_angle = torch.arccos( torch.dot(two_d_heading_direction, linear_velocity_x_y)  / vel_norm )
         heading_to_velocity_angle = torch.arccos( batch_dot_product(two_d_heading_direction, linear_velocity_x_y) / vel_norm)
+         
         
-        direction_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_norm * self.directional_factor, torch.zeros_like(reward))
+        target_velocity_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_reward_factor, torch.zeros_like(reward))
     
-        reward += direction_reward  
+        reward += target_velocity_reward  
         
         # -------------- Punish for jittery motion (see ./research/2022-03-27_reduction-of-jittery-motion-in-action.md)--------------
         
@@ -135,6 +186,12 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         reward -= overextend_punishment
         
+        
+        # ---------- reward for the heading direction ----------
+        
+        target_direction_reward = batch_dot_product(self.target_direction, two_d_heading_direction) * self.target_direction_factor
+        
+        reward += target_direction_reward
     
         
         
@@ -178,22 +235,24 @@ class Mk1ControlledTask(Mk1BaseClass):
         # average rewards per step
          
         upright_punishment = float(torch.mean(upright_punishment).item())
-        direction_reward = float(torch.mean(direction_reward).item())
+        target_velocity_reward = float(torch.mean(target_velocity_reward).item())
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
+        target_direction_reward = float(torch.mean(target_direction_reward).item())
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
         if not self.die_on_contact:
             contact_punishment = -float(torch.mean(contact_punishment).item())
         else:
             contact_punishment = 0.0
         
-        total_avg_reward = self.alive_reward + upright_punishment + direction_reward + jitter_punishment + energy_punishment
+        total_avg_reward = self.alive_reward + upright_punishment + target_velocity_reward + jitter_punishment + energy_punishment
         
         reward_constituents = {
                                 'alive_reward': self.alive_reward,
                                 'upright_punishment':  upright_punishment,
-                                'direction_reward':    direction_reward,
+                                'target_velocity_reward':    target_velocity_reward,
                                 'jitter_punishment':   jitter_punishment,
+                                'target_direction_reward': target_direction_reward, 
                                 'energy_punishment':   energy_punishment,
                                 'overextend_punishment': overextend_punishment,
                                 'contact_punishment': contact_punishment,
@@ -247,6 +306,10 @@ class Mk1ControlledTask(Mk1BaseClass):
             dof_force= self.dof_force_tensor, 
             actions= self.actions
         )  
+        
+        self.actor_obs["command"][:, 0:2] = self.target_direction
+        self.actor_obs["command"][:, 2] = self.target_velocity
+        
     
     
     def get_num_playable_actors_per_env(self) -> int:
@@ -282,7 +345,8 @@ class Mk1ControlledTask(Mk1BaseClass):
         """
         num_actor_obs = 142
         return  MultiSpace({
-            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
+            "command": gym.spaces.Box(low= -3.0, high= 5.0, shape= (3, ))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
@@ -303,7 +367,24 @@ class Mk1ControlledTask(Mk1BaseClass):
         num_critic_obs = 6
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
-        })
+        }) 
+        
+         
+def compute_velocity_reward_factor(abs: torch.Tensor, zero_x_cord: Union[float, torch.Tensor], factor: Union[float, torch.Tensor]) -> torch.Tensor:
+    """compute a function for the velocity reward factor
+    https://www.geogebra.org/graphing/f2qxcw85
+
+    Args:
+        abs (torch.Tensor): the absolute tensor (x is only positive)
+        zero_x_cord (torch.Tensor): the coordinate where the reward is zero
+        factor (Union[float, torch.Tensor]): the y multiplication. This values is achieved for abs == 0
+        
+        f(x)=(((1)/(x ((1)/(2 zerop))+0.5))-1) * factor
+    Returns:
+        torch.Tensor: y
+    """
+    return  (1.0 / (abs * (1.0 / (2.0 * zero_x_cord))+ 0.5) - 1.0) * factor
+     
     
  
 @torch.jit.script

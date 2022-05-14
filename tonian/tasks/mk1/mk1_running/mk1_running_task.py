@@ -196,7 +196,6 @@ class Mk1RunningTask(Mk1BaseClass):
         
         
         return (reward, has_fallen, reward_constituents)
-            
     
     def _add_to_env(self, env_ptr, env_id: int): 
         """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
@@ -242,7 +241,6 @@ class Mk1RunningTask(Mk1BaseClass):
             actions= self.actions
         )  
     
-    
     def get_num_playable_actors_per_env(self) -> int:
         """Return the amount of actors each environment has, this only includes actors, that are playable
         This distincion is stupid and only exists, because isaacgym currently does anot support any way of adding objects to environments, that are not actors
@@ -251,7 +249,6 @@ class Mk1RunningTask(Mk1BaseClass):
             int
         """
         return self.get_num_actors_per_env()
-    
     
     def get_num_actors_per_env(self) -> int:
         """Get the total amount of actor per environment this includes non active actors like boxes or other inaminate matter
