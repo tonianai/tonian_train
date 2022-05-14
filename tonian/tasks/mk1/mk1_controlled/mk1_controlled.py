@@ -37,6 +37,22 @@ class Mk1ControlledTask(Mk1BaseClass):
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
         
+    def _create_envs(self, spacing: float, num_per_row: int) -> None:
+        super()._create_envs(spacing, num_per_row) 
+        
+        
+        self.upper_body_joint_names = ['left_shoulder_a', 
+                                       'right_shoulder_a',
+                                       'left_shoulder_b',
+                                       'right_shoulder_b',
+                                       'right_arm_rotate',
+                                       'left_arm_rotate',
+                                       'right_elbow',
+                                       'left_elbow'] # all the names of the upper body joints, that for instance should be used minimally when walking
+        self.upper_body_joint_indices = torch.LongTensor([ self.dof_name_index_dict[name] for name  in  self.upper_body_joint_names ])
+         
+        
+        
         
     def reset_envs(self, env_ids: torch.Tensor) -> None:
         super().reset_envs(env_ids)  
@@ -73,6 +89,8 @@ class Mk1ControlledTask(Mk1BaseClass):
         self.target_velocity_factor = reward_weight_dict["target_velocity_factor"]
         
         self.target_direction_factor = reward_weight_dict["target_direction_factor"]
+        
+        self.arm_use_cost = reward_weight_dict['arm_use_cost']
 
         controls_dict = self.config['mk1_controlled']['controls']
 
@@ -199,14 +217,20 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         energy_punishment = torch.sum(self.actions ** 2, dim=-1) * self.energy_cost
         reward -= energy_punishment
+        
+        # ------------- cost of usign arms ------------
+         
+        arm_use_punishment = torch.sum(self.actions[:, self.upper_body_joint_indices]) / self.upper_body_joint_indices.shape[0] * self.arm_use_cost
+        
+        reward -= arm_use_punishment
+        
+        
+        # ---------- has fallen or die on contact -------------
          
         terminations_height = self.death_height
         
-        
         has_fallen = torch.zeros_like(reward, dtype=torch.int8)
         has_fallen = torch.where(self.root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
-        
-        
         
         summed_contact_forces = torch.sum(self.contact_forces, dim= 2) # sums x y and z components of contact forces together
         
@@ -238,6 +262,7 @@ class Mk1ControlledTask(Mk1BaseClass):
         target_velocity_reward = float(torch.mean(target_velocity_reward).item())
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
+        arm_use_punishment = - float(torch.mean(arm_use_punishment).item())
         target_direction_reward = float(torch.mean(target_direction_reward).item())
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
         if not self.die_on_contact:
@@ -254,6 +279,7 @@ class Mk1ControlledTask(Mk1BaseClass):
                                 'jitter_punishment':   jitter_punishment,
                                 'target_direction_reward': target_direction_reward, 
                                 'energy_punishment':   energy_punishment,
+                                'arm_use_punishment': arm_use_punishment,
                                 'overextend_punishment': overextend_punishment,
                                 'contact_punishment': contact_punishment,
                                 'total_reward': total_avg_reward

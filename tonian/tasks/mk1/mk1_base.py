@@ -124,7 +124,6 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_dof_pos = torch.zeros_like(self.dof_pos, device=self.device, dtype=torch.float)
         self.initial_root_states = self.root_states.clone()
         
-        print(self.initial_root_states.shape)
         # 7:13 describe velocities
         self.initial_root_states[:, 7:13] = 0
         
