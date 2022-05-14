@@ -55,8 +55,8 @@ class Mk1BaseClass(VecTask, ABC):
         
         self.spawn_height = mk1_config.get('spawn_height', 1.7)
         
-        self.default_friction = task_dist_from_config(mk1_config.get('default_friction', 1.0))
-        self.friction_properties = { key: task_dist_from_config(friction) for key, friction in mk1_config.get('frictions', {}).items()}
+        self.default_friction = task_dist_from_config(mk1_config['agent'].get('default_friction', 1.0))
+        self.friction_properties = { key: task_dist_from_config(friction) for key, friction in mk1_config['agent'].get('frictions', {}).items()}
         
     def _get_mk1_base_config(self):
         """Get the base config for the vec_task
@@ -426,6 +426,7 @@ class Mk1BaseClass(VecTask, ABC):
         """
         super().apply_domain_randomization(env_ids)
         
+        
         # ---- actor linear velocity domain randomization ----
         
         env_ids = env_ids.to(torch.int64)
@@ -446,12 +447,12 @@ class Mk1BaseClass(VecTask, ABC):
             
             friction_values = [ self.default_friction() for _ in range(len(shape_properties))]
             
-            for link_name, friction_value in self.friction_properties:
+            for link_name, friction_value in self.friction_properties.items():
                 link_index = self.gym.find_asset_rigid_body_index(self.mk1_robot_asset,link_name)
                 friction_values[link_index] = friction_value()
                 
             for shape_property, friction_value in zip(shape_properties,  friction_values):
-                shape_property.friction = friction_value
+                shape_property.friction = friction_value 
                 
             self.gym.set_actor_rigid_shape_properties(self.envs[env_id], self.robot_handles[env_id], shape_properties)
                 
