@@ -22,7 +22,7 @@ mk1_controlled:
     
     velocity:
       dist_type: linear_drawn
-      values: [0,0,1,2,3,4,5]
+      values: [0,4]
 
   reward_weighting:
 
@@ -36,7 +36,7 @@ mk1_controlled:
       jitter_cost: 0.25
       overextend_cost: 4
       
-      target_velocity_factor: 2.0
+      target_velocity_factor: 8.0
       slowdown_punish_difference: 0.6 # the point when being to fast will be punished
       # note any speed slower than the target speed will be rewarded, only negative speed will be punished proportionally
       target_direction_factor: 0.5

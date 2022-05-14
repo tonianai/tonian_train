@@ -42,7 +42,7 @@ if __name__ == '__main__':
     
     # load the model to the policy 
     
-    policy.load_state_dict(torch.load(os.path.join(run_dir,'saves', 'best_model_full.pth')))
+    policy.load(os.path.join(run_dir,'saves', 'best_model'))
     
     policy.eval()
     

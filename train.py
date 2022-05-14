@@ -49,7 +49,6 @@ def train(config_path: str,
                                             actor_obs_space=task.actor_observation_spaces, 
                                             critic_obs_space=task.critic_observation_spaces, 
                                             action_space= task.action_space)
- 
 
     # create the run folder here
     run_folder_name, run_id = create_new_run_directory(config, batch_id)

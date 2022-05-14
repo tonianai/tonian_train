@@ -9,7 +9,7 @@ from tonian.training.common.aliases import ActivationFn, InitializerFn
 from tonian.training.common.running_mean_std import RunningMeanStdObs
 
 
-import torch, gym
+import torch, gym, os
 import torch.nn as nn
 import numpy as np
  
@@ -23,6 +23,14 @@ class A2CBasePolicy(nn.Module, ABC):
     @abstractmethod
     def is_rnn(self):
         raise NotImplementedError()
+    
+    @abstractmethod
+    def load(self, path):
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def save(self, path):
+        raise NotADirectoryError()
     
     def forward(self, is_train: bool,   actor_obs: Dict[str, torch.Tensor], critic_obs: Dict[str, torch.Tensor], prev_actions: Optional[torch.Tensor]) -> Dict:
         """
@@ -53,7 +61,29 @@ class A2CSequentialLogStdPolicy(A2CBasePolicy):
         self.actor_obs_normalizer = actor_obs_normalizer
         self.critic_obs_normalizer = critic_obs_normalizer
         
+
+    def save(self, path):
         
+        torch.save(self.a2c_net.state_dict() ,os.path.join(path, 'network.pth'))   
+        
+        if self.actor_obs_normalizer:
+            torch.save(self.actor_obs_normalizer.state_dict(), os.path.join(path, 'actor_obs_norm.pth'))
+            
+        if self.critic_obs_normalizer:
+            torch.save(self.critic_obs_normalizer.state_dict(), os.path.join(path, 'critic_obs_norm.pth'))
+   
+    def load(self, path):
+        
+        self.a2c_net.load_state_dict(torch.load(os.path.join(path, 'network.pth' )), strict=False)
+        
+        if self.actor_obs_normalizer:
+            self.actor_obs_normalizer.load_state_dict(torch.load(os.path.join(path, 'actor_obs_norm.pth')))
+            
+        if self.critic_obs_normalizer:
+            self.critic_obs_normalizer.load_state_dict(torch.load(os.path.join(path, 'critic_obs_norm.pth')))
+        
+    
+    
     def is_rnn(self):
         return self.a2c_net
     
@@ -75,8 +105,6 @@ class A2CSequentialLogStdPolicy(A2CBasePolicy):
             
         return actor_obs, critic_obs
         
-        
-    
     def forward(self, is_train: bool,   actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]], prev_actions: Optional[torch.Tensor] = None) -> Dict:
         """
 

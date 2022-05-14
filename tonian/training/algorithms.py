@@ -695,9 +695,14 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
     
     def save(self): 
         
-        run_save_dir = os.path.join(self.logger.folder, 'saves')
+        run_save_dir = os.path.join(self.logger.folder, 'saves', 'best_model')
         
-        torch.save(self.policy.state_dict(), os.path.join(run_save_dir, 'best_model_full.pth'))
+        os.makedirs(run_save_dir, exist_ok=True)
+        
+        self.policy.save(run_save_dir)
+        
+        if self.normalize_value:
+            torch.save(self.value_mean_std.state_dict(), os.path.join(run_save_dir, 'value_mean_std.pth'))
      
         
         if self.model_out_name :
@@ -706,16 +711,16 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             os.makedirs(save_dir, exist_ok=True)
             
             # register the model unter the given name 
-            torch.save(  self.policy.state_dict() ,os.path.join(save_dir, 'model.pth'))   
+            self.policy.save(run_save_dir)
            
             if self.normalize_value:
                 torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))
             
     
     def load(self, path: str):
-        
-        self.policy.load_state_dict(torch.load(os.path.join(path, 'model.pth' )))
-        
+         
+        self.policy.load(path)
+          
         if self.normalize_value:
             self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
         
