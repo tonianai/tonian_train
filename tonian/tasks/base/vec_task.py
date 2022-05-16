@@ -381,9 +381,9 @@ class VecTask(BaseEnv, ABC):
          
         every_env_id_tensor = torch.arange(start=0, end= self.num_envs).to(self.device).to(dtype=torch.int64)
         
+        self.initial_domain_randomization()
         self.reset_envs(every_env_id_tensor )
         
-        self.initial_domain_randomization()
         
         # step the simulator
         self.step(actions)

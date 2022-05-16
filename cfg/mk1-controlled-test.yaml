@@ -30,7 +30,7 @@ task:
       
       velocity:
         dist_type: linear_drawn
-        values: [3]
+        values: [0,5]
         #values: [3]
 
     reward_weighting:
@@ -48,13 +48,12 @@ task:
         arm_use_cost: 0.0
         
         target_velocity_factor: 2.5
-        slowdown_punish_difference: 0.6 # the point when being to fast will be punished
+        slowdown_punish_difference: 0.3 # the point when being to fast will be punished
         # note any speed slower than the target speed will be rewarded, only negative speed will be punished proportionally
-        target_direction_factor: 0.5
+        target_direction_factor: 0.0
 
         die_on_contact: False # die when anything other than the foot touches the ground
         contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
-
 
 
 

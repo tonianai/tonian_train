@@ -10,7 +10,25 @@ task:
     num_envs: 1024
     
 
-  mk1: {}
+  mk1:
+    agent: 
+      default_friction: 
+          dist_type: gaussian
+          mean: 1.5
+          std: 0.5
+      
+      frictions: # describe by using the link name 
+          foot: 
+            dist_type: gaussian
+            mean: 100
+            std: 2
+          foot_2: 
+            dist_type: gaussian
+            mean: 100
+            std: 2
+
+
+
 
   mk1_walking:
     reward_weighting:
@@ -74,6 +92,8 @@ algo:
   entropy_coef: 0
 
   bounds_loss_coef: 0.0001
+
+
 
 
 

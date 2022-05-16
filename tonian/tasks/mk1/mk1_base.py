@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 from gym.spaces import space
 import numpy as np 
 from tonian.tasks.base.vec_task import VecTask
-from tonian.tasks.common.task_dists import task_dist_from_config
+from tonian.tasks.common.task_dists import task_dist_from_config, TaskGaussianDistribution
 from tonian.common.utils import join_configs
+
 
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
@@ -29,6 +30,8 @@ class Mk1BaseClass(VecTask, ABC):
 
         # The parts of the robot, that should get a force sensor    
         self.parts_with_force_sensor = ['upper_torso' , 'foot', 'foot_2', 'forearm', 'forearm_2' ]
+        
+        
         
         base_config = self._get_mk1_base_config()
         config = join_configs(base_config, config)
@@ -57,6 +60,9 @@ class Mk1BaseClass(VecTask, ABC):
         
         self.default_friction = task_dist_from_config(mk1_config['agent'].get('default_friction', 1.0))
         self.friction_properties = { key: task_dist_from_config(friction) for key, friction in mk1_config['agent'].get('frictions', {}).items()}
+        
+        # the standard deviation with wicthc to randomize the mass of each part of the robot
+        self.mass_std = mk1_config['agent'].get('default_mass_std', 0)
         
     def _get_mk1_base_config(self):
         """Get the base config for the vec_task
@@ -415,6 +421,9 @@ class Mk1BaseClass(VecTask, ABC):
         # self.initial_root_states[:, 9] = self.intitial_velocities[2]() # vel in -z axis
         
         
+        self.mass_add_dist = TaskGaussianDistribution({'mean':1.0, 'std': self.mass_std })
+        self.default_mass_values = [prop.mass for prop in self.gym.get_actor_rigid_body_properties(self.envs[0], self.robot_handles[0])]
+        
             
     def apply_domain_randomization(self, env_ids: torch.Tensor):
         """Apply domain randomisation to the parameters given in the config file
@@ -452,7 +461,7 @@ class Mk1BaseClass(VecTask, ABC):
                 friction_values[link_index] = friction_value()
                 
             for shape_property, friction_value in zip(shape_properties,  friction_values):
-                shape_property.friction = friction_value 
+                shape_property.friction = friction_value  
                 
             self.gym.set_actor_rigid_shape_properties(self.envs[env_id], self.robot_handles[env_id], shape_properties)
                 
@@ -460,11 +469,17 @@ class Mk1BaseClass(VecTask, ABC):
             # ---- mass domain randomization ....
             body_properties = self.gym.get_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id])
             
-            mass_values = [ self.default_friction() for _ in range(len(shape_properties))]
+            mass_values = self.default_mass_values.copy()
+            
+            
+            for i, property in enumerate(body_properties):
+                 property.mass =  mass_values[i] * self.mass_add_dist.sample()
+                 
+                
+            
+            self.gym.set_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id], body_properties)
+            
 
-                
-                
-        
             # print(self.gym.get_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id]))
             
             # object_properties = self.gym.get_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id])
@@ -475,7 +490,6 @@ class Mk1BaseClass(VecTask, ABC):
             # for property in object_properties:
             #     property.mass = 1000
             # 
-            # self.gym.set_actor_rigid_body_properties(self.envs[env_id], self.robot_handles[env_id], object_properties)
             
             
             #for property in shape_properties:
