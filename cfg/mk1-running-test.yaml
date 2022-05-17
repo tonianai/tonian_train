@@ -10,22 +10,67 @@ task:
     num_envs: 1024
     
 
-  mk1:
-    agent: 
+  mk1: 
+    pure_shapes: False
+
+    spawn_height: 1.65
+    initial_velocities: 
+        - {
+          dist_type: 'gaussian',
+          mean: 0,
+          std: 0.4
+        }
+        - { # The y direction is the direction the agent is facing at the beginning
+            dist_type: 'gaussian',
+            mean: -0.5,
+            std: 0.8
+          }
+        - 0
+
+
+    agent:
+      default_motor_power: 1000 
+      motor_powers: # describe by using joint name and than the max efort in NM
+        left_foot: 300
+        left_knee: 1500
+        left_hip_b: 1000
+        left_hip_a: 1000
+        
+        right_foot: 300
+        right_knee: 1500
+        right_hip_b: 500
+        right_hip_a: 500
+
+        torso: 300
+
+        left_elbow: 400
+        left_arm_rotate: 200
+        left_shoulder_b: 400
+        left_shoulder_a: 400
+
+        right_elbow: 400
+        right_arm_rotate: 200
+        right_shoulder_b: 400
+        right_shoulder_a: 400
+
       default_friction: 
-          dist_type: gaussian
-          mean: 1.5
-          std: 0.5
-      
+        dist_type: gaussian
+        mean: 1.5
+        std: 0.5
       frictions: # describe by using the link name 
-          foot: 
-            dist_type: gaussian
-            mean: 100
-            std: 2
-          foot_2: 
-            dist_type: gaussian
-            mean: 100
-            std: 2
+        foot: 
+          dist_type: gaussian
+          mean: 10
+          std: 2
+        foot_2: 
+          dist_type: gaussian
+          mean: 10
+          std: 2
+
+
+      # mass stamdard deviation  
+      default_mass_std: 0.1 # nothing above 0.17 is advised 
+
 
 
 

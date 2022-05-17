@@ -30,7 +30,7 @@ def train(config_path: str,
     Raises:
         FileNotFoundError: the config was not found
     """
-    set_random_seed(seed)
+    set_random_seed(int(seed))
         
             
     # open the config file 

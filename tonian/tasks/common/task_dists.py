@@ -133,6 +133,22 @@ def sample_tensor_dist(dist_config_or_value: Union[Dict, float, int], sample_sha
             2      /
             1____/
              0 1 2 3 4 5 6 7   
+             
+            
+        # linear_drawn
+            dist_type: selection
+            values: [0,0,1,2,2, 2, 3,4]
+            
+            # The example would sample from a random point on the x axis from this plot and take the 
+                            _
+            4             _
+            3      ______
+            2    _  
+            1____
+             0 1 2 3 4 5 6 7   
+             
+             
+    
             
 
     Args:
@@ -161,6 +177,15 @@ def sample_tensor_dist(dist_config_or_value: Union[Dict, float, int], sample_sha
         ratio = x_sample - torch.floor(x_sample)
          
         return (1 - ratio) * lower + ratio * upper
+    
+    if distribution_type == 'selection':
+        values = dist_config['values']
+        x_samples = torch.randint(low = 0 , high= (len(values) -1), size=sample_shape, device= device).to(torch.int64)
+        value_torch = torch.tensor(values, device= device)
+        return value_torch[x_samples]
+        
+        
+        
         
         
         
