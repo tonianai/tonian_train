@@ -79,6 +79,7 @@ class Mk1BaseClass(VecTask, ABC):
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:    
                 raise FileNotFoundError( f"Base Config : {base_config_path} not found")
+           
             
     def _get_gpu_gym_state_tensors(self) -> None:
         """
@@ -199,7 +200,7 @@ class Mk1BaseClass(VecTask, ABC):
             self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
             
             
-            self._add_to_env(env_ptr, i )
+            self._add_to_env(env_ptr, i , robot_handle)
             
             self.envs.append(env_ptr)
             self.robot_handles.append(robot_handle)
