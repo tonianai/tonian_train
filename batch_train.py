@@ -14,7 +14,7 @@ def mp_start_run(queue, done_event):
 
 
 if __name__ == '__main__':
-    #test_for_values = [15, 30, 40, 50, 60]
+    #est_for_values = [15, 30, 40, 50, 60]
     #test_for_dicts = [{'task': {'env' : {'reward_weighting': {'death_cost': value}}}} for value in test_for_values]
     
     test_for_dicts = [ 
