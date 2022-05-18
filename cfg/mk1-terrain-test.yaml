@@ -1,0 +1,167 @@
+
+seed: 42
+
+#start_model: 'start_models/02_mk1_walking.pth'
+
+task:
+  name: "06_mk1_controlled_terrain"
+
+  vec_task: 
+    num_envs: 1024
+    max_episode_length: 3000
+    
+
+  mk1: 
+    pure_shapes: False
+
+    spawn_height: 1.65
+    initial_velocities: 
+        - {
+          dist_type: 'gaussian',
+          mean: 0,
+          std: 0.0
+        }
+        - { # The y direction is the direction the agent is facing at the beginning
+            dist_type: 'gaussian',
+            mean: -0.5,
+            std: 0.0
+          }
+        - 0
+
+
+    agent:
+      default_motor_power: 1000 
+      motor_powers: # describe by using joint name and than the max efort in NM
+        left_foot: 300
+        left_knee: 1500
+        left_hip_b: 1000
+        left_hip_a: 1000
+        
+        right_foot: 300
+        right_knee: 1500
+        right_hip_b: 500
+        right_hip_a: 500
+
+        torso: 300
+
+        left_elbow: 400
+        left_arm_rotate: 200
+        left_shoulder_b: 400
+        left_shoulder_a: 400
+
+        right_elbow: 400
+        right_arm_rotate: 200
+        right_shoulder_b: 400
+        right_shoulder_a: 400
+
+      default_friction: 
+        dist_type: gaussian
+        mean: 1.5
+        std: 0
+      frictions: # describe by using the link name 
+        foot: 
+          dist_type: gaussian
+          mean: 10
+          std: 0
+        foot_2: 
+          dist_type: gaussian
+          mean: 10
+          std: 0
+
+
+      # mass stamdard deviation  
+      default_mass_std: 0 # nothing above 0.17 is advised 
+
+
+  
+  
+  mk1_controlled:
+
+    controls:
+  
+      direction_x: 
+        mean: 1
+        std: 0
+        dist_type: gaussian
+
+      direction_y:
+        mean: -1
+        std: 0
+        dist_type: gaussian
+      
+      velocity:
+        dist_type: selection
+        values: [0,2, 5]
+
+    reward_weighting:
+
+        death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
+        directional_factor: 0.8
+        zero_clip_direction_reward: True
+        death_cost: 10
+        energy_cost: 0.005
+        alive_reward: 2
+        upright_punishment_factor: 20 # higher values punish the actor more for bad posture
+        jitter_cost: 0.25
+        overextend_cost: 2
+
+        arm_use_cost: 0.0
+        
+        target_velocity_factor: 2.5
+        slowdown_punish_difference: 0.3 # the point when being to fast will be punished
+        # note any speed slower than the target speed will be rewarded, only negative speed will be punished proportionally
+        target_direction_factor: 0.0
+
+        die_on_contact: False # die when anything other than the foot touches the ground
+        contact_punishment: 0 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
+
+
+
+
+policy: 
+
+  normalize_input: True
+
+  actor_net:
+    - name: actor_linear_obs_net
+      input: 
+          - obs: linear
+          - obs: command
+      mlp:
+          units: [512, 512,  256, 128]
+          activation: elu
+          initializer: default
+
+
+
+algo:
+  name: "PPO"
+  grad_norm: 1.0
+  gamma: 0.99
+  mixed_precision: True
+  gae_lambda: 0.95
+  truncate_grads: True
+  normalize_value: True 
+  normalize_advantage: True
+  value_size: 1 # the amount of values the critic outputs
+  weight_decay: 0.0
+  learning_rate: 5e-4
+  lr_schedule: adaptive
+  kl_threshold: 0.008
+  e_clip: 0.2
+  clip_value: True
+  horizon_length: 32
+  minibatch_size: 32768
+  mini_epochs: 5
+  reward_shaper:
+    scale_value: 0.01
+    shift_value: 0
+
+  value_bootstrap: True
+  critic_coef: 4
+  entropy_coef: 0
+
+  bounds_loss_coef: 0.0001
+
+
+
