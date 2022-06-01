@@ -24,7 +24,7 @@ from isaacgym.torch_utils import to_torch
 
 import os, torch, gym, yaml, time
 
-class Mk1ControlledTerrainTask(Mk1BaseClass):
+class Mk1ControlledVisual(Mk1BaseClass):
     
     def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
         

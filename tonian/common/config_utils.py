@@ -9,7 +9,7 @@ from tonian.tasks.mk1.mk1_running.mk1_running_task import Mk1RunningTask
 from tonian.tasks.mk1.mk1_controlled.mk1_controlled import Mk1ControlledTask 
 from tonian.tasks.mk1_multi_task.mk1_multi_task import Mk1Multitask
 from tonian.tasks.mk1_multi_task_box.mk1_multi_task_box import Mk1MultitaskBox
-from tonian.tasks.mk1.mk1_controlled_terrain.mk1_terrain import Mk1ControlledTerrainTask
+from tonian.tasks.mk1.mk1_terrain import Mk1ControlledTerrainTask
 
 from gym.spaces import space 
 from tonian.tasks.base.vec_task import  VecTask
