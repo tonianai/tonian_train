@@ -19,3 +19,6 @@ vec_task:
     up_axis: "z"
     use_gpu_pipeline: True
     gravity: [0.0, 0.0, -9.81]
+
+
+    

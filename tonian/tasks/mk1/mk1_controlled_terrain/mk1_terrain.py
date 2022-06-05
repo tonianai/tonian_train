@@ -12,6 +12,7 @@ from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
 from tonian.common.spaces import MultiSpace
 from tonian.common.torch_jit_utils import batch_dot_product
+from tonian.tasks.common.terrain import Terrain
 
 from tonian.tasks.common.task_dists import sample_tensor_dist
 
@@ -37,8 +38,144 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
         
-    def _create_envs(self, spacing: float, num_per_row: int) -> None:
-        super()._create_envs(spacing, num_per_row) 
+    def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
+        """Create an Isaac Gym sim object.
+
+        Args:
+            compute_device: ID of compute device to use.
+            graphics_device: ID of graphics device to use.
+            physics_engine: physics engine to use (`gymapi.SIM_PHYSX` or `gymapi.SIM_FLEX`)
+            sim_params: sim params to use.
+        Returns:
+            the Isaac Gym sim object.
+        """
+        
+        sim = self.gym.create_sim(compute_device, graphics_device, physics_engine, sim_params)
+        if sim is None:
+            print("*** Failed to create sim")
+            quit()
+            
+        self.sim = sim
+                    
+        self.terrain_type = self.config["mk1_controlled_terrain"]["terrain"]["terrainType"] 
+        if self.terrain_type=='plane':
+            self._create_ground_plane()
+        elif self.terrain_type=='trimesh':
+            self._create_trimesh()
+            self.custom_origins = True 
+        
+        return sim
+        
+        
+    def _create_trimesh(self):
+        
+        terrain_dict = self.config["mk1_controlled_terrain"]["terrain"]  
+        
+        self.terrain = Terrain(terrain_dict, num_robots=self.num_envs)
+        tm_params = gymapi.TriangleMeshParams()
+        tm_params.nb_vertices = self.terrain.vertices.shape[0]
+        tm_params.nb_triangles = self.terrain.triangles.shape[0]
+        tm_params.transform.p.x = -self.terrain.border_size 
+        tm_params.transform.p.y = -self.terrain.border_size
+        tm_params.transform.p.z = 0.0
+        tm_params.static_friction = terrain_dict["staticFriction"]
+        tm_params.dynamic_friction = terrain_dict["dynamicFriction"]
+        tm_params.restitution = terrain_dict["restitution"]
+
+        self.gym.add_triangle_mesh(self.sim, self.terrain.vertices.flatten(order='C'), self.terrain.triangles.flatten(order='C'), tm_params)   
+        self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+    
+    
+        
+        
+    def _create_envs(self, spacing: float, num_per_row: int) -> None:  
+        """Create all the environments and initialize the agens in those environments
+
+        Args:
+            spacing (float): _description_
+            num_per_row (int): _description_
+        """
+        
+        
+        
+        if self.terrain_type == 'trimesh':
+            terrain_dict = self.config["mk1_controlled_terrain"]["terrain"]  
+        
+            self.env_origins = torch.zeros(self.num_envs, 3, device=self.device, requires_grad=False)
+        
+            self.terrain_levels = torch.randint(0, terrain_dict["maxInitMapLevel"]+1, (self.num_envs,), device=self.device)
+            self.terrain_types = torch.randint(0, terrain_dict["numTerrains"], (self.num_envs,), device=self.device)
+            self.terrain_origins = torch.from_numpy(self.terrain.env_origins).to(self.device).to(torch.float)
+            spacing = 0.5
+        
+        
+        # define plane on which environments are initialized
+        env_lower = gymapi.Vec3(0.5 * -spacing, -spacing, 0.0)
+        env_upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
+
+
+        self.mk1_robot_asset = self.create_mk1_asset(self.config['mk1']['pure_shapes'])
+
+        
+        self.num_dof = self.gym.get_asset_dof_count(self.mk1_robot_asset) 
+                
+                
+        self.robot_handles = []
+        self.envs = [] 
+        
+        
+        start_pose = gymapi.Transform()
+        start_pose.p = gymapi.Vec3(0.0,0.0, self.spawn_height)
+        start_pose.r = gymapi.Quat(0.0, 0.0 , 0.0, 1.0)
+        
+        self._motor_efforts = self._create_effort_tensor(self.mk1_robot_asset)
+        
+        for i in range(self.num_envs):
+            # create env instance
+            env_ptr = self.gym.create_env(
+                self.sim, env_lower, env_upper, num_per_row
+            )
+            robot_handle = self.gym.create_actor(
+                env= env_ptr, 
+                asset = self.mk1_robot_asset,
+                pose = start_pose,
+                name = "mk1",
+                group = i, 
+                filter = 1,
+                segmentationId = 0)
+            
+             
+            dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+            self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
+            
+            
+            self._add_to_env(env_ptr, i , robot_handle)
+            
+            self.envs.append(env_ptr)
+            self.robot_handles.append(robot_handle)
+            
+            
+        # get all dofs and assign the action index to the dof name in the dof_name_index_dict
+        self.dof_name_index_dict = self.gym.get_actor_dof_dict(env_ptr, robot_handle)
+        
+        self.left_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot')
+        self.right_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot_2')
+        
+        # take the last one as an example (All should be the same)
+        dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+        
+        self.dof_limits_lower = []
+        self.dof_limits_upper = []
+        for j in range(self.num_dof):
+            if dof_prop['lower'][j] > dof_prop['upper'][j]:
+                self.dof_limits_lower.append(dof_prop['upper'][j])
+                self.dof_limits_upper.append(dof_prop['lower'][j])
+            else:
+                self.dof_limits_lower.append(dof_prop['lower'][j])
+                self.dof_limits_upper.append(dof_prop['upper'][j])
+
+        self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
+        self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
         
         
         self.upper_body_joint_names = ['left_shoulder_a', 
@@ -71,9 +208,9 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         Extract local variables used in the sim from the config dict
         """
          
-        assert self.config["mk1_controlled"] is not None, "The mk1_controlled config must be set on the task config file"
+        assert self.config["mk1_controlled_terrain"] is not None, "The mk1_controlled config must be set on the task config file"
         
-        reward_weight_dict = self.config["mk1_controlled"]["reward_weighting"]  
+        reward_weight_dict = self.config["mk1_controlled_terrain"]["reward_weighting"]  
         
         self.energy_cost = reward_weight_dict["energy_cost"]
         self.death_cost = reward_weight_dict["death_cost"]
@@ -92,7 +229,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         self.arm_use_cost = reward_weight_dict['arm_use_cost']
 
-        controls_dict = self.config['mk1_controlled']['controls']
+        controls_dict = self.config['mk1_controlled_terrain']['controls']
 
         self.target_velocity_dist =  controls_dict['velocity']
         self.target_x_dist = controls_dict['direction_x']
@@ -300,16 +437,16 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
             env_ptr (_type_): pointer to the env
         """
         
-        camera_props = gymapi.CameraProperties()
-        camera_props.width = 128
-        camera_props.height = 128
-        camera_handle = self.gym.create_camera_sensor(env_ptr, camera_props)
-        
-        local_transform = gymapi.Transform()
-        local_transform.p = gymapi.Vec3(0,0.4,1.6)
-        local_transform.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0,1,0), np.radians(45.0))
-         
-        self.gym.attach_camera_to_body(camera_handle, env_ptr,  robot_handle, local_transform, gymapi.FOLLOW_TRANSFORM)
+        # camera_props = gymapi.CameraProperties()
+        # camera_props.width = 128
+        # camera_props.height = 128
+        # camera_handle = self.gym.create_camera_sensor(env_ptr, camera_props)
+        # 
+        # local_transform = gymapi.Transform()
+        # local_transform.p = gymapi.Vec3(0,0.4,1.6)
+        # local_transform.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0,1,0), np.radians(45.0))
+        #  
+        # self.gym.attach_camera_to_body(camera_handle, env_ptr,  robot_handle, local_transform, gymapi.FOLLOW_TRANSFORM)
         
         pass
     

@@ -143,9 +143,7 @@ class VecTask(BaseEnv, ABC):
         # This is a list of tensors, that reside on device, a list is needed, because we are dealing with multispace observations
         self.actor_obs = { key: torch.zeros((self.num_envs, ) + space_shape, device= self.device, dtype= torch.float32) for  (key, space_shape) in self.actor_observation_spaces.dict_shape.items()}
 
-        
-        self.critic_obs = {key: torch.zeros((self.num_envs, ) + space_shape, device=self.device, dtype=torch.float32) for (key,space_shape) in self.critic_observation_spaces.dict_shape.items()}
-      
+        self.critic_obs = {key: torch.zeros((self.num_envs, ) + space_shape, device=self.device, dtype=torch.float32) for (key,space_shape) in self.critic_observation_spaces.dict_shape.items()}      
 
         # Randomize buffer determines whether a given env should randomize 
         self.do_randomize = torch.zeros((self.num_envs, ), device=self.device, dtype= torch.int8 )

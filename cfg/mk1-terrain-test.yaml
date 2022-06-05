@@ -7,7 +7,7 @@ task:
   name: "06_mk1_controlled_terrain"
 
   vec_task: 
-    num_envs: 1024
+    num_envs: 512
     max_episode_length: 3000
     
 
@@ -57,16 +57,16 @@ task:
       default_friction: 
         dist_type: gaussian
         mean: 1.5
-        std: 0
+        std: 0.6
       frictions: # describe by using the link name 
         foot: 
           dist_type: gaussian
           mean: 10
-          std: 0
+          std: 3
         foot_2: 
           dist_type: gaussian
           mean: 10
-          std: 0
+          std: 3
 
 
       # mass stamdard deviation  
@@ -75,7 +75,7 @@ task:
 
   
   
-  mk1_controlled:
+  mk1_controlled_terrain:
 
     controls:
   
@@ -91,11 +91,11 @@ task:
       
       velocity:
         dist_type: selection
-        values: [0,2, 5]
+        values: [0, 3]
 
     reward_weighting:
 
-        death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
+        death_height: -1000 # the height of the base at which the episode is terminated and the actor is considered dead
         directional_factor: 0.8
         zero_clip_direction_reward: True
         death_cost: 10
@@ -112,7 +112,7 @@ task:
         # note any speed slower than the target speed will be rewarded, only negative speed will be punished proportionally
         target_direction_factor: 0.0
 
-        die_on_contact: False # die when anything other than the foot touches the ground
+        die_on_contact: True # die when anything other than the foot touches the ground
         contact_punishment: 0 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
 
@@ -151,7 +151,7 @@ algo:
   e_clip: 0.2
   clip_value: True
   horizon_length: 32
-  minibatch_size: 32768
+  minibatch_size: 16384
   mini_epochs: 5
   reward_shaper:
     scale_value: 0.01
