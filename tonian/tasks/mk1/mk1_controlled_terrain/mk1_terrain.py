@@ -232,6 +232,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         self.death_height = reward_weight_dict["death_height"]
         self.overextend_cost = reward_weight_dict["overextend_cost"]
         self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
+        self.die_not_upward = reward_weight_dict.get("die_not_upward", True)
         self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
         self.slowdown_punish_difference = reward_weight_dict["slowdown_punish_difference"]
         
@@ -246,6 +247,8 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         self.target_velocity_dist =  controls_dict['velocity']
         self.target_x_dist = controls_dict['direction_x']
         self.target_y_dist = controls_dict['direction_y']
+        
+        
         
     def allocate_buffers(self):
         """Allocate all important tensors and buffers
@@ -291,7 +294,6 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         
         quat_rotation = self.root_states[: , 3:7]
-        euler_rotation = get_euler_xyz(quat_rotation)
          
         #  -------------- reward for an upright torso -------------- 
         
@@ -299,7 +301,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         # Calulation explanation: 
         # take the first and the last value of the quaternion and take the quclidean distance
         # upright_value = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:4:3]), dim= 1 ))
-        upright_factor = 1 - torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:2]), dim= 1 ))
+        upright_factor = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:2]), dim= 1 ))
         
         upright_punishment = upright_factor* self.upright_punishment_factor
         
@@ -307,14 +309,17 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         #  -------------- reward for speed in the right heading direction -------------- 
         
+        
+        euler_rotation: Tuple[torch.Tensor, torch.Tensor, torch.Tensor] = get_euler_xyz(quat_rotation)
+        
         linear_velocity_x_y = self.root_states[: , 7:9]
         
         # direction_in_deg base is -> neg x Axis
-        direction_in_deg_to_x = torch.acos(quat_rotation[:, 0]) * 2
+        direction_in_deg_to_x = euler_rotation[0]
         
         # unit vecor of heading when seen from above 
         # this unit vector makes little sense, when the robot is highly non vertical
-        two_d_heading_direction = torch.transpose(torch.cat((torch.unsqueeze(torch.sin(direction_in_deg_to_x), dim=0), torch.unsqueeze(torch.cos(direction_in_deg_to_x),dim=0) ), dim = 0), 0, 1)
+        two_d_heading_direction = torch.concat((torch.sin(direction_in_deg_to_x).unsqueeze(dim = 1), torch.cos(direction_in_deg_to_x).unsqueeze(dim = 1)), dim = 1)
         
         # compare the two_d_heading_direction with the linear_velocity_x_y using the angle between them
         # magnitude of the velocity (2 norm)
@@ -329,7 +334,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         heading_to_velocity_angle = torch.arccos( batch_dot_product(two_d_heading_direction, linear_velocity_x_y) / vel_norm)
          
         
-        target_velocity_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_reward_factor, torch.zeros_like(reward))
+        target_velocity_reward = torch.where(torch.logical_and((1- upright_factor) > 0.7, heading_to_velocity_angle < 0.5), vel_reward_factor, torch.zeros_like(reward))
     
         reward += target_velocity_reward  
         
@@ -378,13 +383,22 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         reward -= arm_use_punishment
         
+        # ------- termination due to bad posture 
+        is_terminal_step =  torch.zeros_like(reward, dtype=torch.int8)
+        
+        if self.die_not_upward:
+            is_terminal_step += torch.where(upright_factor > 0.3, torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
+        
+        
         
         # ---------- has fallen or die on contact -------------
-         
+                
         terminations_height = self.death_height
         
         has_fallen = torch.zeros_like(reward, dtype=torch.int8)
         has_fallen = torch.where(self.root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
+        
+        is_terminal_step += has_fallen
         
         summed_contact_forces = torch.sum(self.contact_forces, dim= 2) # sums x y and z components of contact forces together
         
@@ -396,7 +410,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         has_contact = torch.where(total_summed_contact_forces > torch.zeros_like(total_summed_contact_forces), torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
         
         if self.die_on_contact:
-            has_fallen += has_contact
+            is_terminal_step += has_contact
         else:
             n_times_contact = (summed_contact_forces > 0 ).to(dtype=torch.float32).sum(dim=1)
             
@@ -406,7 +420,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         # ------------- cost for dying ----------
         # root_states[:, 2] defines the y positon of the root body 
-        reward = torch.where(has_fallen == 1, - 1 * torch.ones_like(reward) * self.death_cost, reward)
+        reward = torch.where(is_terminal_step == 1, - 1 * torch.ones_like(reward) * self.death_cost, reward)
         
     
         
@@ -440,7 +454,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
                             }
         
         
-        return (reward, has_fallen, reward_constituents)
+        return (reward, is_terminal_step, reward_constituents)
             
     
     

@@ -87,38 +87,6 @@ def normalized_batch_dot_product(a: torch.Tensor, b: torch.Tensor) -> torch.Tens
 
     return torch.sum( torch.prod(concat, dim= -1), dim= -1)
 
-
-@torch.jit.script
-def quat_to_euler(quat: torch.Tensor) -> torch.Tensor:
-    """Calculate euler angles (Radians) from a quaternion tensor 
-    
-        
-        0. roll is rotation around x in radians (counterclockwise)
-        1. pitch is rotation around y in radians (counterclockwise)
-        2. yaw is rotation around z in radians (counterclockwise)
-
-    Args:
-        quat (torch.Tensor): (x, y, z, w) shape (batch_size, 4)
-
-    Returns:
-        torch.Tensor: euler angles (x, y, z) : shape (batch_size, 3)
-    """
-    
-    t0 = 2.0 * (quat[: ,3] * quat[: , 0] + quat[:, 1] * quat[: , 2])
-    t1 = 1.0 - 2.0 * (quat[: ,0] * quat[: , 0] + quat[:, 1] * quat[: , 1])
-    roll_x = torch.unsqueeze(torch.atan(t0, t1), 0)
-    
-    t0 = 2.0 * (quat[: ,3] * quat[: , 1] - quat[:, 2] * quat[: , 0])
-    t0 = torch.clamp(t0, -1, 1)
-    pitch_y = torch.unsqueeze(torch.asin(t0),0)
-    
-    t0 = 2.0 * (quat[: ,3] * quat[: , 2] + quat[:, 0] * quat[: , 1])
-    t1 = 1.0 - 2.0 * (quat[: ,1] * quat[: , 1] + quat[:, 3] * quat[: , 3])
-    yaw_z = torch.unsqueeze(torch.atan2(t0, t1), 0)
-    
-    return torch.stack((roll_x, pitch_y, yaw_z), 0)
-
-    
     
     
     

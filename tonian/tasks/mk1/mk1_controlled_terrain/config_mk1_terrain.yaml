@@ -33,6 +33,8 @@ mk1_controlled_terrain:
       energy_cost: 0.005
       alive_reward: 2
       upright_punishment_factor: 20 # higher values punish the actor more for bad posture
+      die_not_upward: True
+      
       jitter_cost: 0.25
       overextend_cost: 4
 
@@ -47,7 +49,7 @@ mk1_controlled_terrain:
       contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
   terrain:
-        terrainType: trimesh # none, plane, or trimesh
+        terrainType: plane # none, plane, or trimesh
         staticFriction: 1.0  # [-]
         dynamicFriction: 1.0  # [-]
         restitution: 0.        # [-]
@@ -64,7 +66,7 @@ mk1_controlled_terrain:
         slopeTreshold: 0.5
 
 
-vec_task:
-  sim: 
-    physx: 
-      max_gpu_contact_pairs: 16777216 # 8*1024*1024
+# vec_task:
+#   sim: 
+#     physx: 
+#       max_gpu_contact_pairs: 16777216 # 8*1024*1024
