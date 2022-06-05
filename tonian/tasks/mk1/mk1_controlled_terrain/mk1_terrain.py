@@ -106,7 +106,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
             self.terrain_levels = torch.randint(0, terrain_dict["maxInitMapLevel"]+1, (self.num_envs,), device=self.device)
             self.terrain_types = torch.randint(0, terrain_dict["numTerrains"], (self.num_envs,), device=self.device)
             self.terrain_origins = torch.from_numpy(self.terrain.env_origins).to(self.device).to(torch.float)
-            spacing = 0.5
+            spacing = 0.01
         
         
         # define plane on which environments are initialized
@@ -126,7 +126,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(0.0,0.0, self.spawn_height)
-        start_pose.r = gymapi.Quat(0.0, 0.0 , 0.0, 1.0)
+        start_pose.r = gymapi.Quat(0, 0 , 1, 1)
         
         self._motor_efforts = self._create_effort_tensor(self.mk1_robot_asset)
         
@@ -135,6 +135,16 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
             env_ptr = self.gym.create_env(
                 self.sim, env_lower, env_upper, num_per_row
             )
+            
+            
+            if self.terrain_type == 'trimesh':  
+                self.env_origins[i] = self.terrain_origins[self.terrain_levels[i], self.terrain_types[i]]
+                pos = self.env_origins[i].clone()
+                pos[:2] += torch_rand_float(-1., 1., (2,1), device=self.device).squeeze(1)
+                pos[2] += self.spawn_height
+                start_pose.p = gymapi.Vec3(*pos)
+            
+            
             robot_handle = self.gym.create_actor(
                 env= env_ptr, 
                 asset = self.mk1_robot_asset,
@@ -143,6 +153,8 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
                 group = i, 
                 filter = 1,
                 segmentationId = 0)
+            
+            
             
              
             dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
@@ -282,12 +294,13 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         #  -------------- reward for an upright torso -------------- 
         
-        # The upright value ranges from 0 to 1, where 0 is completely horizontal and 1 is completely upright
+        # The upright value ranges from 0 to 1, where 0 is completely vertical and 1 is completely horizontal
         # Calulation explanation: 
         # take the first and the last value of the quaternion and take the quclidean distance
-        upright_value = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:4:3]), dim= 1 ))
+        # upright_value = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:4:3]), dim= 1 ))
+        upright_factor = 1 - torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:2]), dim= 1 ))
         
-        upright_punishment = (upright_value -1) * self.upright_punishment_factor
+        upright_punishment = upright_factor* self.upright_punishment_factor
         
         reward += upright_punishment
         

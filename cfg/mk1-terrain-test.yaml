@@ -151,7 +151,7 @@ algo:
   e_clip: 0.2
   clip_value: True
   horizon_length: 32
-  minibatch_size: 16384
+  minibatch_size: 16384 
   mini_epochs: 5
   reward_shaper:
     scale_value: 0.01
