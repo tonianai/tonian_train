@@ -21,7 +21,7 @@ from tonian.tasks.common.task_dists import sample_tensor_dist
 from typing import Dict, Any, Tuple, Union, Optional, List
 
 from isaacgym import gymtorch, gymapi
-from isaacgym.torch_utils import to_torch
+from isaacgym.torch_utils import to_torch, get_euler_xyz
 
 import os, torch, gym, yaml, time
 
@@ -291,7 +291,8 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         
         quat_rotation = self.root_states[: , 3:7]
-        
+        euler_rotation = get_euler_xyz(quat_rotation)
+         
         #  -------------- reward for an upright torso -------------- 
         
         # The upright value ranges from 0 to 1, where 0 is completely vertical and 1 is completely horizontal
