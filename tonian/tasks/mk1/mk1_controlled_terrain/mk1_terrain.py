@@ -11,7 +11,7 @@ from tonian.common.utils import join_configs
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
 from tonian.common.spaces import MultiSpace
-from tonian.common.torch_jit_utils import batch_dot_product
+from tonian.common.torch_jit_utils import batch_dot_product, batch_normalize_vector, get_batch_tensor_2_norm
 from tonian.tasks.common.terrain import Terrain
 
 from tonian.tasks.common.task_dists import sample_tensor_dist
@@ -170,6 +170,10 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         # get all dofs and assign the action index to the dof name in the dof_name_index_dict
         self.dof_name_index_dict = self.gym.get_actor_dof_dict(env_ptr, robot_handle)
         
+        # get all the rigid
+        self.actor_rigid_body_dict = self.gym.get_actor_rigid_body_dict(env_ptr, robot_handle)
+        
+        
         self.left_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot')
         self.right_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot_2')
         
@@ -238,7 +242,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         self.target_velocity_factor = reward_weight_dict["target_velocity_factor"]
         
-        self.target_direction_factor = reward_weight_dict["target_direction_factor"]
+        self.forward_facing_vel_factor = reward_weight_dict["forward_facing_vel_factor"]
         
         self.arm_use_cost = reward_weight_dict['arm_use_cost']
 
@@ -286,14 +290,17 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
                    has_fallen: torch.Tensor shape(num_envs, )
                    constituents: Dict[str, int] contains all the average values, that make up the reward (i.e energy_punishment, directional_reward)
         """
-    
+
+        torso_index = self.actor_rigid_body_dict['upper_torso']
+        
+        torso_rigid_body_state = self.rigid_body_state_tensor[ : ,torso_index]        
     
         # -------------- base reward for being alive --------------  
         
         reward = torch.ones_like(self.root_states[:, 0]) * self.alive_reward  
         
         
-        quat_rotation = self.root_states[: , 3:7]
+        quat_rotation = torso_rigid_body_state[: , 3:7]
          
         #  -------------- reward for an upright torso -------------- 
         
@@ -303,38 +310,58 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         # upright_value = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:4:3]), dim= 1 ))
         upright_factor = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:2]), dim= 1 ))
         
-        upright_punishment = upright_factor* self.upright_punishment_factor
+        upright_punishment = upright_factor* self.upright_punishment_factor * -1
         
         reward += upright_punishment
         
-        #  -------------- reward for speed in the right heading direction -------------- 
+        #  -------------- Precalcs for forward heading reward and match target velocity reward------------- 
         
         
         euler_rotation: Tuple[torch.Tensor, torch.Tensor, torch.Tensor] = get_euler_xyz(quat_rotation)
         
         linear_velocity_x_y = self.root_states[: , 7:9]
+        pose_direction_in_deg_to_x = euler_rotation[0]
         
-        # direction_in_deg base is -> neg x Axis
-        direction_in_deg_to_x = euler_rotation[0]
+        # compute the normalized pose_direction_vector
+        # compute the normalized vel_direction_vector
         
+        
+        # x_y_pose_direction_vector
         # unit vecor of heading when seen from above 
         # this unit vector makes little sense, when the robot is highly non vertical
-        two_d_heading_direction = torch.concat((torch.sin(direction_in_deg_to_x).unsqueeze(dim = 1), torch.cos(direction_in_deg_to_x).unsqueeze(dim = 1)), dim = 1)
+        x_y_pose_direction = torch.concat((torch.cos(pose_direction_in_deg_to_x).unsqueeze(dim = 1), torch.sin(pose_direction_in_deg_to_x).unsqueeze(dim = 1)), dim = 1)
+ 
         
+        
+        x_y_vel_direction_normalized = batch_normalize_vector(linear_velocity_x_y)
+        
+        # The angle (in radians) between the pose direction and the velocity direction
+        # In a perfect world clamping would not be necessary, but because of rounding errors it is
+        angle_between_pose_and_vel = torch.acos(torch.clamp(batch_dot_product(x_y_vel_direction_normalized, x_y_pose_direction), min = -1,  max = 1))
+        
+        
+        # ---------- reward for the heading in the forward direction ----------
+        
+        # if the angle is 0, the full target direction factor is given
+        # if the angle is 180 deg -> actor is running backwards instad of forward, the di
+        forward_facing_vel_reward = ((1.5707 -  angle_between_pose_and_vel) / 1.5707) * self.forward_facing_vel_factor
+        
+        reward += forward_facing_vel_reward
+    
+    
+        # ---------- reward for matching the target velocity ----------
+
         # compare the two_d_heading_direction with the linear_velocity_x_y using the angle between them
         # magnitude of the velocity (2 norm)
-        vel_norm = torch.linalg.vector_norm(linear_velocity_x_y, dim=1)
+        vel_norm = get_batch_tensor_2_norm(linear_velocity_x_y)
         
         # positive is to fast and neg is to slow 
         vel_difference = vel_norm - self.target_velocity 
         
         vel_reward_factor = torch.where(vel_difference > 0 , compute_velocity_reward_factor(vel_difference, self.slowdown_punish_difference, self.target_velocity_factor), compute_velocity_reward_factor(- vel_difference, self.target_velocity, self.target_velocity_factor))
-         
-        #heading_to_velocity_angle = torch.arccos( torch.dot(two_d_heading_direction, linear_velocity_x_y)  / vel_norm )
-        heading_to_velocity_angle = torch.arccos( batch_dot_product(two_d_heading_direction, linear_velocity_x_y) / vel_norm)
-         
         
-        target_velocity_reward = torch.where(torch.logical_and((1- upright_factor) > 0.7, heading_to_velocity_angle < 0.5), vel_reward_factor, torch.zeros_like(reward))
+        # Only apply the matching target velocity reward, when the actor is upright and the velocity is in the right direction (here 0.5 read = 29 deg)
+        target_velocity_reward = torch.where(torch.logical_and((1- upright_factor) > 0.7, angle_between_pose_and_vel < 0.5), vel_reward_factor, torch.zeros_like(reward))
     
         reward += target_velocity_reward  
         
@@ -364,12 +391,6 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         reward -= overextend_punishment
         
         
-        # ---------- reward for the heading direction ----------
-        
-        target_direction_reward = batch_dot_product(self.target_direction, two_d_heading_direction) * self.target_direction_factor
-        
-        reward += target_direction_reward
-    
         
         
         # -------------- cost of power --------------
@@ -431,21 +452,21 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
         arm_use_punishment = - float(torch.mean(arm_use_punishment).item())
-        target_direction_reward = float(torch.mean(target_direction_reward).item())
+        forward_facing_vel_reward = float(torch.mean(forward_facing_vel_reward).item())
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
         if not self.die_on_contact:
             contact_punishment = -float(torch.mean(contact_punishment).item())
         else:
             contact_punishment = 0.0
         
-        total_avg_reward = self.alive_reward + upright_punishment + target_velocity_reward + jitter_punishment + energy_punishment
+        total_avg_reward = float(torch.mean(reward).item())
         
         reward_constituents = {
                                 'alive_reward': self.alive_reward,
-                                'upright_punishment':  upright_punishment,
-                                'target_velocity_reward':    target_velocity_reward,
+                                'upright_punishment':  upright_punishment, 
                                 'jitter_punishment':   jitter_punishment,
-                                'target_direction_reward': target_direction_reward, 
+                                'forward_facing_vel_reward': forward_facing_vel_reward, 
+                                'target_velocity_reward': target_velocity_reward,
                                 'energy_punishment':   energy_punishment,
                                 'arm_use_punishment': arm_use_punishment,
                                 'overextend_punishment': overextend_punishment,

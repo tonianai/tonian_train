@@ -21,7 +21,7 @@ def train(config_path: str,
     """Train the given config
 
     Args:
-        config_path (str): The path to the base config file, describing task, policy and algo
+        config_path (str): The path to the base config fsile, describing task, policy and algo
         seed (int): the deterministic seed
         config_overrides (Dict): values that should be overwritten of the config
         determines whether the robots should be shown

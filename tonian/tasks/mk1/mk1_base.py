@@ -107,11 +107,17 @@ class Mk1BaseClass(VecTask, ABC):
         contact_force_tensor = self.gym.acquire_net_contact_force_tensor(self.sim)
         # Retrieves buffer for net contract forces. Buffer has shape (num_environments, num_bodies * 3). 
         # Each contact force state contains one value for each X, Y, Z axis.
+        
+        rigid_body_state_tensor = self.gym.acquire_rigid_body_state_tensor(self.sim)
+        # Buffer has shape (num_environments, num_rigid_bodies * 13). 
+        # State for each rigid body contains position([0:3]), rotation([3:7]), linear velocity([7:10]), and angular velocity([10:13]).
+        
       
         # --- wrap pointers to torch tensors (The iaacgym simulation tensors must be wrapped to get a torch.Tensor)
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
         self.contact_forces = gymtorch.wrap_tensor(contact_force_tensor).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
+        self.rigid_body_state_tensor = gymtorch.wrap_tensor(rigid_body_state_tensor).view(self.num_envs, -1 , 13)
         
         # view is necesary, because of the linear shape provided by the self.gym.acuire_dof_force_tensor
         self.dof_force_tensor = gymtorch.wrap_tensor(dof_force_tensor).view(self.num_envs, self.num_dof)
@@ -149,6 +155,7 @@ class Mk1BaseClass(VecTask, ABC):
         self.gym.refresh_force_sensor_tensor(self.sim) # the tensor of the added force sensors (added in _create_envs)
         self.gym.refresh_dof_force_tensor(self.sim) # dof force tensor contains foces applied to the joints
         self.gym.refresh_net_contact_force_tensor(self.sim)
+        self.gym.refresh_rigid_body_state_tensor(self.sim)
         
         
     def _create_envs(self, spacing: float, num_per_row: int) -> None:
@@ -208,6 +215,8 @@ class Mk1BaseClass(VecTask, ABC):
             
         # get all dofs and assign the action index to the dof name in the dof_name_index_dict
         self.dof_name_index_dict = self.gym.get_actor_dof_dict(env_ptr, robot_handle)
+        # get all the rigid
+        self.actor_rigid_body_dict = self.gym.get_actor_rigid_body_dict(env_ptr, robot_handle)
         
         self.left_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot')
         self.right_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot_2')

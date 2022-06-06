@@ -32,7 +32,7 @@ mk1_controlled_terrain:
       death_cost: 10
       energy_cost: 0.005
       alive_reward: 2
-      upright_punishment_factor: 20 # higher values punish the actor more for bad posture
+      upright_punishment_factor: 0.1 # higher values punish the actor more for bad posture
       die_not_upward: True
       
       jitter_cost: 0.25
@@ -40,16 +40,16 @@ mk1_controlled_terrain:
 
       arm_use_cost: 1
 
-      target_velocity_factor: 8.0
+      target_velocity_factor: 2.0
       slowdown_punish_difference: 0.6 # the point when being to fast will be punished
       # note any speed slower than the target speed will be rewarded, only negative speed will be punished proportionally
-      target_direction_factor: 0.5
+      forward_facing_vel_factor: 0.5
 
       die_on_contact: False # die when anything other than the foot touches the ground
       contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
   terrain:
-        terrainType: plane # none, plane, or trimesh
+        terrainType: trimesh # none, plane, or trimesh
         staticFriction: 1.0  # [-]
         dynamicFriction: 1.0  # [-]
         restitution: 0.        # [-]

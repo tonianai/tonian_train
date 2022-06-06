@@ -50,6 +50,7 @@ def batch_normalize_vector(a: torch.Tensor) -> torch.Tensor:
         torch.Tensor: the same tensor normalizes (batch_size, x)
     """
     return torch.einsum("ia, i -> ia", a, 1 / a.pow(2).sum(dim=1).sqrt())
+
  
  
 @torch.jit.script

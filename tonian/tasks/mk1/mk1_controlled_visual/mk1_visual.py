@@ -121,7 +121,7 @@ class Mk1ControlledVisual(Mk1BaseClass):
     def refresh_tensors(self):
         super().refresh_tensors()
         
-        #self.gym.render_all_camera_sensors(self.sim)
+        self.gym.render_all_camera_sensors(self.sim)
 
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
