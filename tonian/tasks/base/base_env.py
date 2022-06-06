@@ -35,15 +35,20 @@ class BaseEnv(ABC):
         split_device = sim_device.split(":")
         self.device_type = split_device[0]
         self.device_id = int(split_device[1]) if len(split_device) > 1 else 0
-
-        # This implementation used Asymmetic Actor Critics
-        # https://arxiv.org/abs/1710.06542
-        self.critic_observation_spaces = self._get_critic_observation_spaces()
-        self.actor_observation_spaces = self._get_actor_observation_spaces()
+ 
         self.action_space = self._get_action_space()
         
         
         self.metadata = {}
+        
+    @property
+    def critic_observation_spaces(self) -> gym.Space:
+        return self._get_critic_observation_spaces()
+        
+    
+    @property
+    def actor_observation_spaces(self) -> gym.Space:
+        return self._get_actor_observation_spaces()
         
     
     @property

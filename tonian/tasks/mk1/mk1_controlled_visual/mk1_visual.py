@@ -33,10 +33,14 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         
         config = join_configs(base_config, config)
         
+        
+        self.i_step_visual = 0
+        
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
+        
         
     def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
         """Create an Isaac Gym sim object.
@@ -122,6 +126,7 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
                 
         self.robot_handles = []
         self.envs = [] 
+        self.camera_handles = []
         
         
         start_pose = gymapi.Transform()
@@ -161,8 +166,20 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
             self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
             
             
-            self._add_to_env(env_ptr, i , robot_handle)
+              
+            camera_props = gymapi.CameraProperties()
+            camera_props.width = self.camera_width
+            camera_props.height = self.camera_height
+            camera_handle = self.gym.create_camera_sensor(env_ptr, camera_props)
             
+            local_transform = gymapi.Transform()
+            local_transform.p = gymapi.Vec3(0,0.4,1.6)
+            local_transform.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0,1,0), np.radians(45.0))
+            
+            self.gym.attach_camera_to_body(camera_handle, env_ptr,  robot_handle, local_transform, gymapi.FOLLOW_TRANSFORM)
+            
+            
+            self.camera_handles.append(camera_handle)
             self.envs.append(env_ptr)
             self.robot_handles.append(robot_handle)
             
@@ -226,7 +243,9 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
          
         assert self.config["mk1_controlled_visual"] is not None, "The mk1_controlled config must be set on the task config file"
         
-        reward_weight_dict = self.config["mk1_controlled_visual"]["reward_weighting"]  
+        base_dict = self.config["mk1_controlled_visual"]
+        
+        reward_weight_dict = base_dict["reward_weighting"]  
         
         self.energy_cost = reward_weight_dict["energy_cost"]
         self.death_cost = reward_weight_dict["death_cost"]
@@ -246,12 +265,15 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         
         self.arm_use_cost = reward_weight_dict['arm_use_cost']
 
-        controls_dict = self.config['mk1_controlled_terrain']['controls']
+        controls_dict = base_dict['controls']
 
         self.target_velocity_dist =  controls_dict['velocity']
         self.target_x_dist = controls_dict['direction_x']
         self.target_y_dist = controls_dict['direction_y']
         
+        self.refresh_image_every_nth_step = base_dict['refresh_image_every_nth_step']
+        self.camera_width = base_dict['camera_image_width']
+        self.camera_height = base_dict['camera_image_height']
         
         
     def allocate_buffers(self):
@@ -273,11 +295,28 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         
         self.target_velocity = sample_tensor_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
         
+    def _get_gpu_gym_state_tensors(self) -> None:
+        super()._get_gpu_gym_state_tensors()
+
+        
+        
+    
+    def _add_to_env(self, env_ptr, env_id: int, robot_handle): 
+        """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
+
+        Args:
+            env_ptr (_type_): pointer to the env
+        """
+        pass
+    
         
     def refresh_tensors(self):
         super().refresh_tensors()
         
-        #self.gym.render_all_camera_sensors(self.sim)
+        self.i_step_visual += 1
+        
+        if self.i_step_visual % self.refresh_image_every_nth_step == 0:
+            self.gym.render_all_camera_sensors(self.sim)
 
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
@@ -290,6 +329,7 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
                    has_fallen: torch.Tensor shape(num_envs, )
                    constituents: Dict[str, int] contains all the average values, that make up the reward (i.e energy_punishment, directional_reward)
         """
+         
 
         torso_index = self.actor_rigid_body_dict['upper_torso']
         
@@ -478,26 +518,7 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         return (reward, is_terminal_step, reward_constituents)
             
     
-    
-    def _add_to_env(self, env_ptr, env_id: int, robot_handle): 
-        """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
-
-        Args:
-            env_ptr (_type_): pointer to the env
-        """
-        
-        # camera_props = gymapi.CameraProperties()
-        # camera_props.width = 128
-        # camera_props.height = 128
-        # camera_handle = self.gym.create_camera_sensor(env_ptr, camera_props)
-        # 
-        # local_transform = gymapi.Transform()
-        # local_transform.p = gymapi.Vec3(0,0.4,1.6)
-        # local_transform.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0,1,0), np.radians(45.0))
-        #  
-        # self.gym.attach_camera_to_body(camera_handle, env_ptr,  robot_handle, local_transform, gymapi.FOLLOW_TRANSFORM)
-        
-        pass
+     
     
     def _get_standard_config(self) -> Dict:
         """Get the dict of the standard configuration
@@ -538,6 +559,17 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         self.actor_obs["command"][:, 0:2] = self.target_direction
         self.actor_obs["command"][:, 2] = self.target_velocity
         
+        self.camera_tensors = []
+        for i in range(self.num_envs):
+            self.camera_tensors.append(self.gym.get_camera_image(self.sim, self.envs[i], self.camera_handles[i], gymapi.IMAGE_COLOR ))
+        
+        
+         
+        for i in range(self.num_envs):
+            self.actor_obs["visual"][i] = torch.tensor(self.camera_tensors[i], dtype=torch.uint8, device= self.device).view((self.camera_width, self.camera_height, 4))
+        
+        
+        
     
     
     def get_num_playable_actors_per_env(self) -> int:
@@ -574,7 +606,8 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         num_actor_obs = 142
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
-            "command": gym.spaces.Box(low= -3.0, high= 5.0, shape= (3, ))
+            "command": gym.spaces.Box(low= -3.0, high= 5.0, shape= (3, )),
+            "visual": gym.spaces.Box(low= 0, high= 256, shape = (self.camera_width, self.camera_height, 4))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:

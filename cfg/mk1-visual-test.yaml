@@ -7,8 +7,10 @@ task:
   name: "07_mk1_controlled_visual"
 
   vec_task: 
-    num_envs: 1024
+    num_envs: 64
     max_episode_length: 3000
+
+    enable_camera_sensors: True
     
 
   mk1: 
@@ -75,7 +77,11 @@ task:
 
   
   
-  mk1_controlled_terrain:
+  mk1_controlled_visual:
+
+    refresh_image_every_nth_step: 1
+    camera_image_width: 128
+    camera_image_height: 128
 
     controls:
   
@@ -184,7 +190,7 @@ algo:
   e_clip: 0.2
   clip_value: True
   horizon_length: 32
-  minibatch_size: 32768 
+  minibatch_size: 2048 
   mini_epochs: 5
   reward_shaper:
     scale_value: 0.01

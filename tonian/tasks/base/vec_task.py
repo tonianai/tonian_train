@@ -38,6 +38,7 @@ class VecTask(BaseEnv, ABC):
         
         super().__init__(config, sim_device, graphics_device_id, headless, rl_device)
         
+        
         # The sum of all action dimensions        
         self._action_size = None
         
@@ -58,7 +59,7 @@ class VecTask(BaseEnv, ABC):
         self.rl_device = config.get("rl_device", rl_device)
         
         
-        enable_camera_sensors = config.get("enableCameraSensors", False)
+        enable_camera_sensors = config['vec_task'].get("enable_camera_sensors", False)
         self.graphics_device_id = graphics_device_id
         if enable_camera_sensors == False and self.headless == True:   
             self.graphics_device_id = -1
