@@ -11,7 +11,8 @@ from tonian.common.utils import join_configs
 from isaacgym.torch_utils import torch_rand_float, tensor_clamp
 
 from tonian.common.spaces import MultiSpace
-from tonian.common.torch_jit_utils import batch_dot_product
+from tonian.common.torch_jit_utils import batch_dot_product, batch_normalize_vector, get_batch_tensor_2_norm
+from tonian.tasks.common.terrain import Terrain
 
 from tonian.tasks.common.task_dists import sample_tensor_dist
 
@@ -20,11 +21,11 @@ from tonian.tasks.common.task_dists import sample_tensor_dist
 from typing import Dict, Any, Tuple, Union, Optional, List
 
 from isaacgym import gymtorch, gymapi
-from isaacgym.torch_utils import to_torch
+from isaacgym.torch_utils import to_torch, get_euler_xyz
 
 import os, torch, gym, yaml, time
 
-class Mk1ControlledVisual(Mk1BaseClass):
+class Mk1ControlledVisualTask(Mk1BaseClass):
     
     def __init__(self, config: Dict[str, Any], sim_device: str, graphics_device_id: int, headless: bool, rl_device: str = "cuda:0") -> None:
         
@@ -37,8 +38,160 @@ class Mk1ControlledVisual(Mk1BaseClass):
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
         
-    def _create_envs(self, spacing: float, num_per_row: int) -> None:
-        super()._create_envs(spacing, num_per_row) 
+    def create_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
+        """Create an Isaac Gym sim object.
+
+        Args:
+            compute_device: ID of compute device to use.
+            graphics_device: ID of graphics device to use.
+            physics_engine: physics engine to use (`gymapi.SIM_PHYSX` or `gymapi.SIM_FLEX`)
+            sim_params: sim params to use.
+        Returns:
+            the Isaac Gym sim object.
+        """
+        
+        sim = self.gym.create_sim(compute_device, graphics_device, physics_engine, sim_params)
+        if sim is None:
+            print("*** Failed to create sim")
+            quit()
+            
+        self.sim = sim
+                    
+        self.terrain_type = self.config["mk1_controlled_visual"]["terrain"]["terrainType"] 
+        if self.terrain_type=='plane':
+            self._create_ground_plane()
+        elif self.terrain_type=='trimesh':
+            self._create_trimesh()
+            self.custom_origins = True 
+        
+        return sim
+        
+        
+    def _create_trimesh(self):
+        
+        terrain_dict = self.config["mk1_controlled_visual"]["terrain"]  
+        
+        self.terrain = Terrain(terrain_dict, num_robots=self.num_envs)
+        tm_params = gymapi.TriangleMeshParams()
+        tm_params.nb_vertices = self.terrain.vertices.shape[0]
+        tm_params.nb_triangles = self.terrain.triangles.shape[0]
+        tm_params.transform.p.x = -self.terrain.border_size 
+        tm_params.transform.p.y = -self.terrain.border_size
+        tm_params.transform.p.z = 0.0
+        tm_params.static_friction = terrain_dict["staticFriction"]
+        tm_params.dynamic_friction = terrain_dict["dynamicFriction"]
+        tm_params.restitution = terrain_dict["restitution"]
+
+        self.gym.add_triangle_mesh(self.sim, self.terrain.vertices.flatten(order='C'), self.terrain.triangles.flatten(order='C'), tm_params)   
+        self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+    
+    
+        
+        
+    def _create_envs(self, spacing: float, num_per_row: int) -> None:  
+        """Create all the environments and initialize the agens in those environments
+
+        Args:
+            spacing (float): _description_
+            num_per_row (int): _description_
+        """
+        
+        
+        
+        if self.terrain_type == 'trimesh':
+            terrain_dict = self.config["mk1_controlled_visual"]["terrain"]  
+        
+            self.env_origins = torch.zeros(self.num_envs, 3, device=self.device, requires_grad=False)
+        
+            self.terrain_levels = torch.randint(0, terrain_dict["maxInitMapLevel"]+1, (self.num_envs,), device=self.device)
+            self.terrain_types = torch.randint(0, terrain_dict["numTerrains"], (self.num_envs,), device=self.device)
+            self.terrain_origins = torch.from_numpy(self.terrain.env_origins).to(self.device).to(torch.float)
+            spacing = 0.01
+        
+        
+        # define plane on which environments are initialized
+        env_lower = gymapi.Vec3(0.5 * -spacing, -spacing, 0.0)
+        env_upper = gymapi.Vec3(0.5 * spacing, spacing, spacing)
+
+
+        self.mk1_robot_asset = self.create_mk1_asset(self.config['mk1']['pure_shapes'])
+
+        
+        self.num_dof = self.gym.get_asset_dof_count(self.mk1_robot_asset) 
+                
+                
+        self.robot_handles = []
+        self.envs = [] 
+        
+        
+        start_pose = gymapi.Transform()
+        start_pose.p = gymapi.Vec3(0.0,0.0, self.spawn_height)
+        start_pose.r = gymapi.Quat(0, 0 , 1, 1)
+        
+        self._motor_efforts = self._create_effort_tensor(self.mk1_robot_asset)
+        
+        for i in range(self.num_envs):
+            # create env instance
+            env_ptr = self.gym.create_env(
+                self.sim, env_lower, env_upper, num_per_row
+            )
+            
+            
+            if self.terrain_type == 'trimesh':  
+                self.env_origins[i] = self.terrain_origins[self.terrain_levels[i], self.terrain_types[i]]
+                pos = self.env_origins[i].clone()
+                pos[:2] += torch_rand_float(-1., 1., (2,1), device=self.device).squeeze(1)
+                pos[2] += self.spawn_height
+                start_pose.p = gymapi.Vec3(*pos)
+            
+            
+            robot_handle = self.gym.create_actor(
+                env= env_ptr, 
+                asset = self.mk1_robot_asset,
+                pose = start_pose,
+                name = "mk1",
+                group = i, 
+                filter = 1,
+                segmentationId = 0)
+            
+            
+            
+             
+            dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+            self.gym.enable_actor_dof_force_sensors(env_ptr, robot_handle)
+            
+            
+            self._add_to_env(env_ptr, i , robot_handle)
+            
+            self.envs.append(env_ptr)
+            self.robot_handles.append(robot_handle)
+            
+            
+        # get all dofs and assign the action index to the dof name in the dof_name_index_dict
+        self.dof_name_index_dict = self.gym.get_actor_dof_dict(env_ptr, robot_handle)
+        
+        # get all the rigid
+        self.actor_rigid_body_dict = self.gym.get_actor_rigid_body_dict(env_ptr, robot_handle)
+        
+        
+        self.left_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot')
+        self.right_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot_2')
+        
+        # take the last one as an example (All should be the same)
+        dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+        
+        self.dof_limits_lower = []
+        self.dof_limits_upper = []
+        for j in range(self.num_dof):
+            if dof_prop['lower'][j] > dof_prop['upper'][j]:
+                self.dof_limits_lower.append(dof_prop['upper'][j])
+                self.dof_limits_upper.append(dof_prop['lower'][j])
+            else:
+                self.dof_limits_lower.append(dof_prop['lower'][j])
+                self.dof_limits_upper.append(dof_prop['upper'][j])
+
+        self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
+        self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
         
         
         self.upper_body_joint_names = ['left_shoulder_a', 
@@ -71,9 +224,9 @@ class Mk1ControlledVisual(Mk1BaseClass):
         Extract local variables used in the sim from the config dict
         """
          
-        assert self.config["mk1_controlled"] is not None, "The mk1_controlled config must be set on the task config file"
+        assert self.config["mk1_controlled_visual"] is not None, "The mk1_controlled config must be set on the task config file"
         
-        reward_weight_dict = self.config["mk1_controlled"]["reward_weighting"]  
+        reward_weight_dict = self.config["mk1_controlled_visual"]["reward_weighting"]  
         
         self.energy_cost = reward_weight_dict["energy_cost"]
         self.death_cost = reward_weight_dict["death_cost"]
@@ -83,20 +236,23 @@ class Mk1ControlledVisual(Mk1BaseClass):
         self.death_height = reward_weight_dict["death_height"]
         self.overextend_cost = reward_weight_dict["overextend_cost"]
         self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
+        self.die_not_upward = reward_weight_dict.get("die_not_upward", True)
         self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
         self.slowdown_punish_difference = reward_weight_dict["slowdown_punish_difference"]
         
         self.target_velocity_factor = reward_weight_dict["target_velocity_factor"]
         
-        self.target_direction_factor = reward_weight_dict["target_direction_factor"]
+        self.forward_facing_vel_factor = reward_weight_dict["forward_facing_vel_factor"]
         
         self.arm_use_cost = reward_weight_dict['arm_use_cost']
 
-        controls_dict = self.config['mk1_controlled']['controls']
+        controls_dict = self.config['mk1_controlled_terrain']['controls']
 
         self.target_velocity_dist =  controls_dict['velocity']
         self.target_x_dist = controls_dict['direction_x']
         self.target_y_dist = controls_dict['direction_y']
+        
+        
         
     def allocate_buffers(self):
         """Allocate all important tensors and buffers
@@ -121,7 +277,7 @@ class Mk1ControlledVisual(Mk1BaseClass):
     def refresh_tensors(self):
         super().refresh_tensors()
         
-        self.gym.render_all_camera_sensors(self.sim)
+        #self.gym.render_all_camera_sensors(self.sim)
 
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
@@ -134,51 +290,78 @@ class Mk1ControlledVisual(Mk1BaseClass):
                    has_fallen: torch.Tensor shape(num_envs, )
                    constituents: Dict[str, int] contains all the average values, that make up the reward (i.e energy_punishment, directional_reward)
         """
-    
+
+        torso_index = self.actor_rigid_body_dict['upper_torso']
+        
+        torso_rigid_body_state = self.rigid_body_state_tensor[ : ,torso_index]        
     
         # -------------- base reward for being alive --------------  
         
         reward = torch.ones_like(self.root_states[:, 0]) * self.alive_reward  
         
         
-        quat_rotation = self.root_states[: , 3:7]
-        
+        quat_rotation = torso_rigid_body_state[: , 3:7]
+         
         #  -------------- reward for an upright torso -------------- 
         
-        # The upright value ranges from 0 to 1, where 0 is completely horizontal and 1 is completely upright
+        # The upright value ranges from 0 to 1, where 0 is completely vertical and 1 is completely horizontal
         # Calulation explanation: 
         # take the first and the last value of the quaternion and take the quclidean distance
-        upright_value = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:4:3]), dim= 1 ))
+        # upright_value = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:4:3]), dim= 1 ))
+        upright_factor = torch.sqrt(torch.sum( torch.square(quat_rotation[:, 0:2]), dim= 1 ))
         
-        upright_punishment = (upright_value -1) * self.upright_punishment_factor
+        upright_punishment = upright_factor* self.upright_punishment_factor * -1
         
         reward += upright_punishment
         
-        #  -------------- reward for speed in the right heading direction -------------- 
+        #  -------------- Precalcs for forward heading reward and match target velocity reward------------- 
+        
+        
+        euler_rotation: Tuple[torch.Tensor, torch.Tensor, torch.Tensor] = get_euler_xyz(quat_rotation)
         
         linear_velocity_x_y = self.root_states[: , 7:9]
+        pose_direction_in_deg_to_x = euler_rotation[0]
         
-        # direction_in_deg base is -> neg x Axis
-        direction_in_deg_to_x = torch.acos(quat_rotation[:, 0]) * 2
+        # compute the normalized pose_direction_vector
+        # compute the normalized vel_direction_vector
         
+        
+        # x_y_pose_direction_vector
         # unit vecor of heading when seen from above 
         # this unit vector makes little sense, when the robot is highly non vertical
-        two_d_heading_direction = torch.transpose(torch.cat((torch.unsqueeze(torch.sin(direction_in_deg_to_x), dim=0), torch.unsqueeze(torch.cos(direction_in_deg_to_x),dim=0) ), dim = 0), 0, 1)
+        x_y_pose_direction = torch.concat((torch.cos(pose_direction_in_deg_to_x).unsqueeze(dim = 1), torch.sin(pose_direction_in_deg_to_x).unsqueeze(dim = 1)), dim = 1)
+ 
         
+        
+        x_y_vel_direction_normalized = batch_normalize_vector(linear_velocity_x_y)
+        
+        # The angle (in radians) between the pose direction and the velocity direction
+        # In a perfect world clamping would not be necessary, but because of rounding errors it is
+        angle_between_pose_and_vel = torch.acos(torch.clamp(batch_dot_product(x_y_vel_direction_normalized, x_y_pose_direction), min = -1,  max = 1))
+        
+        
+        # ---------- reward for the heading in the forward direction ----------
+        
+        # if the angle is 0, the full target direction factor is given
+        # if the angle is 180 deg -> actor is running backwards instad of forward, the di
+        forward_facing_vel_reward = ((1.5707 -  angle_between_pose_and_vel) / 1.5707) * self.forward_facing_vel_factor
+        
+        reward += forward_facing_vel_reward
+    
+    
+        # ---------- reward for matching the target velocity ----------
+
         # compare the two_d_heading_direction with the linear_velocity_x_y using the angle between them
         # magnitude of the velocity (2 norm)
-        vel_norm = torch.linalg.vector_norm(linear_velocity_x_y, dim=1)
+        vel_norm = get_batch_tensor_2_norm(linear_velocity_x_y)
         
         # positive is to fast and neg is to slow 
         vel_difference = vel_norm - self.target_velocity 
         
         vel_reward_factor = torch.where(vel_difference > 0 , compute_velocity_reward_factor(vel_difference, self.slowdown_punish_difference, self.target_velocity_factor), compute_velocity_reward_factor(- vel_difference, self.target_velocity, self.target_velocity_factor))
-         
-        #heading_to_velocity_angle = torch.arccos( torch.dot(two_d_heading_direction, linear_velocity_x_y)  / vel_norm )
-        heading_to_velocity_angle = torch.arccos( batch_dot_product(two_d_heading_direction, linear_velocity_x_y) / vel_norm)
-         
         
-        target_velocity_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_reward_factor, torch.zeros_like(reward))
+        # Only apply the matching target velocity reward, when the actor is upright and the velocity is in the right direction (here 0.5 read = 29 deg)
+        target_velocity_reward = torch.where(torch.logical_and((1- upright_factor) > 0.7, angle_between_pose_and_vel < 0.5), vel_reward_factor, torch.zeros_like(reward))
     
         reward += target_velocity_reward  
         
@@ -208,12 +391,6 @@ class Mk1ControlledVisual(Mk1BaseClass):
         reward -= overextend_punishment
         
         
-        # ---------- reward for the heading direction ----------
-        
-        target_direction_reward = batch_dot_product(self.target_direction, two_d_heading_direction) * self.target_direction_factor
-        
-        reward += target_direction_reward
-    
         
         
         # -------------- cost of power --------------
@@ -227,13 +404,22 @@ class Mk1ControlledVisual(Mk1BaseClass):
         
         reward -= arm_use_punishment
         
+        # ------- termination due to bad posture 
+        is_terminal_step =  torch.zeros_like(reward, dtype=torch.int8)
+        
+        if self.die_not_upward:
+            is_terminal_step += torch.where(upright_factor > 0.3, torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
+        
+        
         
         # ---------- has fallen or die on contact -------------
-         
+                
         terminations_height = self.death_height
         
         has_fallen = torch.zeros_like(reward, dtype=torch.int8)
         has_fallen = torch.where(self.root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
+        
+        is_terminal_step += has_fallen
         
         summed_contact_forces = torch.sum(self.contact_forces, dim= 2) # sums x y and z components of contact forces together
         
@@ -245,7 +431,7 @@ class Mk1ControlledVisual(Mk1BaseClass):
         has_contact = torch.where(total_summed_contact_forces > torch.zeros_like(total_summed_contact_forces), torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
         
         if self.die_on_contact:
-            has_fallen += has_contact
+            is_terminal_step += has_contact
         else:
             n_times_contact = (summed_contact_forces > 0 ).to(dtype=torch.float32).sum(dim=1)
             
@@ -255,7 +441,7 @@ class Mk1ControlledVisual(Mk1BaseClass):
         
         # ------------- cost for dying ----------
         # root_states[:, 2] defines the y positon of the root body 
-        reward = torch.where(has_fallen == 1, - 1 * torch.ones_like(reward) * self.death_cost, reward)
+        reward = torch.where(is_terminal_step == 1, - 1 * torch.ones_like(reward) * self.death_cost, reward)
         
     
         
@@ -266,21 +452,21 @@ class Mk1ControlledVisual(Mk1BaseClass):
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
         arm_use_punishment = - float(torch.mean(arm_use_punishment).item())
-        target_direction_reward = float(torch.mean(target_direction_reward).item())
+        forward_facing_vel_reward = float(torch.mean(forward_facing_vel_reward).item())
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
         if not self.die_on_contact:
             contact_punishment = -float(torch.mean(contact_punishment).item())
         else:
             contact_punishment = 0.0
         
-        total_avg_reward = self.alive_reward + upright_punishment + target_velocity_reward + jitter_punishment + energy_punishment
+        total_avg_reward = float(torch.mean(reward).item())
         
         reward_constituents = {
                                 'alive_reward': self.alive_reward,
-                                'upright_punishment':  upright_punishment,
-                                'target_velocity_reward':    target_velocity_reward,
+                                'upright_punishment':  upright_punishment, 
                                 'jitter_punishment':   jitter_punishment,
-                                'target_direction_reward': target_direction_reward, 
+                                'forward_facing_vel_reward': forward_facing_vel_reward, 
+                                'target_velocity_reward': target_velocity_reward,
                                 'energy_punishment':   energy_punishment,
                                 'arm_use_punishment': arm_use_punishment,
                                 'overextend_punishment': overextend_punishment,
@@ -289,7 +475,7 @@ class Mk1ControlledVisual(Mk1BaseClass):
                             }
         
         
-        return (reward, has_fallen, reward_constituents)
+        return (reward, is_terminal_step, reward_constituents)
             
     
     
@@ -300,16 +486,16 @@ class Mk1ControlledVisual(Mk1BaseClass):
             env_ptr (_type_): pointer to the env
         """
         
-        camera_props = gymapi.CameraProperties()
-        camera_props.width = 128
-        camera_props.height = 128
-        camera_handle = self.gym.create_camera_sensor(env_ptr, camera_props)
-        
-        local_transform = gymapi.Transform()
-        local_transform.p = gymapi.Vec3(0,0.4,1.6)
-        local_transform.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0,1,0), np.radians(45.0))
-         
-        self.gym.attach_camera_to_body(camera_handle, env_ptr,  robot_handle, local_transform, gymapi.FOLLOW_TRANSFORM)
+        # camera_props = gymapi.CameraProperties()
+        # camera_props.width = 128
+        # camera_props.height = 128
+        # camera_handle = self.gym.create_camera_sensor(env_ptr, camera_props)
+        # 
+        # local_transform = gymapi.Transform()
+        # local_transform.p = gymapi.Vec3(0,0.4,1.6)
+        # local_transform.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0,1,0), np.radians(45.0))
+        #  
+        # self.gym.attach_camera_to_body(camera_handle, env_ptr,  robot_handle, local_transform, gymapi.FOLLOW_TRANSFORM)
         
         pass
     
@@ -320,7 +506,7 @@ class Mk1ControlledVisual(Mk1BaseClass):
             Dict: Standard configuration
         """
         dirname = os.path.dirname(__file__)
-        base_config_path = os.path.join(dirname, 'config_mk1_terrain.yaml')
+        base_config_path = os.path.join(dirname, 'config_mk1_visual.yaml')
         
           # open the config file 
         with open(base_config_path, 'r') as stream:

@@ -7,7 +7,7 @@ task:
   name: "06_mk1_controlled_terrain"
 
   vec_task: 
-    num_envs: 512
+    num_envs: 1024
     max_episode_length: 3000
     
 
@@ -149,11 +149,22 @@ policy:
       input: 
           - obs: linear
           - obs: command
+
       mlp:
-          units: [512, 512,  256, 128]
+          units: [512, 512, 256]
           activation: elu
           initializer: default
 
+    - name: actor_terminal_net
+      input: 
+        - net: actor_linear_obs_net
+      
+      mlp:
+        units: [256, 128]
+        activation: elu
+        initializer: default
+
+      
 
 
 algo:
@@ -173,7 +184,7 @@ algo:
   e_clip: 0.2
   clip_value: True
   horizon_length: 32
-  minibatch_size: 16384 
+  minibatch_size: 32768 
   mini_epochs: 5
   reward_shaper:
     scale_value: 0.01

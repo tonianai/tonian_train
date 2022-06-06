@@ -10,6 +10,7 @@ from tonian.tasks.mk1.mk1_controlled.mk1_controlled import Mk1ControlledTask
 from tonian.tasks.mk1_multi_task.mk1_multi_task import Mk1Multitask
 from tonian.tasks.mk1_multi_task_box.mk1_multi_task_box import Mk1MultitaskBox
 from tonian.tasks.mk1.mk1_controlled_terrain.mk1_terrain import Mk1ControlledTerrainTask
+from tonian.tasks.mk1.mk1_controlled_visual.mk1_visual import Mk1ControlledVisualTask
 
 from gym.spaces import space 
 from tonian.tasks.base.vec_task import  VecTask
@@ -56,7 +57,8 @@ def task_from_config(config: Dict, headless: bool = False) -> VecTask:
      "03_mk1_controlled": Mk1ControlledTask,
      "04_mk1_multitask": Mk1Multitask,
      "05_mk1_multitask_box": Mk1MultitaskBox,
-     "06_mk1_controlled_terrain": Mk1ControlledTerrainTask
+     "06_mk1_controlled_terrain": Mk1ControlledTerrainTask,
+     "07_mk1_controlled_visual": Mk1ControlledVisualTask
     }
     return name_to_task_map[config["name"]](config, sim_device="cuda", graphics_device_id=0, headless= headless)
 
