@@ -274,6 +274,8 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         self.refresh_image_every_nth_step = base_dict['refresh_image_every_nth_step']
         self.camera_width = base_dict['camera_image_width']
         self.camera_height = base_dict['camera_image_height']
+        self.log_image_freq = base_dict['image_logging_frequency']
+        
         
         
     def allocate_buffers(self):
@@ -563,10 +565,13 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         for i in range(self.num_envs):
             self.camera_tensors.append(self.gym.get_camera_image(self.sim, self.envs[i], self.camera_handles[i], gymapi.IMAGE_COLOR ))
         
+        #if self.i_step_visual % self.log_image_freq == 0 and self.logger is not None:
+        #    print("log image")
+        #    self.logger.log_image(f"step {self.i_step_visual}",np.expand_dims(self.camera_tensors[0].reshape( self.camera_width, self.camera_height, 4)[:, : , 0], axis = 0))
         
          
         for i in range(self.num_envs):
-            self.actor_obs["visual"][i] = torch.tensor(self.camera_tensors[i], dtype=torch.uint8, device= self.device).view((self.camera_width, self.camera_height, 4))
+            self.actor_obs["visual"][i] = torch.tensor(self.camera_tensors[i], dtype=torch.uint8, device= self.device).view((4, self.camera_width, self.camera_height))
         
         
         
@@ -607,7 +612,7 @@ class Mk1ControlledVisualTask(Mk1BaseClass):
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
             "command": gym.spaces.Box(low= -3.0, high= 5.0, shape= (3, )),
-            "visual": gym.spaces.Box(low= 0, high= 256, shape = (self.camera_width, self.camera_height, 4))
+            "visual": gym.spaces.Box(low= 0, high= 256, shape = (4, self.camera_width, self.camera_height))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:

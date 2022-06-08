@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from tonian.tasks.base.vec_task import VecTask
-from tonian.common.logger import BaseLogger
+from tonian.common.logger import BaseLogger, TensorboardLogger
 from tonian.common.spaces import MultiSpace
 from tonian.training.common.schedulers import AdaptiveScheduler, LinearScheduler, IdentityScheduler
 from tonian.training.policies import A2CBasePolicy
@@ -12,6 +12,7 @@ from tonian.training.common.running_mean_std import RunningMeanStd, RunningMeanS
 from tonian.training.common.buffers import DictExperienceBuffer
 from tonian.training.common.common_losses import critic_loss, actor_loss
 from tonian.training.common.dataset import PPODataset
+
 
 from tonian.common.utils import join_configs
 
@@ -67,6 +68,9 @@ class A2CBaseAlgorithm(ABC):
         self.verbose = verbose
         
         self.logger = logger
+        
+        if isinstance(logger, TensorboardLogger):
+            env.set_tensorboard_logger(logger)
         
         self.config = config
         self.env = env

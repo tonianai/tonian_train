@@ -3,6 +3,7 @@ from typing import Dict, Optional, Tuple , Union
 from torch.utils.tensorboard import SummaryWriter
 import os, torch
 import torch.nn as nn
+import numpy as np
 
 from abc import ABC, abstractmethod
 import json
@@ -42,6 +43,8 @@ class BaseLogger(ABC):
     def _pretty_config_dict(config: Dict):
         json_hp = json.dumps(config, indent=2)
         return "".join("\t" + line for line in json_hp.splitlines(True))
+    
+    
         
         
     
@@ -79,6 +82,9 @@ class TensorboardLogger(BaseLogger):
             
     def add_graph(self, model: nn.Module, observation: torch.Tensor = None):
         self.writer.add_graph(model, observation)
+        
+    def log_image(self, tag: str, image: np.ndarray):
+        self.writer.add_image(tag, image)
         
     def log_config(self, tag: str, config: Dict):
         """Log the cofnig of the run to the tesnorboard via text

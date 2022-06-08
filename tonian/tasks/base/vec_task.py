@@ -113,6 +113,10 @@ class VecTask(BaseEnv, ABC):
         
         # These are the extras that will be returned on the step function
         self.extras = {}
+        
+    def set_tensorboard_logger(self, logger):
+        self.logger = logger
+        
     
     def get_number_of_agents(self):
         return self.num_envs
