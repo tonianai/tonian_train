@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 from tonian.tasks.cartpole.cartpole_task import Cartpole 
 
-import yaml, argparse
+import yaml, argparse, os
 
 from tonian.training.algorithms import PPOAlgorithm
 from tonian.training.policies import  build_A2CSequentialLogStdPolicy
@@ -17,7 +17,8 @@ def train(config_path: str,
           headless: bool = False, 
           batch_id: Optional[str] = None,
           model_out_name: Optional[str] = None, 
-          verbose: bool = True ):
+          verbose: bool = True,
+          max_steps: Optional[int] = None):
     """Train the given config
 
     Args:
@@ -49,6 +50,17 @@ def train(config_path: str,
                                             actor_obs_space=task.actor_observation_spaces, 
                                             critic_obs_space=task.critic_observation_spaces, 
                                             action_space= task.action_space)
+    
+    policy.to('cuda:0')
+    
+    
+    if 'start_model' in config:
+    
+        # load the model to the policy 
+    
+        policy.load(config['start_model'])
+        
+    
 
     # create the run folder here
     run_folder_name, run_id = create_new_run_directory(config, batch_id)
@@ -61,13 +73,13 @@ def train(config_path: str,
 
     algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name)
 
-    algo.train()
+    algo.train(max_steps)
     
 if __name__ == '__main__':
     
     ap = argparse.ArgumentParser()
     ap.add_argument("-seed", required=False, default = 0, help="Seed for running the env")
-    ap.add_argument("-cfg", required= False, default= 'cfg/mk1-visual-test.yaml', help="path to the config")
+    ap.add_argument("-cfg", required= False, default= 'cfg/mk1-terrain-test.yaml', help="path to the config")
     ap.add_argument("-batch_id", required= False, default= None,  help="name of the running batch")
     ap.add_argument("-model_out", required=False,default= None, help="The name under wich the model will be registered in the models folder" )
     ap.add_argument('--headless', action='store_true')

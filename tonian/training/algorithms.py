@@ -564,13 +564,14 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
 
         return batch_dict['step_time'], play_time, update_time, total_time, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
             
-    def train(self):
+    def train(self, max_steps: Optional[int] = None):
         
         self.init_tensors()
         
         self.actor_obs, self.critic_obs = self.env_reset()
         
         total_time = 0
+        
         
         while True:
             epoch_num = self.update_epoch()
@@ -606,6 +607,8 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             if self.verbose: 
                 print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,self.epoch_num, self.num_timesteps, steps_per_second, play_time / (update_time + play_time)))
             
+            if max_steps is not None and max_steps < self.num_timesteps:
+                break;
         
             
     def prepare_dataset(self, batch_dict: Dict[str, torch.Tensor]):
@@ -715,7 +718,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             os.makedirs(save_dir, exist_ok=True)
             
             # register the model unter the given name 
-            self.policy.save(run_save_dir)
+            self.policy.save(save_dir)
            
             if self.normalize_value:
                 torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))

@@ -241,6 +241,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         self.slowdown_punish_difference = reward_weight_dict["slowdown_punish_difference"]
         
         self.target_velocity_factor = reward_weight_dict["target_velocity_factor"]
+        self.target_facing_vel_factor = reward_weight_dict["target_facing_vel_factor"]
         
         self.forward_facing_vel_factor = reward_weight_dict["forward_facing_vel_factor"]
         
@@ -346,6 +347,8 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         # if the angle is 180 deg -> actor is running backwards instad of forward, the di
         forward_facing_vel_reward = ((1.5707 -  angle_between_pose_and_vel) / 1.5707) * self.forward_facing_vel_factor
         
+        forward_facing_vel_reward = torch.where(self.target_velocity == 0, torch.zeros_like(forward_facing_vel_reward), forward_facing_vel_reward)
+        
         reward += forward_facing_vel_reward
     
     
@@ -364,6 +367,21 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         target_velocity_reward = torch.where(torch.logical_and((1- upright_factor) > 0.7, angle_between_pose_and_vel < 0.5), vel_reward_factor, torch.zeros_like(reward))
     
         reward += target_velocity_reward  
+        
+        # ---------- reward for matching the target direction ----------
+        
+        normed_direction = batch_normalize_vector(self.target_direction)
+        
+        angle_between_vel_and_target = torch.acos(torch.clamp(batch_dot_product(x_y_vel_direction_normalized, normed_direction), min = -1, max = 1))
+        
+        target_facing_vel_reward = ((1.5707 -  angle_between_vel_and_target) / 1.5707) * self.forward_facing_vel_factor
+        
+        
+        target_facing_vel_reward = torch.where(self.target_velocity == 0, torch.zeros_like(target_facing_vel_reward), target_facing_vel_reward)
+        
+        reward += target_facing_vel_reward
+        
+        
         
         # -------------- Punish for jittery motion (see ./research/2022-03-27_reduction-of-jittery-motion-in-action.md)--------------
         
@@ -535,8 +553,8 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
             actions= self.actions
         )  
         
-        self.actor_obs["command"][:, 0:2] = self.target_direction
-        self.actor_obs["command"][:, 2] = self.target_velocity
+        self.actor_obs["command"][:, 1:3] = self.target_direction
+        self.actor_obs["command"][:, 0] = self.target_velocity
         
     
     
