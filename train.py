@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 from tonian.tasks.cartpole.cartpole_task import Cartpole 
 
-import yaml, argparse, os
+import yaml, argparse, os, csv
 
 from tonian.training.algorithms import PPOAlgorithm
 from tonian.training.policies import  build_A2CSequentialLogStdPolicy
@@ -60,9 +60,20 @@ def train(config_path: str,
     
         policy.load(config['start_model'])
         
-    for name, param in policy.named_parameters():
-        print(name)
-        print(param)
+        if config.get('use_last_lr', False):
+            file = open(os.path.join(config['start_model'], 'last_logs.csv'))
+            csvreader = csv.reader(file)
+            
+            header = next(csvreader)
+            print(header)
+            index_of_lr = header.index('info/last_lr')
+            
+            last_lr = next(csvreader)[index_of_lr]
+            
+            config['algo']['learning_rate'] = last_lr
+            
+             
+             
         
     
 
