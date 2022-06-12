@@ -102,6 +102,9 @@ class A2CBaseAlgorithm(ABC):
         
         self.learning_rate = config['learning_rate']
         
+        print("Learning Rate")
+        print(self.learning_rate)
+        
         self.max_epochs = self.config.get('max_epochs', 1e6)
         
         
@@ -563,6 +566,12 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
 
         return batch_dict['step_time'], play_time, update_time, total_time, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
+    
+    def init_run(self):
+        self.init_tensors()
+        
+        self.actor_obs, self.critic_obs = self.env_reset()
+        
             
     def train(self, max_steps: Optional[int] = None):
         
@@ -585,7 +594,7 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             self.dataset.update_values_dict(None)
             
             steps_per_second = self.batch_size / (play_time + update_time)
-             
+            
             self.logger.log("z_speed/steps_per_second", steps_per_second , self.num_timesteps)
             self.logger.log("z_speed/time_on_rollout", play_time, self.num_timesteps)
             self.logger.log("z_speed/time_on_train", update_time, self.num_timesteps)
@@ -603,6 +612,8 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             self.logger.log('info/epochs', epoch_num, self.num_timesteps)
             if len(b_losses) > 0:
                 self.logger.log('losses/bounds_loss', torch.mean(torch.stack(b_losses)), self.num_timesteps)
+            
+            self.logger.update_saved()
             
             if self.verbose: 
                 print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,self.epoch_num, self.num_timesteps, steps_per_second, play_time / (update_time + play_time)))
@@ -688,11 +699,11 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         self.model_out_name = model_out_name
         
         
-        if 'start_model' in config:
-            start_model_config = config['start_model']
-            # load the starting point - possibly only load parts of the network
-            print(f"Using Startingpoint {start_model_config['name']}")
-            self.load(os.path.join('models', start_model_config['name']))
+        #if 'start_model' in config:
+        #    start_model_config = config['start_model']
+        #    # load the starting point - possibly only load parts of the network
+        #    print(f"Using Startingpoint {start_model_config['name']}")
+        #    self.load(os.path.join('models', start_model_config['name']))
             
         
     def update_epoch(self):
@@ -728,8 +739,8 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
          
         self.policy.load(path)
           
-        if self.normalize_value:
-            self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
+        #if self.normalize_value:
+        #    self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
         
     
     def calc_gradients(self, 

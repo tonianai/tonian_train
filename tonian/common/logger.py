@@ -1,7 +1,7 @@
 from collections import defaultdict
-from typing import Dict, Optional, Tuple , Union
+from typing import Dict, Optional, Tuple , Union, List
 from torch.utils.tensorboard import SummaryWriter
-import os, torch
+import os, torch, csv
 import torch.nn as nn
 import numpy as np
 
@@ -20,14 +20,9 @@ class BaseLogger(ABC):
     
     """
     
-    def __init__(self, folder: str, identifier: Union[int, str], ) -> None:
-        # determines whether the run has been set to create a new run or to continue a run
-        self.identifier = identifier
-        self.run_assigned : bool = False 
-        self.folder = folder
-        self.save_folder = os.path.join(folder, 'saves')
-        
-        pass
+
+    def __init__(self) -> None:
+        super().__init__()
      
 
     @abstractmethod
@@ -43,6 +38,38 @@ class BaseLogger(ABC):
     def _pretty_config_dict(config: Dict):
         json_hp = json.dumps(config, indent=2)
         return "".join("\t" + line for line in json_hp.splitlines(True))
+    
+    
+    @abstractmethod 
+    def update_saved(self):
+        pass
+    
+    
+class LoggerList(BaseLogger):
+    """Contains multiple loggers and passes trough function calls
+
+    Args:
+        BaseLogger (_type_): _description_
+    """
+    
+    def __init__(self, loggers: List[BaseLogger], identifier: int, folder: str) -> None:
+        super().__init__()
+        
+        self.loggers = loggers
+        self.identifier = identifier
+        self.folder = folder
+        
+    
+        
+    def log(self, key: str, value: Union[int, float], step: int):
+        [logger.log(key, value, step) for logger in self.loggers ]
+        
+        
+    def log_config(self, config):
+        [logger.log_config(config) for logger in self.loggers ]
+        
+    def update_saved(self):
+        [logger.update_saved() for logger in self.loggers ]
     
     
         
@@ -64,11 +91,22 @@ class DummyLogger(BaseLogger):
         
     def log_config(self, tag:str, config: Dict):
         pass
+    
+    
+    def log_image(self, tag: str, image: np.ndarray):
+        pass
+    
+    def update_saved(self):
+        pass
      
 class TensorboardLogger(BaseLogger):
         
     def __init__(self, folder: str, identifier: Union[int, str], print_to_console: bool = True) -> None:
-        super().__init__(folder, identifier)
+        super().__init__()
+        self.identifier = identifier
+        self.run_assigned : bool = False 
+        self.save_folder = os.path.join(folder, 'saves')
+        
         self.folder = folder
         self.writer = SummaryWriter(log_dir=os.path.join(folder, "logs"))
         self.print_to_console = print_to_console
@@ -106,4 +144,67 @@ class TensorboardLogger(BaseLogger):
         for key, value in config.items():
             if isinstance(value, Dict):
                 self.log_config(tag + '/' + key, value)
+                
+    
+    def update_saved(self):
+        pass
+    
+                
+class CsvFileLogger(BaseLogger):
+    
+    def __init__(self, folder: str, identifier: Union[int, str]) -> None:
+        super().__init__()
+        
+        self.identifier = identifier
+        
+        self.file_path = os.path.join(folder, 'last_logs.csv')
+        self.params = {}
+        
+    def log(self, key: str, value: Union[int, float], step: int):
+        
+        self.params[key] = value
+        
+    def log_config(self, config: Dict):
+        return super().log_config(config)
+        
+    def update_saved(self):
+    
+        with open(self.file_path, 'w', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+            
+            writer.writerow(self.params.keys())
+            
+            
+            writer.writerow(self.params.values())
+            
+            
+
+                
+class CsvMaxFileLogger(BaseLogger):
+    
+    def __init__(self, folder: str, identifier: Union[int, str]) -> None:
+        super().__init__()
+        
+        self.identifier = identifier
+        
+        self.file_path = os.path.join(folder, 'max_logs.csv')
+        self.params = {}
+        
+    def log(self, key: str, value: Union[int, float], step: int):
+        if key not in self.params or self.params[key] < value :
+            self.params[key] = value
+        
+    def log_config(self, config: Dict):
+        return super().log_config(config)
+        
+    def update_saved(self):
+    
+        with open(self.file_path, 'w', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+            
+            writer.writerow(self.params.keys())
+            
+            
+            writer.writerow(self.params.values())
+            
         

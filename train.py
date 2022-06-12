@@ -6,7 +6,7 @@ import yaml, argparse, os
 
 from tonian.training.algorithms import PPOAlgorithm
 from tonian.training.policies import  build_A2CSequentialLogStdPolicy
-from tonian.common.logger import DummyLogger, TensorboardLogger
+from tonian.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger
 from tonian.common.config_utils import create_new_run_directory, task_from_config
 from tonian.common.utils import set_random_seed, join_configs
 
@@ -60,16 +60,40 @@ def train(config_path: str,
     
         policy.load(config['start_model'])
         
+    for name, param in policy.named_parameters():
+        print(name)
+        print(param)
+        
     
 
     # create the run folder here
     run_folder_name, run_id = create_new_run_directory(config, batch_id)
         
-    logger = TensorboardLogger(run_folder_name, run_id)
+    tb_logger = TensorboardLogger(run_folder_name, run_id)
 
-    logger.log_config('policy',config['policy'])
-    logger.log_config('algo',config['algo'])
-    logger.log_config('task', config['task'])
+    tb_logger.log_config('policy',config['policy'])
+    tb_logger.log_config('algo',config['algo'])
+    tb_logger.log_config('task', config['task'])
+
+
+    csv_logger = CsvFileLogger(run_folder_name, run_id)
+    max_csv_logger = CsvMaxFileLogger(run_folder_name, run_id)
+    
+    
+    logger_list = [tb_logger, csv_logger, max_csv_logger]
+    
+    
+    
+    if model_out_name:
+        out_path = os.path.join('models', model_out_name)
+        
+        os.makedirs(out_path, exist_ok=True)
+        logger_list.append(CsvFileLogger(out_path, run_id))
+        logger_list.append(CsvMaxFileLogger(out_path, run_id))
+        
+    
+    
+    logger = LoggerList( logger_list, run_id, run_folder_name)
 
     algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name)
 

@@ -91,7 +91,7 @@ task:
       
       velocity:
         dist_type: selection
-        values: [0, 0]
+        values: [3, 5]
 
     reward_weighting:
 

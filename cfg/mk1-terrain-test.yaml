@@ -1,7 +1,7 @@
 
 seed: 42
 
-#start_model: 'start_models/02_mk1_walking.pth'
+start_model: 'models/test_continuation'
 
 task:
   name: "06_mk1_controlled_terrain"
