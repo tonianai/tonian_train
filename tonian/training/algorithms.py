@@ -56,7 +56,9 @@ class A2CBaseAlgorithm(ABC):
                  device: Union[str, torch.device],
                  logger: BaseLogger,
                  policy: A2CBasePolicy,
-                 verbose: bool = True
+                 verbose: bool = True,
+                 model_out_name: Optional[str] = None,
+                 reward_to_beat_for_out: Optional[int] = None
                  ) -> None:
         
         base_config = self.get_standard_config()
@@ -179,6 +181,13 @@ class A2CBaseAlgorithm(ABC):
         
         # the average reward that was the highest as an average over an epoch play
         self.most_avg_reward_received = 0 
+        
+        if reward_to_beat_for_out is not None:
+            self.reward_to_beat_for_out = float(reward_to_beat_for_out)
+        else:
+            self.reward_to_beat_for_out = None
+        
+        self.model_out_name = model_out_name
         
         
     def set_eval(self):
@@ -455,8 +464,10 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
                  device: Union[str, torch.device], 
                  logger: BaseLogger, 
                  policy: A2CBasePolicy, 
-                 verbose: bool) -> None:
-        super().__init__(env, config, device, logger, policy, verbose)
+                 verbose: bool,
+                 model_out_name: Optional[str] = None,
+                 reward_to_beat_for_out: Optional[int] = None) -> None:
+        super().__init__(env, config, device, logger, policy, verbose, model_out_name, reward_to_beat_for_out)
 
         self.is_discrete = False
         self.bounds_loss_coef = config.get('bounds_loss_coef', 0.001)
@@ -679,7 +690,8 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
                  logger: BaseLogger, 
                  policy: A2CBasePolicy, 
                  verbose: bool = True,
-                 model_out_name: Optional[str] = None) -> None:
+                 model_out_name: Optional[str] = None,
+                 reward_to_beat_for_out: Optional[int] = None) -> None:
         """Run the ppo algorithm on a given environment
 
         Args:
@@ -691,12 +703,13 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             verbose (bool, optional): Determines whether prints are written to console. Defaults to True.
             model_out_name (Optional[str], optional): Optional name under which the model will be saved in the models folder. Defaults to None.
         """
-        super().__init__(env, config, device, logger, policy, verbose)
+        super().__init__(env, config, device, logger, policy, verbose, model_out_name, reward_to_beat_for_out)
         
         self.last_lr = float(self.last_lr)
         
-        self.has_value_loss = True
-        self.model_out_name = model_out_name
+        print("Reward to beat")
+        print(reward_to_beat_for_out)        
+        self.has_value_loss = True 
         
         
         #if 'start_model' in config:
@@ -718,12 +731,16 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         os.makedirs(run_save_dir, exist_ok=True)
         
         self.policy.save(run_save_dir)
+        print("save policy")
         
         if self.normalize_value:
             torch.save(self.value_mean_std.state_dict(), os.path.join(run_save_dir, 'value_mean_std.pth'))
      
         
         if self.model_out_name :
+            if  self.reward_to_beat_for_out and self.most_avg_reward_received < self.reward_to_beat_for_out:
+                return
+            
             save_dir = os.path.join('models', self.model_out_name)
  
             os.makedirs(save_dir, exist_ok=True)

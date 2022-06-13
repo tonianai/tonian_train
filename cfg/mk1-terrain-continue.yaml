@@ -1,8 +1,11 @@
 
 seed: 42
+ 
 
-start_model: 'models/test_continuation'
-use_last_lr: True
+# start_model: 'models/basic_direction_controlled'
+# use_last_lr: True
+# beat_rewards: True
+
 
 task:
   name: "06_mk1_controlled_terrain"
@@ -19,13 +22,13 @@ task:
     initial_velocities: 
         - {
           dist_type: 'gaussian',
-          mean: 1,
+          mean: 0,
           std: 0
         }
         - { # The y direction is the direction the agent is facing at the beginning
             dist_type: 'gaussian',
-            mean: 0.0,
-            std: 0.1
+            mean: 1,
+            std: 0.0
           }
         - 0
 
@@ -92,7 +95,7 @@ task:
       
       velocity:
         dist_type: selection
-        values: [0, 5]
+        values: [6, 6]
 
     reward_weighting:
 
@@ -106,17 +109,17 @@ task:
         die_not_upward: True
 
         jitter_cost: 0.25
-        overextend_cost: 2
+        overextend_cost: 0.3
 
-        arm_use_cost: 0.05
+        arm_use_cost: 0.000
         
-        target_velocity_factor: 2.0
+        target_velocity_factor: 1.3
         slowdown_punish_difference: 0.3 # the point when being to fast will be punished
         # note any speed slower than the target speed will be rewarded, only negative speed will be punished proportionally
-        forward_facing_vel_factor: 0.4
-        target_facing_vel_factor: 0.5 # rewards, that the velcoity is in the target direction
+        forward_facing_vel_factor: 0.2
+        target_facing_vel_factor: 0.8 # rewards, that the velcoity is in the target direction
 
-        die_on_contact: True # die when anything other than the foot touches the ground
+        die_on_contact: False # die when anything other than the foot touches the ground
         contact_punishment: 0 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
 

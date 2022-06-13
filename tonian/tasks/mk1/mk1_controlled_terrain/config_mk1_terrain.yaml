@@ -17,7 +17,7 @@ mk1_controlled_terrain:
 
     direction_y:
       mean: -1
-      std: 0
+      std: 0 
       dist_type: gaussian
     
     velocity:

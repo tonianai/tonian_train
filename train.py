@@ -17,6 +17,7 @@ def train(config_path: str,
           headless: bool = False, 
           batch_id: Optional[str] = None,
           model_out_name: Optional[str] = None, 
+          model_out_if_better: Optional[bool] = None,
           verbose: bool = True,
           max_steps: Optional[int] = None):
     """Train the given config
@@ -53,6 +54,7 @@ def train(config_path: str,
     
     policy.to('cuda:0')
     
+    reward_to_beat = None
     
     if 'start_model' in config:
     
@@ -65,15 +67,28 @@ def train(config_path: str,
             csvreader = csv.reader(file)
             
             header = next(csvreader)
-            print(header)
             index_of_lr = header.index('info/last_lr')
             
             last_lr = next(csvreader)[index_of_lr]
             
             config['algo']['learning_rate'] = last_lr
             
-             
-             
+    if model_out_name and config.get('use_last_lr', False):
+        
+        file_path = os.path.join('models', model_out_name, 'max_logs.csv')
+        
+        if os.path.exists(file_path):
+        
+            file = open(file_path)
+            csvreader = csv.reader(file)
+            
+            header = next(csvreader)
+            index_of_reward = header.index('run/episode_rewards')
+            
+            biggest_reward = next(csvreader)[index_of_reward]
+            
+            reward_to_beat = biggest_reward
+        
         
     
 
@@ -106,7 +121,7 @@ def train(config_path: str,
     
     logger = LoggerList( logger_list, run_id, run_folder_name)
 
-    algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name)
+    algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name, reward_to_beat)
 
     algo.train(max_steps)
     
@@ -124,6 +139,6 @@ if __name__ == '__main__':
     
     args = vars(ap.parse_args())
     
-    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id', None), args.get('model_out', None), True)
+    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id', None), args.get('model_out', None),  True)
 
 

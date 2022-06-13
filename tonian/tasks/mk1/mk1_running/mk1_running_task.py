@@ -197,7 +197,7 @@ class Mk1RunningTask(Mk1BaseClass):
         
         return (reward, has_fallen, reward_constituents)
     
-    def _add_to_env(self, env_ptr, env_id: int): 
+    def _add_to_env(self, env_ptr, env_id: int, robot_handle): 
         """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
 
         Args:

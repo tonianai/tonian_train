@@ -45,11 +45,6 @@ if __name__ == '__main__':
     policy.load(os.path.join(run_dir,'saves', 'best_model'))
     
     
-    for name, param in policy.named_parameters():
-        print(name)
-        print(param)
-        
-    
     policy.eval()
     
 
