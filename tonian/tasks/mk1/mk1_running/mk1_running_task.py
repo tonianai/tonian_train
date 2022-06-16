@@ -144,6 +144,12 @@ class Mk1RunningTask(Mk1BaseClass):
         has_fallen = torch.where(self.root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
         
         
+                # ------------- cost of usign arms ------------
+         
+        # arm_use_punishment = torch.sum(self.actions[:, self.upper_body_joint_indices]) / self.upper_body_joint_indices.shape[0] * self.arm_use_cost
+        
+        # reward -= arm_use_punishment
+        
         
         summed_contact_forces = torch.sum(self.contact_forces, dim= 2) # sums x y and z components of contact forces together
         
@@ -175,6 +181,7 @@ class Mk1RunningTask(Mk1BaseClass):
         direction_reward = float(torch.mean(direction_reward).item())
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
+        
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
         if not self.die_on_contact:
             contact_punishment = -float(torch.mean(contact_punishment).item())

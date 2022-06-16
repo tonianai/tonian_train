@@ -56,6 +56,7 @@ class Mk1BaseClass(VecTask, ABC):
         
         
         
+        
         self.spawn_height = mk1_config.get('spawn_height', 1.7)
         
         self.default_friction = task_dist_from_config(mk1_config['agent'].get('default_friction', 1.0))
@@ -63,6 +64,9 @@ class Mk1BaseClass(VecTask, ABC):
         
         # the standard deviation with wicthc to randomize the mass of each part of the robot
         self.mass_std = mk1_config['agent'].get('default_mass_std', 0)
+        
+        self.power_std = mk1_config['agent'].get('motor_power_std', 0)
+        
         
     def _get_mk1_base_config(self):
         """Get the base config for the vec_task
@@ -186,7 +190,10 @@ class Mk1BaseClass(VecTask, ABC):
         start_pose.p = gymapi.Vec3(0.0,0.0, self.spawn_height)
         start_pose.r = gymapi.Quat(0.0, 0.0 , 0.0, 1.0)
         
-        self._motor_efforts = self._create_effort_tensor(self.mk1_robot_asset)
+        self.default_motor_efforts = torch.tile(self._create_default_effort_tensor(self.mk1_robot_asset), (self.num_envs, 1))
+        
+        self.motor_efforts = self.default_motor_efforts.clone()
+        self.motor_effort_std_tensor = torch.ones_like( self.motor_efforts) * self.power_std
         
         for i in range(self.num_envs):
             # create env instance
@@ -238,7 +245,7 @@ class Mk1BaseClass(VecTask, ABC):
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
         
         
-    def _create_effort_tensor(self, mk1_robot_asset) -> torch.Tensor:
+    def _create_default_effort_tensor(self, mk1_robot_asset) -> torch.Tensor:
         """Create the motor effort tensor, that defines how strong each motor is 
 
         Returns:
@@ -329,7 +336,7 @@ class Mk1BaseClass(VecTask, ABC):
         """
          
         self.actions = actions.to(self.device).clone()
-        forces = self.actions * self._motor_efforts
+        forces = self.actions * self.motor_efforts
         force_tensor = gymtorch.unwrap_tensor(forces)
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
     
@@ -342,7 +349,6 @@ class Mk1BaseClass(VecTask, ABC):
         # compute the observations using the implementation in the subclass
         self.get_obs()
         
-         
         self.rewards , self.do_reset , self.reward_constituents = self._compute_robot_rewards()
         
     @abstractmethod
@@ -367,7 +373,7 @@ class Mk1BaseClass(VecTask, ABC):
         positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
         
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)    
-         
+        
         
         self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
         self.dof_vel[env_ids] = velocities
@@ -377,9 +383,6 @@ class Mk1BaseClass(VecTask, ABC):
         
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         
-        
-        
-         
  
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.initial_root_states),
@@ -388,6 +391,9 @@ class Mk1BaseClass(VecTask, ABC):
         self.gym.set_dof_state_tensor_indexed(self.sim,
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+        
+        
+        
     
   
     def _get_action_space(self) -> gym.Space:
@@ -434,6 +440,7 @@ class Mk1BaseClass(VecTask, ABC):
         self.mass_add_dist = TaskGaussianDistribution({'mean':1.0, 'std': self.mass_std })
         self.default_mass_values = [prop.mass for prop in self.gym.get_actor_rigid_body_properties(self.envs[0], self.robot_handles[0])]
         
+        self.power_add_list = TaskGaussianDistribution({'mean': 1.0, 'std': self.power_std})
             
     def apply_domain_randomization(self, env_ids: torch.Tensor):
         """Apply domain randomisation to the parameters given in the config file
@@ -456,7 +463,12 @@ class Mk1BaseClass(VecTask, ABC):
         self.initial_root_states[env_ids , 9] = self.intitial_velocities[2]() # vel in -z axis
         
         shape_properties = self.gym.get_actor_rigid_shape_properties(self.envs[0], self.robot_handles[0])
+         
+        self.motor_efforts[env_ids] = torch.normal(mean=  self.default_motor_efforts[env_ids] , std= self.motor_effort_std_tensor[env_ids])
         
+        
+        
+        #print("domain rando")
         
         for env_id in env_ids: # this is very costly 
             
@@ -484,6 +496,10 @@ class Mk1BaseClass(VecTask, ABC):
             
             for i, property in enumerate(body_properties):
                  property.mass =  mass_values[i] * self.mass_add_dist.sample()
+            # print(body_properties[0].mass)
+            # print(mass_values[0])
+            # print(self.mass_add_dist.std)
+            # print(self.mass_add_dist.mean)
                  
                 
             

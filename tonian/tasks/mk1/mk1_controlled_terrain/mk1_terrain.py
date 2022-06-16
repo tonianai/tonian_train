@@ -128,7 +128,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         start_pose.p = gymapi.Vec3(0.0,0.0, self.spawn_height)
         start_pose.r = gymapi.Quat(0, 0 , 1, 1)
         
-        self._motor_efforts = self._create_effort_tensor(self.mk1_robot_asset)
+        self._motor_efforts = self._create_default_effort_tensor(self.mk1_robot_asset)
         
         for i in range(self.num_envs):
             # create env instance

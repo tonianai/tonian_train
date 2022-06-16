@@ -107,7 +107,7 @@ def task_dist_from_config(config_or_value: Union[Dict, Any]) -> TaskDistribution
         return dist_types[config_or_value['dist_type']](config_or_value)
     else:
         return TaskFixedDistribution(config_or_value)
-    
+     
     
 def sample_tensor_dist(dist_config_or_value: Union[Dict, float, int], sample_shape: Tuple[int, ...], device: Union[str, torch.device] ):
     """Directly sample from a given distribution 

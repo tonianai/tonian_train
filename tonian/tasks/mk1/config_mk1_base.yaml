@@ -44,21 +44,21 @@ mk1:
 
     default_friction: 
       dist_type: gaussian
-      mean: 1.5
+      mean: 10
       std: 0.5
     frictions: # describe by using the link name 
       foot: 
         dist_type: gaussian
-        mean: 10
+        mean: 50
         std: 2
       foot_2: 
         dist_type: gaussian
-        mean: 10
+        mean: 50
         std: 2
 
 
     # mass stamdard deviation  
-    default_mass_std: 0.1 # nothing above 0.17 is advised 
+    default_mass_std: 0.2 # nothing above 0.17 is advised 
 
 
 
