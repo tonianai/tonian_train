@@ -88,7 +88,10 @@ task:
       alive_reward: 2
       upright_punishment_factor: 20 # higher values punish the actor more for bad posture
       jitter_cost: 0.25
-      overextend_cost: 4
+      overextend_cost: 7
+      arm_position_cost: 1
+
+      arm_use_cost: 0.3
 
 
       die_on_contact: False # die when anything other than the foot touches the ground

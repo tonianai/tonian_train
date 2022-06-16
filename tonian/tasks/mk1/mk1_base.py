@@ -228,6 +228,19 @@ class Mk1BaseClass(VecTask, ABC):
         self.left_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot')
         self.right_foot_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.robot_handles[0], 'foot_2')
         
+                
+        self.upper_body_joint_names = ['left_shoulder_a', 
+                                       'right_shoulder_a',
+                                       'left_shoulder_b',
+                                       'right_shoulder_b',
+                                       'right_arm_rotate',
+                                       'left_arm_rotate',
+                                       'right_elbow',
+                                       'left_elbow'] # all the names of the upper body joints, that for instance should be used minimally when walking
+        self.upper_body_joint_indices = torch.LongTensor([ self.dof_name_index_dict[name] for name  in  self.upper_body_joint_names ])
+         
+        
+        
         # take the last one as an example (All should be the same)
         dof_prop = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
         

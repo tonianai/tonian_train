@@ -1,28 +1,20 @@
-
-from abc import ABC, abstractmethod
-
+from pydoc import cli
 from gym.spaces import space
-import numpy as np 
-from tonian.tasks.base.vec_task import VecTask
+import numpy as np
+from tonian.common.utils import join_configs 
 from tonian.tasks.mk1.mk1_base import Mk1BaseClass
-from tonian.tasks.common.task_dists import task_dist_from_config
-from tonian.common.utils import join_configs
-
-from isaacgym.torch_utils import torch_rand_float, tensor_clamp
-
-from tonian.common.spaces import MultiSpace
+from tonian.tasks.base.vec_task import VecTask 
 from tonian.common.torch_jit_utils import batch_dot_product
 
-from tonian.tasks.common.task_dists import sample_tensor_dist
+from tonian.common.spaces import MultiSpace
 
- 
 
-from typing import Dict, Any, Tuple, Union, Optional, List
+from typing import Dict, Any, Tuple, Union, Optional
 
 from isaacgym import gymtorch, gymapi
-from isaacgym.torch_utils import to_torch
 
-import os, torch, gym, yaml, time
+import yaml, os, torch, gym
+
 
 class Mk1ControlledTask(Mk1BaseClass):
     
@@ -37,33 +29,6 @@ class Mk1ControlledTask(Mk1BaseClass):
         # retreive pointers to simulation tensors
         self._get_gpu_gym_state_tensors()
         
-    def _create_envs(self, spacing: float, num_per_row: int) -> None:
-        super()._create_envs(spacing, num_per_row) 
-        
-        
-        self.upper_body_joint_names = ['left_shoulder_a', 
-                                       'right_shoulder_a',
-                                       'left_shoulder_b',
-                                       'right_shoulder_b',
-                                       'right_arm_rotate',
-                                       'left_arm_rotate',
-                                       'right_elbow',
-                                       'left_elbow'] # all the names of the upper body joints, that for instance should be used minimally when walking
-        self.upper_body_joint_indices = torch.LongTensor([ self.dof_name_index_dict[name] for name  in  self.upper_body_joint_names ])
-         
-        
-        
-        
-    def reset_envs(self, env_ids: torch.Tensor) -> None:
-        super().reset_envs(env_ids)  
-        
-        n_envs_reset =  len(env_ids)
-        
-        self.target_velocity[env_ids] = sample_tensor_dist(self.target_velocity_dist, sample_shape=(n_envs_reset, ), device = self.device)
-        
-        self.target_direction[env_ids, 0] = torch.normal(mean = self.x_direction_mean[env_ids], std = self.x_direction_std[env_ids])
-        self.target_direction[env_ids, 1] = torch.normal(mean = self.y_direction_mean[env_ids], std = self.y_direction_std[env_ids])
-    
         
         
     def _extract_params_from_config(self) -> None:
@@ -71,11 +36,12 @@ class Mk1ControlledTask(Mk1BaseClass):
         Extract local variables used in the sim from the config dict
         """
          
-        assert self.config["mk1_controlled"] is not None, "The mk1_controlled config must be set on the task config file"
+        assert self.config["mk1_walking"] is not None, "The mk1_walking config must be set on the task config file"
         
-        reward_weight_dict = self.config["mk1_controlled"]["reward_weighting"]  
+        reward_weight_dict = self.config["mk1_walking"]["reward_weighting"]  
         
         self.energy_cost = reward_weight_dict["energy_cost"]
+        self.directional_factor = reward_weight_dict["directional_factor"]
         self.death_cost = reward_weight_dict["death_cost"]
         self.alive_reward = float(reward_weight_dict["alive_reward"])
         self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
@@ -84,40 +50,9 @@ class Mk1ControlledTask(Mk1BaseClass):
         self.overextend_cost = reward_weight_dict["overextend_cost"]
         self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
         self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
-        self.slowdown_punish_difference = reward_weight_dict["slowdown_punish_difference"]
-        
-        self.target_velocity_factor = reward_weight_dict["target_velocity_factor"]
-        
-        self.target_direction_factor = reward_weight_dict["target_direction_factor"]
+        self.arm_position_cost = reward_weight_dict["arm_position_cost"]
         
         self.arm_use_cost = reward_weight_dict['arm_use_cost']
-
-        controls_dict = self.config['mk1_controlled']['controls']
-
-        self.target_velocity_dist =  controls_dict['velocity']
-        self.target_x_dist = controls_dict['direction_x']
-        self.target_y_dist = controls_dict['direction_y']
-        
-    def allocate_buffers(self):
-        """Allocate all important tensors and buffers
-        """
-        super().allocate_buffers()
-        
-        self.x_direction_mean = torch.ones((self.num_envs, ), device=self.device) * self.target_x_dist['mean']
-        self.x_direction_std = torch.ones((self.num_envs, ), device=self.device) * self.target_x_dist['std']
-        x_direction = torch.normal(mean = self.x_direction_mean, std = self.x_direction_std).unsqueeze(dim=1)
-        
-        self.y_direction_mean = torch.ones((self.num_envs, ), device=self.device) * self.target_y_dist['mean']
-        self.y_direction_std = torch.ones((self.num_envs, ), device=self.device) * self.target_y_dist['std']
-        y_direction = torch.normal(mean = self.y_direction_mean, std = self.y_direction_std).unsqueeze(dim=1)
-        
-        
-        
-        self.target_direction =  torch.cat((x_direction, y_direction), dim= 1)
-        
-        self.target_velocity = sample_tensor_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
-        
-        
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -164,18 +99,13 @@ class Mk1ControlledTask(Mk1BaseClass):
         # magnitude of the velocity (2 norm)
         vel_norm = torch.linalg.vector_norm(linear_velocity_x_y, dim=1)
         
-        # positive is to fast and neg is to slow 
-        vel_difference = vel_norm - self.target_velocity 
-        
-        vel_reward_factor = torch.where(vel_difference > 0 , compute_velocity_reward_factor(vel_difference, self.slowdown_punish_difference, self.target_velocity_factor), compute_velocity_reward_factor(- vel_difference, self.target_velocity, self.target_velocity_factor))
-         
+            
         #heading_to_velocity_angle = torch.arccos( torch.dot(two_d_heading_direction, linear_velocity_x_y)  / vel_norm )
         heading_to_velocity_angle = torch.arccos( batch_dot_product(two_d_heading_direction, linear_velocity_x_y) / vel_norm)
-         
         
-        target_velocity_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_reward_factor, torch.zeros_like(reward))
+        direction_reward = torch.where(torch.logical_and(upright_value > 0.7, heading_to_velocity_angle < 0.5), vel_norm * self.directional_factor, torch.zeros_like(reward))
     
-        reward += target_velocity_reward  
+        reward += direction_reward  
         
         # -------------- Punish for jittery motion (see ./research/2022-03-27_reduction-of-jittery-motion-in-action.md)--------------
         
@@ -202,33 +132,31 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         reward -= overextend_punishment
         
+       # ------------- cost of usign arms ------------
+         
+        arm_use_punishment = torch.abs(torch.sum(self.actions[:, self.upper_body_joint_indices], dim = 1) / self.upper_body_joint_indices.shape[0]) * self.arm_use_cost
         
-        # ---------- reward for the heading direction ----------
+        reward -= arm_use_punishment
+         
+        arm_position_punishment = torch.square(torch.abs(torch.sum(self.dof_pos, dim=1))/ 1.51) * self.arm_position_cost 
         
-        target_direction_reward = batch_dot_product(self.target_direction, two_d_heading_direction) * self.target_direction_factor
+        reward -= arm_position_punishment
         
-        reward += target_direction_reward
-    
         
         
         # -------------- cost of power --------------
         
         energy_punishment = torch.sum(self.actions ** 2, dim=-1) * self.energy_cost
         reward -= energy_punishment
-        
-        # ------------- cost of usign arms ------------
-         
-        arm_use_punishment = torch.sum(self.actions[:, self.upper_body_joint_indices]) / self.upper_body_joint_indices.shape[0] * self.arm_use_cost
-        
-        reward -= arm_use_punishment
-        
-        
-        # ---------- has fallen or die on contact -------------
          
         terminations_height = self.death_height
         
+        
         has_fallen = torch.zeros_like(reward, dtype=torch.int8)
         has_fallen = torch.where(self.root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
+        
+        
+        
         
         summed_contact_forces = torch.sum(self.contact_forces, dim= 2) # sums x y and z components of contact forces together
         
@@ -247,6 +175,7 @@ class Mk1ControlledTask(Mk1BaseClass):
             contact_punishment = n_times_contact * self.contact_punishment_factor
             
             reward -= contact_punishment
+            
         
         # ------------- cost for dying ----------
         # root_states[:, 2] defines the y positon of the root body 
@@ -257,27 +186,28 @@ class Mk1ControlledTask(Mk1BaseClass):
         # average rewards per step
          
         upright_punishment = float(torch.mean(upright_punishment).item())
-        target_velocity_reward = float(torch.mean(target_velocity_reward).item())
+        direction_reward = float(torch.mean(direction_reward).item())
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
         arm_use_punishment = - float(torch.mean(arm_use_punishment).item())
-        target_direction_reward = float(torch.mean(target_direction_reward).item())
+        arm_position_punishment = - float(torch.mean(arm_position_punishment).item())
+        
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
         if not self.die_on_contact:
             contact_punishment = -float(torch.mean(contact_punishment).item())
         else:
             contact_punishment = 0.0
         
-        total_avg_reward = self.alive_reward + upright_punishment + target_velocity_reward + jitter_punishment + energy_punishment
+        total_avg_reward = self.alive_reward + upright_punishment + direction_reward + jitter_punishment + energy_punishment
         
         reward_constituents = {
                                 'alive_reward': self.alive_reward,
                                 'upright_punishment':  upright_punishment,
-                                'target_velocity_reward':    target_velocity_reward,
+                                'direction_reward':    direction_reward,
                                 'jitter_punishment':   jitter_punishment,
-                                'target_direction_reward': target_direction_reward, 
                                 'energy_punishment':   energy_punishment,
                                 'arm_use_punishment': arm_use_punishment,
+                                'arm_position_punishment': arm_position_punishment,
                                 'overextend_punishment': overextend_punishment,
                                 'contact_punishment': contact_punishment,
                                 'total_reward': total_avg_reward
@@ -285,9 +215,8 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         
         return (reward, has_fallen, reward_constituents)
-            
     
-    def _add_to_env(self, env_ptr, i ,env_id: int): 
+    def _add_to_env(self, env_ptr, env_id: int, robot_handle): 
         """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
 
         Args:
@@ -302,7 +231,7 @@ class Mk1ControlledTask(Mk1BaseClass):
             Dict: Standard configuration
         """
         dirname = os.path.dirname(__file__)
-        base_config_path = os.path.join(dirname, 'config_mk1_controlled.yaml')
+        base_config_path = os.path.join(dirname, 'config_mk1_running.yaml')
         
           # open the config file 
         with open(base_config_path, 'r') as stream:
@@ -330,11 +259,6 @@ class Mk1ControlledTask(Mk1BaseClass):
             dof_force= self.dof_force_tensor, 
             actions= self.actions
         )  
-        
-        self.actor_obs["command"][:, 0:2] = self.target_direction
-        self.actor_obs["command"][:, 2] = self.target_velocity
-        
-    
     
     def get_num_playable_actors_per_env(self) -> int:
         """Return the amount of actors each environment has, this only includes actors, that are playable
@@ -344,7 +268,6 @@ class Mk1ControlledTask(Mk1BaseClass):
             int
         """
         return self.get_num_actors_per_env()
-    
     
     def get_num_actors_per_env(self) -> int:
         """Get the total amount of actor per environment this includes non active actors like boxes or other inaminate matter
@@ -369,8 +292,7 @@ class Mk1ControlledTask(Mk1BaseClass):
         """
         num_actor_obs = 142
         return  MultiSpace({
-            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
-            "command": gym.spaces.Box(low= -3.0, high= 5.0, shape= (3, ))
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
@@ -391,24 +313,7 @@ class Mk1ControlledTask(Mk1BaseClass):
         num_critic_obs = 6
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
-        }) 
-        
-         
-def compute_velocity_reward_factor(abs: torch.Tensor, zero_x_cord: Union[float, torch.Tensor], factor: Union[float, torch.Tensor]) -> torch.Tensor:
-    """compute a function for the velocity reward factor
-    https://www.geogebra.org/graphing/f2qxcw85
-
-    Args:
-        abs (torch.Tensor): the absolute tensor (x is only positive)
-        zero_x_cord (torch.Tensor): the coordinate where the reward is zero
-        factor (Union[float, torch.Tensor]): the y multiplication. This values is achieved for abs == 0
-        
-        f(x)=(((1)/(x ((1)/(2 zerop))+0.5))-1) * factor
-    Returns:
-        torch.Tensor: y
-    """
-    return  (1.0 / (abs * (1.0 / (2.0 * zero_x_cord))+ 0.5) - 1.0) * factor
-     
+        })
     
  
 @torch.jit.script

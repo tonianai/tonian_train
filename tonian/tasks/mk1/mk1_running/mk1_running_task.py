@@ -50,6 +50,9 @@ class Mk1RunningTask(Mk1BaseClass):
         self.overextend_cost = reward_weight_dict["overextend_cost"]
         self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
         self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
+        self.arm_position_cost = reward_weight_dict["arm_position_cost"]
+        
+        self.arm_use_cost = reward_weight_dict['arm_use_cost']
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -129,7 +132,16 @@ class Mk1RunningTask(Mk1BaseClass):
         
         reward -= overextend_punishment
         
-    
+       # ------------- cost of usign arms ------------
+         
+        arm_use_punishment = torch.abs(torch.sum(self.actions[:, self.upper_body_joint_indices], dim = 1) / self.upper_body_joint_indices.shape[0]) * self.arm_use_cost
+        
+        reward -= arm_use_punishment
+         
+        arm_position_punishment = torch.square(torch.abs(torch.sum(self.dof_pos, dim=1))/ 1.51) * self.arm_position_cost 
+        
+        reward -= arm_position_punishment
+        
         
         
         # -------------- cost of power --------------
@@ -144,11 +156,6 @@ class Mk1RunningTask(Mk1BaseClass):
         has_fallen = torch.where(self.root_states[:, 2] < terminations_height, torch.ones_like(reward,  dtype=torch.int8) , torch.zeros_like(reward, dtype=torch.int8))
         
         
-                # ------------- cost of usign arms ------------
-         
-        # arm_use_punishment = torch.sum(self.actions[:, self.upper_body_joint_indices]) / self.upper_body_joint_indices.shape[0] * self.arm_use_cost
-        
-        # reward -= arm_use_punishment
         
         
         summed_contact_forces = torch.sum(self.contact_forces, dim= 2) # sums x y and z components of contact forces together
@@ -168,6 +175,7 @@ class Mk1RunningTask(Mk1BaseClass):
             contact_punishment = n_times_contact * self.contact_punishment_factor
             
             reward -= contact_punishment
+            
         
         # ------------- cost for dying ----------
         # root_states[:, 2] defines the y positon of the root body 
@@ -181,6 +189,8 @@ class Mk1RunningTask(Mk1BaseClass):
         direction_reward = float(torch.mean(direction_reward).item())
         jitter_punishment = - float(torch.mean(jitter_punishment).item())
         energy_punishment = - float(torch.mean(energy_punishment).item())
+        arm_use_punishment = - float(torch.mean(arm_use_punishment).item())
+        arm_position_punishment = - float(torch.mean(arm_position_punishment).item())
         
         overextend_punishment = - float(torch.mean(overextend_punishment).item())
         if not self.die_on_contact:
@@ -196,6 +206,8 @@ class Mk1RunningTask(Mk1BaseClass):
                                 'direction_reward':    direction_reward,
                                 'jitter_punishment':   jitter_punishment,
                                 'energy_punishment':   energy_punishment,
+                                'arm_use_punishment': arm_use_punishment,
+                                'arm_position_punishment': arm_position_punishment,
                                 'overextend_punishment': overextend_punishment,
                                 'contact_punishment': contact_punishment,
                                 'total_reward': total_avg_reward
