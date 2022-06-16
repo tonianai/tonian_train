@@ -115,6 +115,9 @@ task:
         die_on_contact: False # die when anything other than the foot touches the ground
         contact_punishment: 0 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
+        target_position:
+          
+
 
 
 

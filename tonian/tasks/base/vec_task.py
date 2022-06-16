@@ -159,7 +159,6 @@ class VecTask(BaseEnv, ABC):
         # mean values, that make up the reward -> only used for logging 
         self.reward_constituents = {}
 
-
         # the cumulative rewards achieved within the environment until this steop
         self.cumulative_rewards = torch.zeros(self.num_envs, device= self.device, dtype= torch.float32)
         

@@ -108,7 +108,7 @@ def train(config_path: str,
     
     logger_list = [tb_logger, csv_logger, max_csv_logger]
     
-    
+        
     
     if model_out_name:
         out_path = os.path.join('models', model_out_name)
@@ -117,6 +117,7 @@ def train(config_path: str,
         logger_list.append(CsvFileLogger(out_path, run_id))
         logger_list.append(CsvMaxFileLogger(out_path, run_id))
         
+    
     
     
     logger = LoggerList( logger_list, run_id, run_folder_name)
