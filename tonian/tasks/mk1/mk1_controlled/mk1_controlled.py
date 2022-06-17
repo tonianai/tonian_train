@@ -7,6 +7,7 @@ from tonian.tasks.base.vec_task import VecTask
 from tonian.common.torch_jit_utils import batch_dot_product
 
 from tonian.common.spaces import MultiSpace
+from tonian.common.torch_jit_utils import batch_dot_product, batch_normalize_vector, get_batch_tensor_2_norm
 
 
 from typing import Dict, Any, Tuple, Union, Optional, List, Set
@@ -204,6 +205,11 @@ class Mk1ControlledTask(Mk1BaseClass):
         jitter_punishment = - torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * self.jitter_cost
         reward += jitter_punishment
         
+        vel_norm = get_batch_tensor_2_norm(linear_velocity_x_y)
+        
+        
+        general_vel_reward = vel_norm * self.general_vel_factor
+        reward += general_vel_reward
         
         
         #-------------- cost for overextension --------------
@@ -283,6 +289,7 @@ class Mk1ControlledTask(Mk1BaseClass):
         reward_constituents = {**self.get_tensor_state_means("alive_reward", self.alive_reward),
                                **self.get_tensor_state_means("upright_punishment", upright_punishment),
                                **self.get_tensor_state_means("direction_reward", direction_reward),
+                               **self.get_tensor_state_means("general_vel_reward", general_vel_reward),
                                **self.get_tensor_state_means("jitter_punishment", jitter_punishment), 
                                **self.get_tensor_state_means("overextend_punishment", overextend_punishment), 
                                **self.get_tensor_state_means("energy_punishment", energy_punishment), 
