@@ -16,7 +16,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/torso.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/torso.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>

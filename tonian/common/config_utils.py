@@ -5,6 +5,7 @@ from typing import Callable, Dict, Tuple
 from tonian.common.logger import BaseLogger
 from tonian.tasks.walking.walking_task import WalkingTask
 from tonian.tasks.cartpole.cartpole_task import Cartpole
+from tonian.tasks.cassie.cassie_task import CassieTask
 from tonian.tasks.mk1.mk1_running.mk1_running_task import Mk1RunningTask 
 from tonian.tasks.mk1.mk1_controlled.mk1_controlled import Mk1ControlledTask 
 from tonian.tasks.mk1_multi_task.mk1_multi_task import Mk1Multitask
@@ -58,7 +59,8 @@ def task_from_config(config: Dict, headless: bool = False) -> VecTask:
      "04_mk1_multitask": Mk1Multitask,
      "05_mk1_multitask_box": Mk1MultitaskBox,
      "06_mk1_controlled_terrain": Mk1ControlledTerrainTask,
-     "07_mk1_controlled_visual": Mk1ControlledVisualTask
+     "07_mk1_controlled_visual": Mk1ControlledVisualTask,
+     "cassie_task": CassieTask
     }
     return name_to_task_map[config["name"]](config, sim_device="cuda", graphics_device_id=0, headless= headless)
 

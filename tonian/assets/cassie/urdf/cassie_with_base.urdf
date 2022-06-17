@@ -65,7 +65,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/pelvis.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/pelvis.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>
@@ -81,7 +81,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/abduction.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/abduction.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -97,7 +97,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/yaw.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/yaw.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -113,7 +113,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/hip.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/hip.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -129,7 +129,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/thigh.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/thigh.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -145,7 +145,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/knee-output.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/knee-output.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>
@@ -161,7 +161,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/shin-bone.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/shin-bone.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>
@@ -177,7 +177,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/tarsus.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/tarsus.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>
@@ -193,7 +193,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/toe.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/toe.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -209,7 +209,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/abduction_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/abduction_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -225,7 +225,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/yaw_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/yaw_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -241,7 +241,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/hip_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/hip_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -257,7 +257,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/thigh_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/thigh_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
@@ -273,7 +273,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/knee-output_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/knee-output_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>
@@ -289,7 +289,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/shin-bone_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/shin-bone_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>
@@ -305,7 +305,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/tarsus_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/tarsus_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="grey">
         <color rgba="0.35 0.35 0.35 1"/>
@@ -321,7 +321,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://cassie_description/meshes/toe_mirror.stl" scale="1 1 1"/>
+        <mesh filename="./../meshes/toe_mirror.stl" scale="1 1 1"/>
       </geometry>
       <material name="light_grey">
         <color rgba="0.75 0.75 0.75 1"/>
