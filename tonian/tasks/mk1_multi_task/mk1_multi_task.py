@@ -495,7 +495,6 @@ class Mk1Multitask(VecTask):
     def allocate_buffers(self):
         super().allocate_buffers()
         
-        
         self.state_names = ['idle', 'to target']
         command_state_distribution = torch.distributions.OneHotCategorical(torch.tensor((self.idle_prob, self.to_target_prob), dtype= torch.float32, device= self.device))
         self.command_state_tensor = command_state_distribution.sample(sample_shape=(self.num_envs, )).to(self.device).to(torch.int8)

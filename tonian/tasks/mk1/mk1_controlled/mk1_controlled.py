@@ -9,7 +9,7 @@ from tonian.common.torch_jit_utils import batch_dot_product
 from tonian.common.spaces import MultiSpace
 
 
-from typing import Dict, Any, Tuple, Union, Optional
+from typing import Dict, Any, Tuple, Union, Optional, List, Set
 
 from isaacgym import gymtorch, gymapi
 
@@ -30,29 +30,121 @@ class Mk1ControlledTask(Mk1BaseClass):
         self._get_gpu_gym_state_tensors()
         
         
+    def allocate_buffers(self):
+        """Allocate tensors, that will be used throughout the simulation
+        """
+        super().allocate_buffers()
+        self.update_reward_factor_buffers()
+        
+    def update_reward_factor_buffers(self):
+        """
+            Set the state names, the state probs and all the reward factor buffers
+        """
+        
+        reward_weight_list = self.config["mk1_controlled"]["reward_weighting"]  
+        self.state_names = [reward_block['name'] for reward_block in reward_weight_list]
+        self.state_probabilities = [reward_block['prob'] for reward_block in reward_weight_list]
+        
+        self.command_state_distribution = torch.distributions.OneHotCategorical(torch.tensor(self.state_probabilities, dtype= torch.float32, device= self.device))
+        self.command_state_tensor = self.command_state_distribution.sample(sample_shape=(self.num_envs, )).to(self.device).to(torch.int8)
+        
+        self.reward_factor_dict = dict([(state_block['name'], state_block['rewards'] ) for state_block in reward_weight_list])
+        self.state_reward_factors = [state_block['rewards'] for state_block in reward_weight_list]
+        
+        self.all_reward_keys : Set = Mk1ControlledTask.get_all_reward_weighting_keys(reward_weight_list)
+        
+        # Set all the reward weighting buffers 
+        for key in self.all_reward_keys:
+            setattr(self, key, self.reward_weight_state_dependend_tensor(key))
+
+        
+    def reward_weight_state_dependend_tensor(self, key: str, dtype: torch.dtype = torch.float16):
+        """Get the reward weights for a state dependent tensor
+
+        Args:
+            key (str): key 
+            dtype (torch.dtype, optional): type of the tensor. Defaults to torch.float16.
+
+        Returns:
+            _type_: _description_
+        """
+        value_tensor = torch.zeros((self.num_envs,), dtype=dtype, device= self.device )
+        for i in range(len(self.state_names)):
+            value_tensor += self.command_state_tensor[:, i] * self.state_reward_factors[i].get(key, 0) 
+        return value_tensor
+    
+    
+    
+    def update_reward_weight_state_dependend_tensor(self, key: str,  env_ids: torch.Tensor,  dtype: torch.dtype = torch.float16):
+        """Get the reward weights for a state dependent tensor
+
+        Args:
+            key (str): key 
+            dtype (torch.dtype, optional): type of the tensor. Defaults to torch.float16.
+
+        Returns:
+            _type_: _description_
+        """
+        value_tensor = torch.zeros((env_ids.shape[0],), dtype=dtype, device= self.device )
+        for i in range(len(self.state_names)):
+            value_tensor += self.command_state_tensor[env_ids, i] * self.state_reward_factors[i].get(key, 0) 
+        return value_tensor
+                
+    
+    
+    def get_all_reward_weighting_keys(reward_weight_list: List[Dict]) -> Set:
+        """Retuns the set of all the reward weighting keys
+
+        Args:
+            reward_weight_list (List[Dict]): list of the different configs
+
+        Returns:
+            Set: containing all keys 
+        """
+        result_set = set()
+        
+        for state_block in reward_weight_list:
+            
+            for key in state_block['rewards'].keys():
+                result_set.add(key)
+        return result_set
+                 
+    
+        
         
     def _extract_params_from_config(self) -> None:
         """
         Extract local variables used in the sim from the config dict
         """
          
-        assert self.config["mk1_walking"] is not None, "The mk1_walking config must be set on the task config file"
+        assert self.config["mk1_controlled"] is not None, "The mk1_controlled config must be set on the task config file"
         
-        reward_weight_dict = self.config["mk1_walking"]["reward_weighting"]  
+        # reward_weight_dict = self.config["mk1_controlled"]["reward_weighting"]  
         
-        self.energy_cost = reward_weight_dict["energy_cost"]
-        self.directional_factor = reward_weight_dict["directional_factor"]
-        self.death_cost = reward_weight_dict["death_cost"]
-        self.alive_reward = float(reward_weight_dict["alive_reward"])
-        self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
-        self.jitter_cost = reward_weight_dict["jitter_cost"] /  self.action_size
-        self.death_height = reward_weight_dict["death_height"]
-        self.overextend_cost = reward_weight_dict["overextend_cost"]
-        self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
-        self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
-        self.arm_position_cost = reward_weight_dict["arm_position_cost"]
+        # self.energy_cost = reward_weight_dict["energy_cost"]
+        # self.directional_factor = reward_weight_dict["directional_factor"]
+        # self.death_cost = reward_weight_dict["death_cost"]
+        # self.alive_reward = float(reward_weight_dict["alive_reward"])
+        # self.upright_punishment_factor = reward_weight_dict["upright_punishment_factor"]
+        # self.jitter_cost = reward_weight_dict["jitter_cost"] /  self.action_size
+        # self.death_height = reward_weight_dict["death_height"]
+        # self.overextend_cost = reward_weight_dict["overextend_cost"]
+        # self.die_on_contact = reward_weight_dict.get("die_on_contact", True)
+        # self.contact_punishment_factor = reward_weight_dict["contact_punishment"]
+        # self.arm_position_cost = reward_weight_dict["arm_position_cost"]
+        # 
+        # self.arm_use_cost = reward_weight_dict['arm_use_cost']
         
-        self.arm_use_cost = reward_weight_dict['arm_use_cost']
+    def reset_envs(self, env_ids: torch.Tensor) -> None:
+        super().reset_envs(env_ids)
+        
+        self.command_state_tensor[env_ids] = self.command_state_distribution.sample(sample_shape=(len(env_ids), )).to(self.device).to(torch.int8)
+         
+        # Set all the reward weighting buffers 
+        for key in self.all_reward_keys:
+            getattr(self, key)[env_ids] = self.update_reward_weight_state_dependend_tensor(key, env_ids)
+            
+        
 
     def _compute_robot_rewards(self) -> Tuple[torch.Tensor, torch.Tensor,]:
         """Compute the rewards and the is terminals of the step
@@ -109,8 +201,8 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         # -------------- Punish for jittery motion (see ./research/2022-03-27_reduction-of-jittery-motion-in-action.md)--------------
         
-        jitter_punishment = torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * self.jitter_cost
-        reward -= jitter_punishment
+        jitter_punishment = - torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * self.jitter_cost
+        reward += jitter_punishment
         
         
         
@@ -125,29 +217,34 @@ class Mk1ControlledTask(Mk1BaseClass):
         at_lower_limit[:, 8] = 0
         at_upper_limit[: , 8] = 0
         
-        clipped_upper_punishment = torch.clamp(at_upper_limit, min=0) * self.overextend_cost
-        clipped_lower_punishment = torch.clamp(at_lower_limit, min=0) * self.overextend_cost
+        clipped_upper_punishment = torch.sum(torch.clamp(at_upper_limit, min=0), dim= 1) * self.overextend_cost
+        clipped_lower_punishment = torch.sum(torch.clamp(at_lower_limit, min=0), dim = 1) * self.overextend_cost
         
-        overextend_punishment = torch.sum(clipped_lower_punishment + clipped_upper_punishment, dim=1) / clipped_lower_punishment.shape[1]
+        overextend_punishment = (clipped_lower_punishment + clipped_upper_punishment) * -1
         
-        reward -= overextend_punishment
+        reward += overextend_punishment
         
        # ------------- cost of usign arms ------------
          
         arm_use_punishment = torch.abs(torch.sum(self.actions[:, self.upper_body_joint_indices], dim = 1) / self.upper_body_joint_indices.shape[0]) * self.arm_use_cost
+        arm_use_punishment = arm_use_punishment * -1
         
-        reward -= arm_use_punishment
+        reward += arm_use_punishment
          
         arm_position_punishment = torch.square(torch.abs(torch.sum(self.dof_pos, dim=1))/ 1.51) * self.arm_position_cost 
+        arm_position_punishment = arm_position_punishment * -1
         
-        reward -= arm_position_punishment
+        
+        reward += arm_position_punishment
         
         
         
         # -------------- cost of power --------------
         
         energy_punishment = torch.sum(self.actions ** 2, dim=-1) * self.energy_cost
-        reward -= energy_punishment
+        energy_punishment = energy_punishment * -1
+        
+        reward += energy_punishment
          
         terminations_height = self.death_height
         
@@ -167,54 +264,45 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         has_contact = torch.where(total_summed_contact_forces > torch.zeros_like(total_summed_contact_forces), torch.ones_like(reward, dtype=torch.int8), torch.zeros_like(reward, dtype=torch.int8))
         
-        if self.die_on_contact:
-            has_fallen += has_contact
-        else:
-            n_times_contact = (summed_contact_forces > 0 ).to(dtype=torch.float32).sum(dim=1)
-            
-            contact_punishment = n_times_contact * self.contact_punishment_factor
-            
-            reward -= contact_punishment
+        # if self.die_on_contact:
+        #     has_fallen += has_contact
+        # else:
+        #     n_times_contact = (summed_contact_forces > 0 ).to(dtype=torch.float32).sum(dim=1)
+        #     
+        #     contact_punishment = n_times_contact * self.contact_punishment_factor
+        #     
+        #     reward -= contact_punishment
             
         
         # ------------- cost for dying ----------
         # root_states[:, 2] defines the y positon of the root body 
         reward = torch.where(has_fallen == 1, - 1 * torch.ones_like(reward) * self.death_cost, reward)
-        
     
         
-        # average rewards per step
-         
-        upright_punishment = float(torch.mean(upright_punishment).item())
-        direction_reward = float(torch.mean(direction_reward).item())
-        jitter_punishment = - float(torch.mean(jitter_punishment).item())
-        energy_punishment = - float(torch.mean(energy_punishment).item())
-        arm_use_punishment = - float(torch.mean(arm_use_punishment).item())
-        arm_position_punishment = - float(torch.mean(arm_position_punishment).item())
-        
-        overextend_punishment = - float(torch.mean(overextend_punishment).item())
-        if not self.die_on_contact:
-            contact_punishment = -float(torch.mean(contact_punishment).item())
-        else:
-            contact_punishment = 0.0
-        
-        total_avg_reward = self.alive_reward + upright_punishment + direction_reward + jitter_punishment + energy_punishment
-        
-        reward_constituents = {
-                                'alive_reward': self.alive_reward,
-                                'upright_punishment':  upright_punishment,
-                                'direction_reward':    direction_reward,
-                                'jitter_punishment':   jitter_punishment,
-                                'energy_punishment':   energy_punishment,
-                                'arm_use_punishment': arm_use_punishment,
-                                'arm_position_punishment': arm_position_punishment,
-                                'overextend_punishment': overextend_punishment,
-                                'contact_punishment': contact_punishment,
-                                'total_reward': total_avg_reward
-                            }
+        # average rewards per step 
+        reward_constituents = {**self.get_tensor_state_means("alive_reward", self.alive_reward),
+                               **self.get_tensor_state_means("upright_punishment", upright_punishment),
+                               **self.get_tensor_state_means("direction_reward", direction_reward),
+                               **self.get_tensor_state_means("jitter_punishment", jitter_punishment), 
+                               **self.get_tensor_state_means("overextend_punishment", overextend_punishment), 
+                               **self.get_tensor_state_means("energy_punishment", energy_punishment), 
+                               **self.get_tensor_state_means("total_reward", reward)}
         
         
         return (reward, has_fallen, reward_constituents)
+        
+         
+         
+    
+    def get_tensor_state_means(self,input_name: str,  input: torch.Tensor) -> Dict[str, float]:
+        """Calculate the mean of a tensor within a given state 
+
+        Args:
+            input (torch.Tensor): state based reward tensor
+        """
+        return {self.state_names[i] +'/'  +  input_name : torch.mean(input[self.command_state_tensor[:, i].to(torch.bool)]).item() for i in range(len(self.state_names)) }
+        
+        
     
     def _add_to_env(self, env_ptr, env_id: int, robot_handle): 
         """During the _create_envs this is called to give mk1_envs the ability to add additional things to the environment
@@ -231,7 +319,7 @@ class Mk1ControlledTask(Mk1BaseClass):
             Dict: Standard configuration
         """
         dirname = os.path.dirname(__file__)
-        base_config_path = os.path.join(dirname, 'config_mk1_running.yaml')
+        base_config_path = os.path.join(dirname, 'config_mk1_controlled.yaml')
         
           # open the config file 
         with open(base_config_path, 'r') as stream:
@@ -259,6 +347,8 @@ class Mk1ControlledTask(Mk1BaseClass):
             dof_force= self.dof_force_tensor, 
             actions= self.actions
         )  
+        
+        self.actor_obs["command"] = self.command_state_tensor
     
     def get_num_playable_actors_per_env(self) -> int:
         """Return the amount of actors each environment has, this only includes actors, that are playable
@@ -292,7 +382,8 @@ class Mk1ControlledTask(Mk1BaseClass):
         """
         num_actor_obs = 142
         return  MultiSpace({
-            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, ))
+            "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
+            "command": gym.spaces.Box(low=-1.0, high=1.0, shape=(2, ))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:

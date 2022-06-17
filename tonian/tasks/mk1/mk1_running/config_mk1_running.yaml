@@ -20,10 +20,13 @@ mk1_walking:
       overextend_cost: 4
 
 
+
       arm_use_cost: 1
+      arm_position_cost: 2
 
 
       die_on_contact: False # die when anything other than the foot touches the ground
       contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
 
+ 
