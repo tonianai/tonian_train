@@ -57,6 +57,12 @@ class Mk1ControlledTask(Mk1BaseClass):
         # Set all the reward weighting buffers 
         for key in self.all_reward_keys:
             setattr(self, key, self.reward_weight_state_dependend_tensor(key))
+            
+            
+        # Set the controls distributions
+        
+        
+        # self.target_velocity = sample_tensor_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
 
         
     def reward_weight_state_dependend_tensor(self, key: str, dtype: torch.dtype = torch.float16):
@@ -107,6 +113,24 @@ class Mk1ControlledTask(Mk1BaseClass):
         for state_block in reward_weight_list:
             
             for key in state_block['rewards'].keys():
+                result_set.add(key)
+        return result_set
+    
+    
+    def get_all_control_dist_keys(reward_weight_list: List[Dict]) -> Set:
+        """Retuns the set of all the control   keys
+
+        Args:
+            reward_weight_list (List[Dict]): list of the different configs
+
+        Returns:
+            Set: containing all keys 
+        """
+        result_set = set()
+        
+        for state_block in reward_weight_list:
+            
+            for key in state_block['controls'].keys():
                 result_set.add(key)
         return result_set
                  

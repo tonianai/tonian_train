@@ -9,7 +9,7 @@ print("Cuda: " + str(torch.cuda.is_available()))
 
 def mp_start_run(queue, done_event):
     args = queue.get()
-    train(args[0]['cfg'], 0, {}, True, args[0]['batch_id'], args[0]['model_out'], False, 3e8)
+    train(args[0]['cfg'], 0, {}, True, args[0]['batch_id'], args[0]['model_out'], False, 5e8)
     done_event.set()
 
 
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         queue = mp.Queue()
         done_event = mp.Event()
         
-        queue.put((args, False, True, 3e8))
+        queue.put((args, False, True, 5e8))
         
         #train(args, verbose= False, early_stopping=True, early_stop_patience= 5e7, config_overrides=test_dict)
         p = mp.Process(target=mp_start_run, args=(queue, done_event))

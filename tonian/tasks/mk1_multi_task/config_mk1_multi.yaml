@@ -9,6 +9,8 @@ name: "04_mk1_multitask"
 mk1_multitask:
   reward_weighting:
 
+      
+
       to_target_prob: 1.0
       to_target:
         death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead

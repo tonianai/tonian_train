@@ -54,10 +54,15 @@ mk1_controlled:
 
   reward_weighting:
 
-    - prob: 0.5
+    - prob: 0.2
       name: "stay"
-      command: 
-        - 0
+      controls:
+    
+        velocity:
+          dist_type: selection
+          values: [0, 0]
+
+
       rewards:
         death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
         directional_factor: 0.0
@@ -77,10 +82,16 @@ mk1_controlled:
         die_on_contact: False # die when anything other than the foot touches the ground
         contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
-    - prob: 0.5
+    - prob: 0.8
       name: "run"
-      command: 
-        - 1
+
+      controls:
+    
+        velocity:
+          dist_type: selection
+          values: [1, 2, 3, 4, 5]
+
+
       rewards:
         death_height: 1.25 # the height of the base at which the episode is terminated and the actor is considered dead
         directional_factor: 1.6
