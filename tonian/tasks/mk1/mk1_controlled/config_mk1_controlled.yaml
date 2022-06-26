@@ -56,7 +56,7 @@ mk1_controlled:
 
     - prob: 0.2
       name: "stay"
-      controls:
+      controls: # This only contains distributions
     
         velocity:
           dist_type: selection

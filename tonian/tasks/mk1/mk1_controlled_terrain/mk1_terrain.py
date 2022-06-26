@@ -14,7 +14,7 @@ from tonian.common.spaces import MultiSpace
 from tonian.common.torch_jit_utils import batch_dot_product, batch_normalize_vector, get_batch_tensor_2_norm
 from tonian.tasks.common.terrain import Terrain
 
-from tonian.tasks.common.task_dists import sample_tensor_dist
+from tonian.tasks.common.task_dists import sample_tensor_uniform_dist
 
  
 
@@ -212,7 +212,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         n_envs_reset =  len(env_ids)
         
-        self.target_velocity[env_ids] = sample_tensor_dist(self.target_velocity_dist, sample_shape=(n_envs_reset, ), device = self.device)
+        self.target_velocity[env_ids] = sample_tensor_uniform_dist(self.target_velocity_dist, sample_shape=(n_envs_reset, ), device = self.device)
         
         self.target_direction[env_ids, 0] = torch.normal(mean = self.x_direction_mean[env_ids], std = self.x_direction_std[env_ids])
         self.target_direction[env_ids, 1] = torch.normal(mean = self.y_direction_mean[env_ids], std = self.y_direction_std[env_ids])
@@ -272,7 +272,7 @@ class Mk1ControlledTerrainTask(Mk1BaseClass):
         
         self.target_direction =  torch.cat((x_direction, y_direction), dim= 1)
         
-        self.target_velocity = sample_tensor_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
+        self.target_velocity = sample_tensor_uniform_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
         
         
     def refresh_tensors(self):

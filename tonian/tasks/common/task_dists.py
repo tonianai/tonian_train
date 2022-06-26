@@ -109,8 +109,41 @@ def task_dist_from_config(config_or_value: Union[Dict, Any]) -> TaskDistribution
         return TaskFixedDistribution(config_or_value)
      
     
-def sample_tensor_dist(dist_config_or_value: Union[Dict, float, int], sample_shape: Tuple[int, ...], device: Union[str, torch.device] ):
+def sample_tensor_normal(mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
+    return torch.normal(mean=mean, std=std)
+    
+def sample_tensor_selection(selections: torch.Tensor) -> torch.Tensor:
+    """
+    Args:
+        selections (torch.Tensor): expected shape (num_selctions, possible_selections)
+    
+        # linear_drawn
+        dist_type: selection
+        values: [0,0,1,2,2, 2, 3,4]
+        
+        # The example would sample from a random point on the x axis from this plot and take the 
+                        _
+        4             _
+        3      ______
+        2    _  
+        1____
+            0 1 2 3 4 5 6 7   
+
+    Returns:
+        torch.Tensor: result shape(num_selections)
+    """
+    
+    
+    rand_float = torch.rand(selections.shape[0], device=selections.device)
+    
+    
+    
+    
+    
+    
+def sample_tensor_uniform_dist(dist_config_or_value: Union[Dict, float, int], sample_shape: Tuple[int, ...], device: Union[str, torch.device] ):
     """Directly sample from a given distribution 
+    The distribution only has single input values as a input
     following dist_config_or_value shapes are acceptable:
     
     value: int or float returns a torch tensor with the shape and on the device, that are given

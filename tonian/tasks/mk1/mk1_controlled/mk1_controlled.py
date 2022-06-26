@@ -64,8 +64,19 @@ class Mk1ControlledTask(Mk1BaseClass):
         
         # self.target_velocity = sample_tensor_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
 
+    def get__contorol_dist_state_dependend_tensor(self, key: str) -> torch.Tensor:
+        """ Get the control dist for a given control key based on a state dependent tensor
+
+        Args:
+            key (str): _description_
+
+        Returns:
+            torch.Tensor: _description_
+        """
         
-    def reward_weight_state_dependend_tensor(self, key: str, dtype: torch.dtype = torch.float16):
+
+        
+    def reward_weight_state_dependend_tensor(self, key: str, dtype: torch.dtype = torch.float16) -> torch.Tensor:
         """Get the reward weights for a state dependent tensor
 
         Args:
@@ -73,7 +84,7 @@ class Mk1ControlledTask(Mk1BaseClass):
             dtype (torch.dtype, optional): type of the tensor. Defaults to torch.float16.
 
         Returns:
-            _type_: _description_
+            torch.Tensor: _description_
         """
         value_tensor = torch.zeros((self.num_envs,), dtype=dtype, device= self.device )
         for i in range(len(self.state_names)):
