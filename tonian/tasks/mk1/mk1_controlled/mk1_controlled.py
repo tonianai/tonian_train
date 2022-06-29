@@ -492,8 +492,13 @@ class Mk1ControlledTask(Mk1BaseClass):
             actions= self.actions
         )  
         
-        self.actor_obs["command"] = self.command_state_tensor
-    
+        self.actor_obs["command"][:, 0:2] = self.command_state_tensor
+        
+        for i, control_key in enumerate(self.all_controll_keys):
+            
+            self.actor_obs["command"][:, 2+ i] = getattr(self, 'control_val_' + control_key)
+        
+        
     def get_num_playable_actors_per_env(self) -> int:
         """Return the amount of actors each environment has, this only includes actors, that are playable
         This distincion is stupid and only exists, because isaacgym currently does anot support any way of adding objects to environments, that are not actors
@@ -527,7 +532,7 @@ class Mk1ControlledTask(Mk1BaseClass):
         num_actor_obs = 142
         return  MultiSpace({
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_actor_obs, )),
-            "command": gym.spaces.Box(low=-1.0, high=1.0, shape=(2, ))
+            "command": gym.spaces.Box(low=-1.0, high=1.0, shape=(2 + 1, ))
         })
         
     def _get_critic_observation_spaces(self) -> MultiSpace:
