@@ -54,7 +54,7 @@ mk1_controlled:
 
   reward_weighting:
 
-    - prob: 0.2
+    - prob: 0.5
       name: "stay"
       controls: # This only contains distributions
     
@@ -83,7 +83,7 @@ mk1_controlled:
         die_on_contact: False # die when anything other than the foot touches the ground
         contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
-    - prob: 0.8
+    - prob: 0.5
       name: "run"
 
       controls:

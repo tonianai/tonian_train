@@ -107,6 +107,9 @@ def get_kwarg_names_for_dist_type(dist_type: str) -> Set:
     }
     
     return dist_type_keys[dist_type]
+
+
+
     
 
 
@@ -158,6 +161,26 @@ def sample_tensor_selection(selections: torch.Tensor) -> torch.Tensor:
     
     return selections[:, rand_index]
     print(rand_index)
+    
+    
+    
+def sample_tensor_dynamic_dist(dynamic_params: Dict[str, Union[str, torch.Tensor]]) -> torch.Tensor:
+    """Directly sample from a given distribution, but thistime the params are torch tensors.
+    
+
+    Args:
+        dynamic_params (Dict[Union[str, torch.Tensor]]): _description_
+
+    Returns:
+        torch.Tensor: _description_
+    """
+    
+    
+    if dynamic_params['dist_type'] == 'gaussian':
+        
+        return sample_tensor_gaussian(dynamic_params['mean'], dynamic_params['std'])
+    
+        
     
     
      

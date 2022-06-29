@@ -71,16 +71,68 @@ class Mk1ControlledTask(Mk1BaseClass):
         # Set all the buffers for the different control distribution variables
         # the local variable is a dict with the tensors having the same key, as the state values have in the config
         for key in self.all_controll_keys:
-            setattr(self, 'control_' + key , self.control_dist_variables_state_dependent_tensor_dict(key))
-        
-        print(self.all_controll_keys)        
-        
-            
-        # Set the controls distributions
-        
-        
-        # self.target_velocity = sample_tensor_dist(self.target_velocity_dist, sample_shape=(self.num_envs, ), device= self.device)
+            control_dist = self.control_dist_variables_state_dependent_tensor_dict(key)
 
+            setattr( self, 'control_val_' + key, sample_tensor_dynamic_dist(control_dist))
+        
+        
+        
+    def update_control_val_state_dep(self, key, env_ids: torch.Tensor) -> torch.Tensor:
+        """Get the sampled controlled values for a state dependent tensor
+
+
+        Args:
+            key (_type_): _description_
+            env_ids (torch.Tensor): _description_
+        """
+        
+        # dict with the distribution parameters for the env ids given
+        control_dist = self.partial_control_dist_variables_state_dependent_tensor_dict(key, env_ids)
+        
+        # now we need to sample from it and return it 
+        return sample_tensor_dynamic_dist(control_dist)
+        
+
+    
+    def partial_control_dist_variables_state_dependent_tensor_dict(self, key: str, env_ids: torch.Tensor) -> Dict[str, Union[torch.Tensor, str]]:
+        """Get a dict containing all the variables needed for the sampling of the dist
+        each dist type has to be the same over all the states
+        
+        The values in the tensor are in accordance to the current command state tensor
+        
+        This function includes assertions
+
+        Args:
+            key (str): key (live velocity, or direction_x)
+
+        Returns:
+            Dict[str, torch.Tensor]: Dict containing all the dist tensors, this dict should be able to be used in the
+                This dict also contains the dist_type
+        """
+        dist_type: str = None
+        result = {}
+        dist_kwargs = []
+        for i in range(len(self.state_names)):
+            
+            # set the 
+            if dist_type is None:
+                dist_type = self.state_control_distribution_dicts[i][key]['dist_type']
+            else:
+                assert dist_type == self.state_control_distribution_dicts[i][key]['dist_type']
+            
+        result['dist_type'] = dist_type
+        dist_kwargs = get_kwarg_names_for_dist_type(dist_type)
+
+        for kwarg in dist_kwargs:
+            value_tensor = torch.zeros((env_ids.shape[0],), device= self.device )
+            for i in range(len(self.state_names)):
+                value_tensor += self.command_state_tensor[env_ids, i] *  self.state_control_distribution_dicts[i][key].get(kwarg, 0) 
+                
+            result[kwarg] = value_tensor
+                        
+        return result
+        
+           
     
     def control_dist_variables_state_dependent_tensor_dict(self, key: str) -> Dict[str, Union[torch.Tensor, str]]:
         """Get a dict containing all the variables needed for the sampling of the dist
@@ -136,9 +188,7 @@ class Mk1ControlledTask(Mk1BaseClass):
             value_tensor += self.command_state_tensor[:, i] * self.state_reward_factors[i].get(key, 0) 
         return value_tensor
     
-    
-    
-    def update_reward_weight_state_dependend_tensor(self, key: str,  env_ids: torch.Tensor,  dtype: torch.dtype = torch.float16):
+    def update_reward_weight_state_dependend_tensor(self, key: str,  env_ids: torch.Tensor,  dtype: torch.dtype = torch.float16) -> torch.Tensor:
         """Get the reward weights for a state dependent tensor
 
         Args:
@@ -152,7 +202,8 @@ class Mk1ControlledTask(Mk1BaseClass):
         for i in range(len(self.state_names)):
             value_tensor += self.command_state_tensor[env_ids, i] * self.state_reward_factors[i].get(key, 0) 
         return value_tensor
-                
+                 
+        
     
     
     def get_all_reward_weighting_keys(reward_weight_list: List[Dict]) -> Set:
@@ -226,6 +277,10 @@ class Mk1ControlledTask(Mk1BaseClass):
         # Set all the reward weighting buffers 
         for key in self.all_reward_keys:
             getattr(self, key)[env_ids] = self.update_reward_weight_state_dependend_tensor(key, env_ids)
+            
+            
+        for key in self.all_controll_keys:
+            getattr(self, 'control_val_' + key)[env_ids] = self.update_control_val_state_dep(key, env_ids)
             
         
 
