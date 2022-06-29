@@ -59,8 +59,9 @@ mk1_controlled:
       controls: # This only contains distributions
     
         velocity:
-          dist_type: selection
-          values: [0, 0]
+          dist_type: gaussian
+          mean: 0
+          std: 0
 
 
       rewards:
@@ -88,8 +89,9 @@ mk1_controlled:
       controls:
     
         velocity:
-          dist_type: selection
-          values: [1, 2, 3, 4, 5]
+          dist_type: gaussian
+          mean: 5
+          std: 1
 
 
       rewards:

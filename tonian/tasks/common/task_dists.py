@@ -1,5 +1,5 @@
 
-from typing import Dict, Union, Tuple, Type, Any, Callable
+from typing import Dict, Union, Tuple, Type, Any, Callable, Set
 from abc import ABC, abstractmethod 
 import random
 
@@ -91,6 +91,24 @@ dist_types: Dict[str, Type[TaskDistribution]] = {
     "selection": TaskSelectionDistribution
 }
 
+def get_kwarg_names_for_dist_type(dist_type: str) -> Set:
+    """Retreives the keys for a distribution type
+
+    Args:
+        dist_type (str): string of the dist type (gaussian , selection ...)
+
+    Returns:
+        Set: All the kwargs needed for this distribution
+    """
+    
+    dist_type_keys = {
+        'gaussian': ['mean', 'std'],
+        'selection': ['values']
+    }
+    
+    return dist_type_keys[dist_type]
+    
+
 
 def task_dist_from_config(config_or_value: Union[Dict, Any]) -> TaskDistribution:
     """Create the task distribution from the 
@@ -109,7 +127,9 @@ def task_dist_from_config(config_or_value: Union[Dict, Any]) -> TaskDistribution
         return TaskFixedDistribution(config_or_value)
      
     
-def sample_tensor_normal(mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
+    
+    
+def sample_tensor_gaussian(mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
     return torch.normal(mean=mean, std=std)
     
 def sample_tensor_selection(selections: torch.Tensor) -> torch.Tensor:
@@ -134,12 +154,13 @@ def sample_tensor_selection(selections: torch.Tensor) -> torch.Tensor:
     """
     
     
-    rand_float = torch.rand(selections.shape[0], device=selections.device)
+    rand_index  = torch.round(torch.rand(selections.shape[0], device=selections.device) * (selections.shape[1] - 0.1 ) - 0.49).to(dtype=torch.int64)
+    
+    return selections[:, rand_index]
+    print(rand_index)
     
     
-    
-    
-    
+     
     
 def sample_tensor_uniform_dist(dist_config_or_value: Union[Dict, float, int], sample_shape: Tuple[int, ...], device: Union[str, torch.device] ):
     """Directly sample from a given distribution 
