@@ -337,6 +337,24 @@ class Mk1ControlledTask(Mk1BaseClass):
     
         reward += direction_reward  
         
+        
+        # ---------- reward for matching the target velocity ----------
+
+        # compare the two_d_heading_direction with the linear_velocity_x_y using the angle between them
+        # magnitude of the velocity (2 norm)
+        vel_norm = get_batch_tensor_2_norm(linear_velocity_x_y)
+        
+        # positive is to fast and neg is to slow 
+        vel_difference = vel_norm - self.control_val_velocity 
+        
+        vel_reward_factor = torch.where(vel_difference > 0 , compute_velocity_reward_factor(vel_difference, self.slowdown_punish_difference, self.target_velocity_factor), compute_velocity_reward_factor(- vel_difference, self.control_val_velocity , self.target_velocity_factor))
+        
+        # Only apply the matching target velocity reward, when the actor is upright and the velocity is in the right direction (here 0.5 read = 29 deg)
+        target_velocity_reward = torch.where(upright_value > 0.7, vel_reward_factor, torch.zeros_like(reward))
+    
+        reward += target_velocity_reward  
+        
+        
         # -------------- Punish for jittery motion (see ./research/2022-03-27_reduction-of-jittery-motion-in-action.md)--------------
         
         jitter_punishment = - torch.abs(self.actions - self.former_actions).view(reward.shape[0], -1).sum(-1) * self.jitter_cost
@@ -428,6 +446,7 @@ class Mk1ControlledTask(Mk1BaseClass):
                                **self.get_tensor_state_means("direction_reward", direction_reward),
                                **self.get_tensor_state_means("general_vel_reward", general_vel_reward),
                                **self.get_tensor_state_means("jitter_punishment", jitter_punishment), 
+                               **self.get_tensor_state_means("target_velocity_reward", target_velocity_reward),
                                **self.get_tensor_state_means("overextend_punishment", overextend_punishment), 
                                **self.get_tensor_state_means("energy_punishment", energy_punishment), 
                                **self.get_tensor_state_means("total_reward", reward)}
@@ -555,6 +574,24 @@ class Mk1ControlledTask(Mk1BaseClass):
             "linear": gym.spaces.Box(low=-1.0, high=1.0, shape=(num_critic_obs, ))
         })
     
+    
+
+         
+def compute_velocity_reward_factor(abs: torch.Tensor, zero_x_cord: Union[float, torch.Tensor], factor: Union[float, torch.Tensor]) -> torch.Tensor:
+    """compute a function for the velocity reward factor
+    https://www.geogebra.org/graphing/f2qxcw85
+
+    Args:
+        abs (torch.Tensor): the absolute tensor (x is only positive)
+        zero_x_cord (torch.Tensor): the coordinate where the reward is zero
+        factor (Union[float, torch.Tensor]): the y multiplication. This values is achieved for abs == 0
+        
+        f(x)=(((1)/(x ((1)/(2 zerop))+0.5))-1) * factor
+    Returns:
+        torch.Tensor: y
+    """
+    return  (1.0 / (abs * (1.0 / (2.0 * zero_x_cord))+ 0.5) - 1.0) * factor
+     
  
 @torch.jit.script
 def compute_linear_robot_observations(root_states: torch.Tensor, 

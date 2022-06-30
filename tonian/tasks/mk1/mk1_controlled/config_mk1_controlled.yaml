@@ -70,12 +70,16 @@ mk1_controlled:
         zero_clip_direction_reward: True
         death_cost: 10
         energy_cost: 0.1
-        alive_reward: 3
+        alive_reward: 4
         upright_punishment_factor: 20 # higher values punish the actor more for bad posture
         jitter_cost: 0.05
         overextend_cost: 0.5
 
         general_vel_factor: -1.0
+
+
+        target_velocity_factor: 2.0
+        slowdown_punish_difference: 0.1 
 
         arm_use_cost: 0.4
         arm_position_cost: 1
@@ -106,6 +110,9 @@ mk1_controlled:
         overextend_cost: 0.5
         
         general_vel_factor: 0.0
+
+        target_velocity_factor: 2.0
+        slowdown_punish_difference: 0.6
 
 
         arm_use_cost: 0.1
