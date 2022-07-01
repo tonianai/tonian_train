@@ -101,11 +101,9 @@ class A2CBaseAlgorithm(ABC):
         self.linear_lr = config['lr_schedule'] == 'linear'
         self.schedule_type = config.get('schedule_type', 'legacy')
          
-        
+        self.delayed_training = config.get('delayed_training', False)
         self.learning_rate = config['learning_rate']
         
-        print("Learning Rate")
-        print(self.learning_rate)
         
         self.max_epochs = self.config.get('max_epochs', 1e6)
         
@@ -156,6 +154,8 @@ class A2CBaseAlgorithm(ABC):
         self.minibatch_size = self.config['minibatch_size']
         self.mini_epochs_num = self.config['mini_epochs']
         self.num_minibatches = self.batch_size // self.minibatch_size
+        
+        self.last_batch_dict = None
         
         
         assert(self.batch_size % self.minibatch_size == 0), "The Batch size must be divisible by the minibatch_size"
@@ -231,6 +231,11 @@ class A2CBaseAlgorithm(ABC):
             n_envs=self.num_envs,
             n_actors= self.num_actors,
             n_values=self.value_size )
+        
+        
+        # if self.delayed_training:
+        
+        self.train_experience_buffer = self.experience_buffer
     
         reward_shape = (batch_size, self.value_size)
         self.current_rewards = torch.zeros(reward_shape, dtype=torch.float32, device= self.device)
@@ -515,7 +520,18 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         play_time_start = time.time()
         
         with torch.no_grad():
+            
             batch_dict = self.play_steps()
+             
+            if not self.delayed_training:
+                train_batch_dict = batch_dict
+            else:
+                train_batch_dict = self.last_batch_dict
+        
+            self.last_batch_dict = batch_dict
+            
+            if train_batch_dict is None:
+                train_batch_dict = batch_dict
         
         play_time_end = time.time()
         update_time_start = play_time_end
@@ -523,9 +539,9 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
         
         self.set_train()
-        self.curr_frames = batch_dict.pop('played_frames')
+        self.curr_frames = train_batch_dict.get('played_frames', 0)
         
-        self.prepare_dataset(batch_dict)
+        self.prepare_dataset(train_batch_dict)
         
         a_losses = [] # actor losses
         c_losses = [] # critic losses
@@ -576,7 +592,7 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         total_time = update_time_end - play_time_start
         
 
-        return batch_dict['step_time'], play_time, update_time, total_time, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
+        return train_batch_dict['step_time'], play_time, update_time, total_time, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
     
     def init_run(self):
         self.init_tensors()
