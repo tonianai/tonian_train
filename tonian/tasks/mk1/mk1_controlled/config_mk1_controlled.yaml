@@ -70,7 +70,7 @@ mk1_controlled:
         zero_clip_direction_reward: True
         death_cost: 30
         energy_cost: 0.2
-        alive_reward: 10
+        alive_reward: 5
         upright_punishment_factor: 20 # higher values punish the actor more for bad posture
         jitter_cost: 0.05
         overextend_cost: 0.5
@@ -87,7 +87,7 @@ mk1_controlled:
         die_on_contact: False # die when anything other than the foot touches the ground
         contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
-    - prob: 0.7
+    - prob: 0.0
       name: "run"
 
       controls:
@@ -104,7 +104,7 @@ mk1_controlled:
         zero_clip_direction_reward: True
         death_cost: 30
         energy_cost: 0.005
-        alive_reward: 4
+        alive_reward: 3
         upright_punishment_factor: 20 # higher values punish the actor more for bad posture
         jitter_cost: 0.05
         overextend_cost: 0.5

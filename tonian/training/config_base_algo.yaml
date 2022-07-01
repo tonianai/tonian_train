@@ -1,8 +1,5 @@
 
 algo:
-
-  delayed_training: False
-
   name: "PPO"
 
   normalize_advantage: True
