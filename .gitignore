@@ -33,3 +33,5 @@ runs/
 outputs/
 *.hydra*
 
+./build
+./dist
