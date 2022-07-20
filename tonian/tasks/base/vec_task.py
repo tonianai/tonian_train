@@ -31,6 +31,7 @@ class VecTask(BaseEnv, ABC):
             headless (bool): determines whether the scene is rendered
         """
         
+        
         # add the top level configs
         vec_env_base_config = self._get_vec_env_base_config()
          
