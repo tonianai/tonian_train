@@ -59,9 +59,9 @@ class A2CBaseAlgorithm(ABC):
                  reward_to_beat_for_out: Optional[int] = None
                  ) -> None:
         
-        base_config = self.get_standard_config()
+        # base_config = self.get_standard_config()
         
-        config = join_configs(config, base_config)
+        # config = join_configs(config, base_config)
         
         self.name = config['name']
         
