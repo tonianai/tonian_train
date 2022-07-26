@@ -20,7 +20,7 @@ class VecTask(gym.Env, ABC):
     
     @abstractproperty
     def observation_space(self) -> gym.Space:
-        return self.actor_observation_spaces.spaces
+        pass
     
     @abstractproperty
     def action_space(self) -> gym.Space:

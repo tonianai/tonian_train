@@ -182,7 +182,7 @@ def build_A2CSequentialLogStdPolicy(config: Dict,
         
         
 
-class A2CSequentialLogStdPolicy(A2CBasePolicy):
+class A2CSharedLogStdPolicy(A2CBasePolicy):
     
     def __init__(self, a2c_net: A2CSharedNetLogStd, 
                  obs_normalizer: Optional[RunningMeanStdObs] = None) -> None:
@@ -218,7 +218,7 @@ class A2CSequentialLogStdPolicy(A2CBasePolicy):
             obs (Dict[str, torch.Tensor]): Multispace observations
         """
         if self.obs_normalizer:
-            obs = self.actor_obs_normalizer(obs)
+            obs = self.obs_normalizer(obs)
              
             
             
@@ -288,7 +288,7 @@ def build_A2CSharedLogStdPolicy(config: Dict,
         obs_normalizer = RunningMeanStdObs(obs_space.dict_shape)
         
             
-    return A2CSequentialLogStdPolicy(network, obs_normalizer)
+    return A2CSharedLogStdPolicy(network, obs_normalizer)
         
         
         

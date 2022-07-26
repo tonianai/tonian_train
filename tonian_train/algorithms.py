@@ -260,7 +260,7 @@ class A2CBaseAlgorithm(ABC):
         self.policy.eval()
         
         with torch.no_grad():
-            res = self.policy(is_train= False, actor_obs= actor_obs, prev_actions= None)
+            res = self.policy(is_train= False, obs= actor_obs, prev_actions= None)
         
         if self.normalize_value:
             res['values'] = self.value_mean_std(res['values'], True)
@@ -281,7 +281,7 @@ class A2CBaseAlgorithm(ABC):
         # TODO Do this faster 
         with torch.no_grad():
             self.policy.eval()
-            result = self.policy(is_train= False, actor_obs= actor_obs, prev_actions= None)
+            result = self.policy(is_train= False, obs= actor_obs, prev_actions= None)
             
             value = result['values']
             
@@ -763,7 +763,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         curr_e_clip = lr_mul * self.e_clip
         
         with torch.cuda.amp.autocast(enabled=self.mixed_precision):
-            res_dict = self.policy(is_train= True, actor_obs= actor_obs_batch, prev_actions = actions_batch)
+            res_dict = self.policy(is_train= True, obs= actor_obs_batch, prev_actions = actions_batch)
              
             
             action_log_probs = res_dict['prev_neglogprob']

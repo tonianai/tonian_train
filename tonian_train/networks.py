@@ -784,7 +784,7 @@ class A2CSharedNetLogStd(A2CBaseNet):
             s_out = s_out.flatten(1) # the batch must be preserved
         
         a_out = s_out
-        c_out = c_out
+        c_out = s_out
         
         if self.has_actor_net:
             a_out = self.actor_net(a_out)
