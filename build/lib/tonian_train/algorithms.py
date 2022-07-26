@@ -69,7 +69,7 @@ class A2CBaseAlgorithm(ABC):
         
         self.logger = logger
         
-        if isinstance(logger, TensorboardLogger):
+        if isinstance(logger, TensorboardLogger) and hasattr(env, 'set_tensorboard_logger'):
             env.set_tensorboard_logger(logger)
         
         self.config = config
@@ -81,15 +81,14 @@ class A2CBaseAlgorithm(ABC):
         self.policy.to(self.device)
         
         self.num_envs = env.num_envs
-        self.num_actors = env.get_num_playable_actors_per_env()
+        self.num_actors = 1
         
         
         self.seq_len = self.config.get('seq_length', 4)
         
         
         self.value_size = config.get('value_size',1)
-        self.actor_obs_space: MultiSpace = env.actor_observation_spaces
-        self.critic_obs_space: MultiSpace = env.critic_observation_spaces
+        self.actor_obs_space: MultiSpace = env.observation_space 
         
         self.action_space: gym.spaces.Space = env.action_space
         
@@ -220,8 +219,7 @@ class A2CBaseAlgorithm(ABC):
         
         batch_size = self.num_envs * self.num_actors
         self.experience_buffer = DictExperienceBuffer(
-            self.horizon_length, 
-            self.critic_obs_space, 
+            self.horizon_length,  
             self.actor_obs_space, 
             self.action_space,
             store_device=self.device,
@@ -258,11 +256,11 @@ class A2CBaseAlgorithm(ABC):
     def update_epoch(self):
         pass
     
-    def get_action_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]]):
+    def get_action_values(self, actor_obs: Dict[str, torch.Tensor]):
         self.policy.eval()
         
         with torch.no_grad():
-            res = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
+            res = self.policy(is_train= False, actor_obs= actor_obs, prev_actions= None)
         
         if self.normalize_value:
             res['values'] = self.value_mean_std(res['values'], True)
@@ -270,12 +268,11 @@ class A2CBaseAlgorithm(ABC):
         return res
         
         
-    def get_values(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]]):
+    def get_values(self, actor_obs: Dict[str, torch.Tensor]):
         """Get the values of a given observation
 
         Args:
-            actor_obs (Dict[str, torch.Tensor]): The shared obervations of the actor
-            critic_obs (Dict[str, torch.Tensor]): The observations on
+            actor_obs (Dict[str, torch.Tensor]): The shared obervations of the actor 
 
         Returns:
             _type_: _description_
@@ -284,7 +281,7 @@ class A2CBaseAlgorithm(ABC):
         # TODO Do this faster 
         with torch.no_grad():
             self.policy.eval()
-            result = self.policy(is_train= False, actor_obs= actor_obs, critic_obs= critic_obs, prev_actions= None)
+            result = self.policy(is_train= False, actor_obs= actor_obs, prev_actions= None)
             
             value = result['values']
             
@@ -346,10 +343,9 @@ class A2CBaseAlgorithm(ABC):
         
         for n in range(self.horizon_length):
             
-            res_dict = self.get_action_values(self.actor_obs, self.critic_obs)
+            res_dict = self.get_action_values(self.actor_obs)
             
-            
-            self.experience_buffer.update_value('critic_obs', n, self.critic_obs)
+             
             self.experience_buffer.update_value('actor_obs', n, self.actor_obs)
             self.experience_buffer.update_value('dones', n, self.dones.detach().clone())
             
@@ -369,12 +365,7 @@ class A2CBaseAlgorithm(ABC):
             
             obs, rewards, self.dones, infos, reward_constituents = self.env_step(actions)
             
-            if isinstance(obs, Tuple):
-                self.actor_obs = obs[0]
-                if len(obs) == 2:
-                    self.critic_obs = obs[1]
-            else:
-                self.actor_obs = obs 
+            self.actor_obs = obs 
             
             step_time_end = time.time()
 
@@ -418,7 +409,7 @@ class A2CBaseAlgorithm(ABC):
             
         self.num_timesteps += self.batch_size
             
-        last_values = self.get_values(self.actor_obs, self.critic_obs)
+        last_values = self.get_values(self.actor_obs)
 
         fdones = self.dones.float()
         mb_fdones = self.experience_buffer.tensor_dict['dones'].float()
@@ -428,7 +419,7 @@ class A2CBaseAlgorithm(ABC):
         mb_returns = mb_advs + mb_values
         
         
-        tensor_list = ['actions', 'neglogpacs', 'values', 'mus', 'sigmas', 'states', 'dones', 'critic_obs', 'actor_obs']
+        tensor_list = ['actions', 'neglogpacs', 'values', 'mus', 'sigmas', 'states', 'dones', 'actor_obs']
         batch_dict = self.experience_buffer.get_transformed_list(swap_and_flatten01, tensor_list)
         batch_dict['returns'] = swap_and_flatten01(mb_returns)
         batch_dict['played_frames'] = self.batch_size
@@ -579,14 +570,14 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
     def init_run(self):
         self.init_tensors()
         
-        self.actor_obs, self.critic_obs = self.env_reset()
+        self.actor_obs = self.env_reset()
         
             
     def train(self, max_steps: Optional[int] = None):
         
         self.init_tensors()
         
-        self.actor_obs, self.critic_obs = self.env_reset()
+        self.actor_obs = self.env_reset()
         
         total_time = 0
         
@@ -640,8 +631,7 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
         #  tensor_list = ['actions', 'neglogpacs', 'values', 'mus', 'sigmas', 'states', 'dones', 'critic_obs', 'actor_obs']
         # returns also, since they are added later in the play_steps function
-        
-        critic_obs = batch_dict['critic_obs']
+         
         actor_obs = batch_dict['actor_obs']
         returns = batch_dict['returns']
         dones = batch_dict['dones']
@@ -667,8 +657,7 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         dataset_dict['old_logp_actions'] = neglogpacs
         dataset_dict['advantages'] = advantages
         dataset_dict['returns'] = returns
-        dataset_dict['actions'] = actions
-        dataset_dict['critic_obs'] = critic_obs
+        dataset_dict['actions'] = actions 
         dataset_dict['actor_obs'] = actor_obs
         dataset_dict['mu'] = mus
         dataset_dict['sigma'] = sigmas
@@ -766,8 +755,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
                        old_sigma_batch: torch.Tensor,
                        return_batch: torch.Tensor,
                        actions_batch: torch.Tensor,
-                       actor_obs_batch: Dict[str, torch.Tensor],
-                       critic_obs_batch: Dict[str, torch.Tensor]
+                       actor_obs_batch: Dict[str, torch.Tensor]
                        ):
         
         lr_mul = 1.0
@@ -775,7 +763,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         curr_e_clip = lr_mul * self.e_clip
         
         with torch.cuda.amp.autocast(enabled=self.mixed_precision):
-            res_dict = self.policy(is_train= True, actor_obs= actor_obs_batch, critic_obs = critic_obs_batch, prev_actions = actions_batch)
+            res_dict = self.policy(is_train= True, actor_obs= actor_obs_batch, prev_actions = actions_batch)
              
             
             action_log_probs = res_dict['prev_neglogprob']
@@ -831,8 +819,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
                             old_sigma_batch = input_dict['sigma'],
                             return_batch = input_dict['returns'],
                             actions_batch = input_dict['actions'],
-                            actor_obs_batch = input_dict['actor_obs'],
-                            critic_obs_batch = input_dict['critic_obs'])
+                            actor_obs_batch = input_dict['actor_obs'])
         return self.train_result
         
     def bound_loss(self, mu):

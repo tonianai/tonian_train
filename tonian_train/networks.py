@@ -728,11 +728,11 @@ class A2CSharedNetLogStd(A2CBaseNet):
         """
         super().__init__()
         self.shared_net = shared_net
-        self.has_shared_net = shared_net is None
+        self.has_shared_net = shared_net is not None
         self.actor_net = actor_net
-        self.has_actor_net = actor_net is None
+        self.has_actor_net = actor_net is not None
         self.critic_net = critic_net
-        self.has_critic_net = critic_net is None
+        self.has_critic_net = critic_net is not None
         
         assert self.has_shared_net or (self.has_actor_net and self.has_critic_net), 'Either the shared net, or the '
         assert len(action_space.shape) == 1, 'Multidim actions are not yet supported'

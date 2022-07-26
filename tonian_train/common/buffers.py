@@ -40,8 +40,7 @@ class DictExperienceBuffer(BaseBuffer):
     Hence, it is only involved in policy and value function training but not action selection.
 
         Args:
-            horizon_length (int): Number of steps saved in the buffer 
-            critic_obs_space (MultiSpace): Observation Space used by the critic, also contains the commands if they exist
+            horizon_length (int): Number of steps saved in the buffer  
             actor_obs_space (MultiSpace): Observation Spaces used by the actor, also contains the commands if they exist
             action_space (spaces.Space): Action Space
             store_device (Union[str, torch.device], optional): [The Device on which the values will be stored. Defaults to "cuda:0".
@@ -52,8 +51,7 @@ class DictExperienceBuffer(BaseBuffer):
     """
     
     def __init__(self,
-                 horizon_length: int,
-                 critic_obs_space: MultiSpace,
+                 horizon_length: int, 
                  actor_obs_space: MultiSpace,
                  action_space: spaces.Space,
                  store_device: Union[str, torch.device] = "cuda:0",
@@ -65,8 +63,7 @@ class DictExperienceBuffer(BaseBuffer):
         super().__init__()
         
         self.n_values = n_values
-        self.horizon_length = horizon_length
-        self.critic_obs_space = critic_obs_space
+        self.horizon_length = horizon_length 
         self.actor_obs_space = actor_obs_space
         self.action_space = action_space
         self.action_size = action_space.shape[0]
@@ -79,8 +76,7 @@ class DictExperienceBuffer(BaseBuffer):
         self.out_device = out_device
         
         
-        # save the dict shape of the actor and the critic
-        self.critic_obs_dict_shape = critic_obs_space.dict_shape
+        # save the dict shape of the actor and the critic 
         self.actor_obs_dict_shape = actor_obs_space.dict_shape
         
         # current fill position of the buffer
@@ -115,15 +111,13 @@ class DictExperienceBuffer(BaseBuffer):
         
         
         # critic obs and actor obs must be dicts, because this enables multispace environments
-        self.critic_obs = {}
+  
         self.actor_obs = {}
         
         for key, obs_shape in self.actor_obs_dict_shape.items():
             self.actor_obs[key] = torch.zeros((self.horizon_length, self.n_envs) + obs_shape, dtype=torch.float32, device= self.store_device)
         
-        for key, obs_shape in self.critic_obs_dict_shape.items():
-            self.critic_obs[key] = torch.zeros((self.horizon_length, self.n_envs) + obs_shape, dtype=torch.float32, device= self.store_device)
-        
+          
         # critic and actor obs are not covered by this, since they are dicts and not tensors
         self.tensor_dict = {
             'actions': self.actions,
@@ -132,15 +126,13 @@ class DictExperienceBuffer(BaseBuffer):
             'values': self.values,
             'neglogpacs': self.neglogpacs,
             'mus': self.mus,
-            'sigmas': self.sigmas,
-            'critic_obs': self.critic_obs,
+            'sigmas': self.sigmas, 
             'actor_obs': self.actor_obs
         }
         
     def add(
         self, 
-        actor_obs: Dict[str, torch.Tensor],
-        critic_obs: Dict[str, torch.Tensor],
+        actor_obs: Dict[str, torch.Tensor], 
         actions: torch.Tensor,
         rewards: torch.Tensor,
         dones: torch.Tensor,
@@ -149,8 +141,7 @@ class DictExperienceBuffer(BaseBuffer):
         mus: torch.Tensor,
         sigmas: torch.Tensor
     ) -> None:
-        """
-        :param critic_obs: Observation of the critic, also contains commands, if available
+        """ 
         :param actor_obs: Observations of the actor, also contains commands, if available
         :param reward: Rewards gotten by the env
         :param dones: End of episode signal.
@@ -169,10 +160,7 @@ class DictExperienceBuffer(BaseBuffer):
         for key in self.actor_obs:   
             self.actor_obs[key][self.pos] = actor_obs[key].detach().to(self.store_device)
   
-            
-        for key in self.critic_obs:
-            self.critic_obs[key][self.pos] = critic_obs[key].detach().to(self.store_device)
-         
+             
         
         self.actions[self.pos] = actions.detach().to(self.store_device)
         self.rewards[self.pos] = rewards.detach().to(self.store_device)
