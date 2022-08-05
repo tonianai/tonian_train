@@ -157,8 +157,7 @@ class A2CBaseAlgorithm(ABC):
         
         self.mini_epochs_num = self.config['mini_epochs']
         self.num_minibatches = self.batch_size // self.minibatch_size
-        
-        
+         
         
         assert(self.batch_size % self.minibatch_size == 0), "The Batch size must be divisible by the minibatch_size"
         
@@ -446,7 +445,7 @@ class A2CBaseAlgorithm(ABC):
             if sum_reward_consituents:
                 # log the reward constituents
                 for key, value in sum_reward_consituents.items():
-                    self.logger.log(f"run_rewards_per_step/{key}", value / self.horizon_length, self.num_timesteps )
+                    self.logger.log(f"run_reward_{key}", value / self.horizon_length, self.num_timesteps )
             
         return batch_dict
     
