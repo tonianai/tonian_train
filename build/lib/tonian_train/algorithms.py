@@ -88,7 +88,7 @@ class A2CBaseAlgorithm(ABC):
         
         
         self.value_size = config.get('value_size',1)
-        self.actor_obs_space: MultiSpace = env.observation_space 
+        self.actor_obs_space: MultiSpace = env.observation_space  
         
         self.action_space: gym.spaces.Space = env.action_space
         
@@ -151,8 +151,13 @@ class A2CBaseAlgorithm(ABC):
         self.batch_size_envs = self.horizon_length * self.num_actors
         
         self.minibatch_size = self.config['minibatch_size']
+        
+        if self.minibatch_size == 'max':
+            self.minibatch_size = self.batch_size
+        
         self.mini_epochs_num = self.config['mini_epochs']
         self.num_minibatches = self.batch_size // self.minibatch_size
+        
         
         
         assert(self.batch_size % self.minibatch_size == 0), "The Batch size must be divisible by the minibatch_size"
@@ -508,13 +513,13 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         
         play_time_end = time.time()
         update_time_start = play_time_end
-        
-        
+          
         
         self.set_train()
         self.curr_frames = batch_dict.pop('played_frames')
         
         self.prepare_dataset(batch_dict)
+         
         
         a_losses = [] # actor losses
         c_losses = [] # critic losses
