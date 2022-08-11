@@ -336,6 +336,9 @@ class A2CBaseAlgorithm(ABC):
         # cumulative sum of  episode rewards within rollout ()
         sum_ep_reward = 0
         
+        # cumulative sum of  episode objective rewards within rollout ()
+        sum_ep_objective_reward = 0
+        
         # cumulative sum of the amount of completed episodes
         n_completed_episodes = 0
         
@@ -396,6 +399,10 @@ class A2CBaseAlgorithm(ABC):
             # sum of all rewards of all completed episodes
             sum_ep_reward += torch.sum(infos["episode_reward"]).item()
             
+            if "objective_episode_reward" in infos:
+                sum_ep_objective_reward += torch.sum(infos["objective_episode_reward"]).item()
+                
+            
             # sum all the steps of all completed episodes
             sum_steps_per_episode  += torch.sum(infos["episode_steps"]).item()
             
@@ -433,15 +440,20 @@ class A2CBaseAlgorithm(ABC):
         if n_completed_episodes != 0:
             self.logger.log("run/episode_rewards", sum_ep_reward / n_completed_episodes, self.num_timesteps)
             
+            self.logger.log("run/objective_episode_rewards", sum_ep_objective_reward / n_completed_episodes, self.num_timesteps)
+            
             self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
         
-            self.current_avg_reward = sum_ep_reward / n_completed_episodes
-            
+            if sum_ep_objective_reward == 0:
+                self.current_avg_reward = sum_ep_reward / n_completed_episodes
+            else:
+                self.current_avg_reward = sum_ep_objective_reward / n_completed_episodes
+                
+                
             if self.current_avg_reward > self.most_avg_reward_received:
                 self.most_avg_reward_received = self.current_avg_reward
                 self.save()
-        
-        
+            
             if sum_reward_consituents:
                 # log the reward constituents
                 for key, value in sum_reward_consituents.items():
