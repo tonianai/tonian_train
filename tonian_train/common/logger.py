@@ -84,7 +84,7 @@ class DummyLogger(BaseLogger):
         BaseLogger (_type_): 
     """
     def __init__(self) -> None:
-        super().__init__('', 0)
+        super().__init__()
     
     def log(self, key: str, value: Union[int, float], step: int):
         pass

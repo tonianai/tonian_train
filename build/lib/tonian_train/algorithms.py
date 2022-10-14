@@ -27,13 +27,11 @@ def swap_and_flatten01(arr):
     s = arr.size()
     return arr.transpose(0, 1).reshape(s[0] * s[1], *s[2:])
 
-
 def rescale_actions(low, high, action):
     d = (high - low) / 2.0
     m = (high + low) / 2.0
     scaled_action = action * d + m
     return scaled_action
-
 
 def policy_kl(p0_mu, p0_sigma, p1_mu, p1_sigma, reduce=True):
     c1 = torch.log(p1_sigma/p0_sigma + 1e-5)
@@ -190,7 +188,6 @@ class A2CBaseAlgorithm(ABC):
         
         self.model_out_name = model_out_name
         
-        
     def set_eval(self):
         self.policy.eval() 
         if self.normalize_value:
@@ -201,7 +198,6 @@ class A2CBaseAlgorithm(ABC):
         if self.normalize_value:
             self.value_mean_std.train()
          
-        
     def discount_values(self, fdones, last_extrinsic_values, mb_fdones, mb_extrinsic_values, mb_rewards):
         lastgaelam = 0
         mb_advs = torch.zeros_like(mb_rewards)
@@ -271,7 +267,6 @@ class A2CBaseAlgorithm(ABC):
         
         return res
         
-        
     def get_values(self, actor_obs: Dict[str, torch.Tensor]):
         """Get the values of a given observation
 
@@ -293,10 +288,10 @@ class A2CBaseAlgorithm(ABC):
                 value = self.value_mean_std(value, True)
             
             return value
-            
+     
+    
     def train_epoch(self):
         pass
-    
     
     def update_lr(self, lr):
         
@@ -326,11 +321,9 @@ class A2CBaseAlgorithm(ABC):
         if self.value_size == 1:
             rewards = rewards.unsqueeze(1)
         return obs, rewards.to(self.device), dones.to(self.device), infos, reward_constituents
-
     
     def play_steps(self):
-        
-        
+         
         step_time = 0.0
         
         # cumulative sum of  episode rewards within rollout ()
@@ -461,6 +454,64 @@ class A2CBaseAlgorithm(ABC):
             
         return batch_dict
     
+    def inference(self, num_steps: int, log_freq: int = 1000):
+        """Run the environment without training 
+
+        Args:
+            num_steps (int): _description_
+        """
+        
+        self.init_tensors()
+        
+        self.actor_obs = self.env_reset()
+        
+        
+        n_completed_episodes = 0        
+        objective_sum_ep_reward = 0
+        sum_ep_reward = 0
+
+        n_completed_episodes_total = 0        
+        objective_sum_ep_reward_total = 0
+        sum_ep_reward_total = 0
+
+        
+        for n in range(num_steps):
+            
+            res_dict = self.get_action_values(self.actor_obs)
+            
+            
+            actions = res_dict['actions']
+            obs, rewards, self.dones, infos, reward_constituents = self.env_step(actions)
+            
+            self.actor_obs = obs 
+             
+            sum_ep_reward += torch.sum(infos["episode_reward"]).item()
+            sum_ep_reward_total += torch.sum(infos["episode_reward"]).item()
+            
+            if "objective_episode_reward" in infos:
+                objective_sum_ep_reward +=  torch.sum(infos["objective_episode_reward"]).item()
+                objective_sum_ep_reward_total +=  torch.sum(infos["objective_episode_reward"]).item()
+                
+                
+            n_completed_episodes +=  torch.sum(self.dones).item()
+            n_completed_episodes_total +=  torch.sum(self.dones).item()
+            # sum of all rewards of all completed episodes
+            if n % log_freq == 0:
+                
+                if n_completed_episodes != 0:
+                
+                    if "objective_episode_reward" in infos:
+                    
+                        print(f"current ep reward: {sum_ep_reward/ n_completed_episodes:9.2f}, objective reward: {objective_sum_ep_reward/n_completed_episodes:9.2f}, avg ep reward: {sum_ep_reward_total/n_completed_episodes_total:9.2f}, objective ep reward: {objective_sum_ep_reward_total/ n_completed_episodes_total:9.2f}")
+                    else:
+                        print(f"current ep reward: {sum_ep_reward/n_completed_episodes:9.2f}, avg ep reward: {sum_ep_reward_total/n_completed_episodes_total:9.2f}")
+                
+                
+                n_completed_episodes = 0
+                objective_sum_ep_reward = 0
+                sum_ep_reward = 0
+        
+        pass
     
 class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
     
@@ -486,7 +537,6 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         self.best_episode_reward = -np.inf
         
         self.dataset = PPODataset(self.batch_size, self.minibatch_size, self.is_discrete, False, self.device, self.seq_len)
-        
         
     def preprocess_actions(self, actions: torch.Tensor):
         """preprocess the actions
@@ -587,7 +637,6 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
         self.init_tensors()
         
         self.actor_obs = self.env_reset()
-        
             
     def train(self, max_steps: Optional[int] = None):
         
@@ -637,7 +686,6 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
             if max_steps is not None and max_steps < self.num_timesteps:
                 break;
         
-            
     def prepare_dataset(self, batch_dict: Dict[str, torch.Tensor]):
         """Prepare the local dataset for an epoch
         -> also calculate the advantages and normalize values and advantages if desired
@@ -726,7 +774,6 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         self.epoch_num += 1
         return self.epoch_num
     
-    
     def save(self): 
         
         run_save_dir = os.path.join(self.logger.folder, 'saves', 'best_model')
@@ -753,15 +800,13 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
            
             if self.normalize_value:
                 torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))
-            
     
     def load(self, path: str):
          
         self.policy.load(path)
           
-        #if self.normalize_value:
-        #    self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
-        
+        if self.normalize_value:
+            self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
     
     def calc_gradients(self, 
                        value_preds_batch: torch.Tensor, 
