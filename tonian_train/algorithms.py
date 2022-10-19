@@ -54,7 +54,9 @@ class A2CBaseAlgorithm(ABC):
                  policy: A2CBasePolicy,
                  verbose: bool = True,
                  model_out_name: Optional[str] = None,
-                 reward_to_beat_for_out: Optional[int] = None
+                 reward_to_beat_for_out: Optional[int] = None,
+                 start_num_timesteps: int = 0,
+                 start_epoch_num: int = 0
                  ) -> None:
         
         # base_config = self.get_standard_config()
@@ -155,10 +157,8 @@ class A2CBaseAlgorithm(ABC):
         
         self.mini_epochs_num = self.config['mini_epochs']
         self.num_minibatches = self.batch_size // self.minibatch_size
-         
         
         assert(self.batch_size % self.minibatch_size == 0), "The Batch size must be divisible by the minibatch_size"
-        
         
         self.mixed_precision = self.config.get('mixed_precision', False)
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)
@@ -171,12 +171,12 @@ class A2CBaseAlgorithm(ABC):
         
         self.optimizer = torch.optim.Adam(self.policy.parameters(), float(self.last_lr), eps=1e-08, weight_decay=self.weight_decay)
         
-        self.epoch_num = 0
+        self.epoch_num = start_epoch_num
         self.play_time = 0
         self.update_time = 0
         
         # the total amount of timesteps playes across all environments
-        self.num_timesteps  = 0
+        self.num_timesteps  = start_num_timesteps
         
         # the average reward that was the highest as an average over an epoch play
         self.most_avg_reward_received = 0 
@@ -241,7 +241,7 @@ class A2CBaseAlgorithm(ABC):
         raise NotImplementedError()
     
     @abstractmethod
-    def save(self) -> None:
+    def save(self, best_model: bool) -> None:
         raise NotImplementedError()
     
     @abstractmethod
@@ -445,7 +445,8 @@ class A2CBaseAlgorithm(ABC):
                 
             if self.current_avg_reward > self.most_avg_reward_received:
                 self.most_avg_reward_received = self.current_avg_reward
-                self.save()
+                self.save(best_model = True)
+            self.save(best_model= False)
             
             if sum_reward_consituents:
                 # log the reward constituents
@@ -522,8 +523,10 @@ class ContinuousA2CBaseAlgorithm(A2CBaseAlgorithm, ABC):
                  policy: A2CBasePolicy, 
                  verbose: bool,
                  model_out_name: Optional[str] = None,
-                 reward_to_beat_for_out: Optional[int] = None) -> None:
-        super().__init__(env, config, device, logger, policy, verbose, model_out_name, reward_to_beat_for_out)
+                 reward_to_beat_for_out: Optional[int] = None,
+                 start_num_timesteps: int = 0,
+                 start_epoch_num: int = 0) -> None:
+        super().__init__(env, config, device, logger, policy, verbose, model_out_name, reward_to_beat_for_out, start_num_timesteps, start_epoch_num)
 
         self.is_discrete = False
         self.bounds_loss_coef = config.get('bounds_loss_coef', 0.001)
@@ -742,7 +745,9 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
                  policy: A2CBasePolicy, 
                  verbose: bool = True,
                  model_out_name: Optional[str] = None,
-                 reward_to_beat_for_out: Optional[int] = None) -> None:
+                 reward_to_beat_for_out: Optional[int] = None,
+                 start_num_timesteps: int = 0,
+                 start_epoch_num: int = 0) -> None:
         """Run the ppo algorithm on a given environment
 
         Args:
@@ -754,7 +759,7 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
             verbose (bool, optional): Determines whether prints are written to console. Defaults to True.
             model_out_name (Optional[str], optional): Optional name under which the model will be saved in the models folder. Defaults to None.
         """
-        super().__init__(env, config, device, logger, policy, verbose, model_out_name, reward_to_beat_for_out)
+        super().__init__(env, config, device, logger, policy, verbose, model_out_name, reward_to_beat_for_out, start_num_timesteps, start_epoch_num)
         
         self.last_lr = float(self.last_lr)
         
@@ -774,21 +779,27 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
         self.epoch_num += 1
         return self.epoch_num
     
-    def save(self): 
+    def save(self, best_model: bool = True): 
         
-        run_save_dir = os.path.join(self.logger.folder, 'saves', 'best_model')
+        if best_model:
+            run_save_dir = os.path.join(self.logger.folder, 'saves', 'best_model')
+            print("save best policy")
+        else:
+            run_save_dir = os.path.join(self.logger.folder, 'saves', 'last_model')
+            
         
         os.makedirs(run_save_dir, exist_ok=True)
         
         self.policy.save(run_save_dir)
-        print("save policy")
+        
+        torch.save(self.optimizer.state_dict(),  os.path.join(run_save_dir, 'optim.pth'))
         
         if self.normalize_value:
             torch.save(self.value_mean_std.state_dict(), os.path.join(run_save_dir, 'value_mean_std.pth'))
      
         
         if self.model_out_name :
-            if  self.reward_to_beat_for_out and self.most_avg_reward_received < self.reward_to_beat_for_out:
+            if best_model and self.reward_to_beat_for_out and self.most_avg_reward_received < self.reward_to_beat_for_out:
                 return
             
             save_dir = os.path.join('models', self.model_out_name)
@@ -804,6 +815,8 @@ class PPOAlgorithm(ContinuousA2CBaseAlgorithm):
     def load(self, path: str):
          
         self.policy.load(path)
+        
+        self.optimizer.load_state_dict(torch.load(os.path.join(path, 'optim.pth')))
           
         if self.normalize_value:
             self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))

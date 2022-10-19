@@ -163,6 +163,7 @@ class CsvFileLogger(BaseLogger):
     def log(self, key: str, value: Union[int, float], step: int):
         
         self.params[key] = value
+        self.params['step'] = step
         
     def log_config(self, config: Dict):
         return super().log_config(config)
@@ -173,8 +174,7 @@ class CsvFileLogger(BaseLogger):
             writer = csv.writer(f)
             
             writer.writerow(self.params.keys())
-            
-            
+             
             writer.writerow(self.params.values())
             
             
@@ -191,6 +191,8 @@ class CsvMaxFileLogger(BaseLogger):
         self.params = {}
         
     def log(self, key: str, value: Union[int, float], step: int):
+        
+        self.params['step'] = step
         if key not in self.params or self.params[key] < value :
             self.params[key] = value
         
@@ -203,8 +205,7 @@ class CsvMaxFileLogger(BaseLogger):
             writer = csv.writer(f)
             
             writer.writerow(self.params.keys())
-            
-            
+             
             writer.writerow(self.params.values())
             
         
