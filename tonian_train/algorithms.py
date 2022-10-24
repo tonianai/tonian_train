@@ -341,6 +341,8 @@ class A2CBaseAlgorithm(ABC):
         # the cumulative reweard constituents, if they exist
         sum_reward_consituents = {}
         
+        step_reward = 0
+        
         for n in range(self.horizon_length):
             
             res_dict = self.get_action_values(self.actor_obs)
@@ -389,6 +391,7 @@ class A2CBaseAlgorithm(ABC):
             n_completed_episodes +=  torch.sum(self.dones).item()
             
             
+            
             # sum of all rewards of all completed episodes
             sum_ep_reward += torch.sum(infos["episode_reward"]).item()
             
@@ -423,11 +426,16 @@ class A2CBaseAlgorithm(ABC):
         mb_returns = mb_advs + mb_values
         
         
+        step_reward = torch.sum(rewards) / (self.num_envs * self.horizon_length)
+        
+        
         tensor_list = ['actions', 'neglogpacs', 'values', 'mus', 'sigmas', 'states', 'dones', 'actor_obs']
         batch_dict = self.experience_buffer.get_transformed_list(swap_and_flatten01, tensor_list)
         batch_dict['returns'] = swap_and_flatten01(mb_returns)
         batch_dict['played_frames'] = self.batch_size
         batch_dict['step_time'] = step_time
+        
+        self.logger.log("run/step_reward", step_reward, self.num_timesteps)
         
         # log the information
         if n_completed_episodes != 0:
