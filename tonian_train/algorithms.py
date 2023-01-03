@@ -1,5 +1,6 @@
 from typing import Dict, Tuple, Any, Union, Optional
 from abc import ABC, abstractmethod
+from collections import deque
 import numpy as np
 
 from tonian_train.tasks import VecTask
@@ -100,6 +101,8 @@ class A2CBaseAlgorithm(ABC):
          
         
         self.learning_rate = config['learning_rate']
+        
+        self.last_1000_ep_reward = deque([], maxlen=1000)
         
         print("Learning Rate")
         print(self.learning_rate)
@@ -398,6 +401,10 @@ class A2CBaseAlgorithm(ABC):
             if "objective_episode_reward" in infos:
                 sum_ep_objective_reward += torch.sum(infos["objective_episode_reward"]).item()
                 
+                all_completed_ep_rewards = infos["objective_episode_reward"][torch.nonzero(infos["objective_episode_reward"])]
+                
+                for i in range(len(all_completed_ep_rewards)):
+                    self.last_1000_ep_reward.append(all_completed_ep_rewards[i].item()) 
             
             # sum all the steps of all completed episodes
             sum_steps_per_episode  += torch.sum(infos["episode_steps"]).item()
@@ -425,6 +432,9 @@ class A2CBaseAlgorithm(ABC):
         mb_advs = self.discount_values(fdones, last_values, mb_fdones, mb_values, mb_rewards)
         mb_returns = mb_advs + mb_values
         
+        
+        if "objective_episode_reward" in infos: 
+            self.logger.log("run/last_1000_obj_ep_reward", sum(self.last_1000_ep_reward)/1000, self.num_timesteps)
         
         step_reward = torch.sum(rewards) / (self.num_envs * self.horizon_length)
         

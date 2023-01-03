@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod, abstractproperty
-from typing import Dict, Tuple, Any, Optional
+from typing import Dict, Tuple, Any, Optional, Callable
 from tonian_train.common.spaces import MultiSpace
 import gym, torch 
 from gym import spaces
@@ -97,3 +97,10 @@ class VecTask(gym.Env, ABC):
              
         
         
+    @abstractmethod
+    def set_simulation_log_callback(self, callback: Callable[[Dict[str, Any]], None]):
+        """The simulation log callback gets called at each step, if there are values to report back to the training algorithm
+
+        Args:
+            callback (Callable): 
+        """
