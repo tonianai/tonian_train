@@ -77,6 +77,7 @@ class A2CBaseAlgorithm(ABC):
         self.env = env
         self.device = device
         
+        self.env.set_simulation_log_callback(self.log_sim_parameters)
         
         self.policy: A2CBasePolicy = policy
         self.policy.to(self.device)
@@ -258,6 +259,18 @@ class A2CBaseAlgorithm(ABC):
     @abstractmethod
     def update_epoch(self):
         pass
+    
+    def log_sim_parameters(self, sim_logs: Dict[str, Any])-> None:
+        """Log parameters given by the simulation with the logger
+
+        Args:
+            sim_logs (Dict[str, Any]): simulation logs
+        """
+        
+        for key, val in sim_logs.items():
+            self.logger.log('sim/'+ key, val, step=self.num_timesteps)
+        
+        
     
     def get_action_values(self, actor_obs: Dict[str, torch.Tensor]):
         self.policy.eval()
