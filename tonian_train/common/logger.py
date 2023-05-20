@@ -7,6 +7,8 @@ import numpy as np
 
 from abc import ABC, abstractmethod
 import json
+import wandb
+wandb.login()
  
 
 # This logger is similar to the logger used in stable-baselines3
@@ -207,5 +209,31 @@ class CsvMaxFileLogger(BaseLogger):
             writer.writerow(self.params.keys())
              
             writer.writerow(self.params.values())
+            
+            
+class WandbLogger(BaseLogger):
+    
+    def __init__(self, identifier: Union[int, str]) -> None:
+        super().__init__()
+        self.identifier = identifier
+
+    
+    def log(self, key: str, value: Union[int, float], step: int):
+        assert self.run is not None, "the log_config must be called before the log function on the WandbLogger"
+        wandb.log({key: value}, step= step)
+        
+    def log_config(self, tag:str, config: Dict):
+        self.run = wandb.init(
+            # Set the project where this run will be logged
+            project="tonian_train",
+            # Track hyperparameters and run metadata
+            config= config,
+            id= self.identifier
+            )
+    
+    
+    
+        
+        
             
         
