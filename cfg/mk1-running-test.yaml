@@ -90,7 +90,7 @@ task:
       jitter_cost: 0.25
       overextend_cost: 7
       arm_position_cost: 2
-
+      forward_speed_factor: 10
       arm_use_cost: 0.4
 
 
@@ -102,15 +102,26 @@ task:
 policy: 
 
   normalize_input: True
+ 
 
   actor_net:
     - name: actor_linear_obs_net
       input: 
-          - obs: linear
+          - obs: linear 
       mlp:
-          units: [512, 256, 128]
+          units: [512, 512,  256, 128]
           activation: elu
           initializer: default
+
+  critic_net:
+    - name: critic_linear_obs_net
+      input: 
+          - obs: linear 
+      mlp:
+          units: [512, 128, 128]
+          activation: elu
+          initializer: default
+
 
 
 

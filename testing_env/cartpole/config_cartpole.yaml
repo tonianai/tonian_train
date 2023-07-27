@@ -1,0 +1,16 @@
+# Configuaration file for the walking task
+# There are no universal "episodes" since every actor can terminate an episode prematurely
+# This is the standard configuration for the walking env
+# every value can be overwritten by the config in the constructor
+
+
+name: 00_cartpole
+
+
+      
+cartpole:
+  powerscale: 1.0
+  resetDist: 3.0
+  maxEffort: 400.0
+
+ 
