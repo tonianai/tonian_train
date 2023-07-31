@@ -18,9 +18,9 @@ from tonian_train.networks.network_elements import *
 
 class InputEmbedding(nn.Module):
     
-    def __init__(self, config: Dict, sequence_length: int ) -> None:
+    def __init__(self, config: Dict, sequence_length: int , obs_space: Dict[str, gym.Space]) -> None:
         """
-        The goal of this network is to order the Observations in a ordered latent space
+        The goal of this network is to order the Observations in a ordered latent space, ready for self attention 
         
         Example
         config: {
@@ -47,7 +47,7 @@ class InputEmbedding(nn.Module):
         assert config.has_key('encoder'), "Input Embeddings needs a encoder specified in the config"
         assert config['encoder'].has_key('network'), "The Input Embedding encoder needs a specified network. (List with mlp architecture)"
         
-        self.network: MultispaceNet = MultiSpaceNetworkConfiguration(config['encoder']['network'])
+        self.network: MultispaceNet = MultiSpaceNetworkConfiguration(config['encoder']['network']).build(MultiSpace(obs_space))
         
         
     def forward(self, obs: Dict[str, torch.Tensor]):
@@ -76,21 +76,66 @@ class InputEmbedding(nn.Module):
         # restructuring, so that the output is (batch_size, sequence_length, ) + output_dim
         return unstructured_result.reshape((batch_size, self.sequence_length,)  +  unstructured_result.shape[1::])
     
-    
-    
-        
-        
-        
+     
 class OutputEmbedding(nn.Module):
     
-    def __init__(self, config: Dict, sequence_length: int) -> None:
+    def __init__(self, config: Dict, sequence_length: int, action_size: int, value_size: int = 1) -> None:
         """
         The goal of this network is to order the actions (mu & std), values in a ordered latent space
 
         Args:
-            config (Dict): _description_
+            config (Dict):
+            
+                encoder:
+                    mlp: 
+                        units: [256, 128]
+                        activation: relu,
+                        initializer: default
         """
         super().__init__()
+        
+        self.sequence_length = sequence_length
+        assert config.has_key('encoder'), "Output Embeddings needs a encoder specified in the config"
+        assert config['encoder'].has_key('mlp'), "The Output Embedding encoder needs a specified mlp architecture (key = mlp)."
+        
+        self.action_size = action_size
+        self.value_size = value_size
+        self.mlp_input_size = self.action_size *2 + self.value_size
+        
+        self.network: nn.Sequential = MlpConfiguration(config['encoder']['mlp']).build(self.mlp_input_size)
+        
+        
+        
+            
+    def forward(self, action_mu: torch.Tensor, action_std: torch.Tensor, value: torch.Tensor) -> torch.Tensor:
+        """Embedding for outputs 
+        Transforms outputs in a fitting latent space for self attention
+
+        Args:
+            action_mu (torch.Tensor): shape (batch_size, seq_len, action_size)
+            action_std (torch.Tensor):  shape (batch_size, seq_len, action_size)
+            value (torch.Tensor): shape (batch_size, seq_len, value_size)
+
+        Returns:
+            torch.Tensor: _description_
+        """
+        
+        all_outputs = torch.cat((action_mu, action_std, value), 2)
+        
+        assert all_outputs.shape[2] == self.mlp_input_size, "The mlp input size does not fit the concatinated mlp input in the output embeddings"
+        
+        
+        # TODO:  validate, that this is the right approach 
+        # Note: Do we have a multiplication of gradients with this approach???
+        # Please investigate @future schmijo
+           # the unstructuring has to happen, because the self.network only has one batch dimension, and here we essentially have two (batch, sequence_length) and would like to have one
+        unstructured_all_outputs = all_outputs.view((
+            all_outputs.shape[0] *  all_outputs.shape[1], all_outputs.shape[2]
+        ))
+        
+        result: torch.Tensor = self.network(unstructured_all_outputs)
+    
+        return result.reshape(all_outputs.shape[0], all_outputs.shape[1], result.shape[2])
         
         
         
