@@ -213,9 +213,10 @@ class CsvMaxFileLogger(BaseLogger):
             
 class WandbLogger(BaseLogger):
     
-    def __init__(self, identifier: Union[int, str]) -> None:
+    def __init__(self, identifier: Union[int, str], project_name: str = "tonian") -> None:
         super().__init__()
         self.identifier = identifier
+        self.project_name = project_name
 
     
     def log(self, key: str, value: Union[int, float], step: int):
@@ -225,12 +226,14 @@ class WandbLogger(BaseLogger):
     def log_config(self, tag:str, config: Dict):
         self.run = wandb.init(
             # Set the project where this run will be logged
-            project="tonian_train",
+            project=self.project_name,
             # Track hyperparameters and run metadata
             config= config,
             id= self.identifier
             )
     
+    def update_saved(self):
+        pass
     
     
         

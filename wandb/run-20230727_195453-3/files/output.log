@@ -1,0 +1,60 @@
+Learning Rate
+5e-4
+RunningMeanStd:  (1,)
+Reward to beat
+None
+ Run: 3    |     Iteration: 1     |    Steps Trained: 3.277e+04     |     Steps per Second: 8147     |     Time Spend on Rollout: 98.60%
+ Run: 3    |     Iteration: 2     |    Steps Trained: 6.554e+04     |     Steps per Second: 9828     |     Time Spend on Rollout: 98.32%
+ Run: 3    |     Iteration: 3     |    Steps Trained: 9.830e+04     |     Steps per Second: 9565     |     Time Spend on Rollout: 97.76%
+ Run: 3    |     Iteration: 4     |    Steps Trained: 1.311e+05     |     Steps per Second: 9213     |     Time Spend on Rollout: 98.41%
+ Run: 3    |     Iteration: 5     |    Steps Trained: 1.638e+05     |     Steps per Second: 9538     |     Time Spend on Rollout: 98.27%
+ Run: 3    |     Iteration: 6     |    Steps Trained: 1.966e+05     |     Steps per Second: 9368     |     Time Spend on Rollout: 98.22%
+ Run: 3    |     Iteration: 7     |    Steps Trained: 2.294e+05     |     Steps per Second: 9247     |     Time Spend on Rollout: 98.31%
+ Run: 3    |     Iteration: 8     |    Steps Trained: 2.621e+05     |     Steps per Second: 9329     |     Time Spend on Rollout: 98.44%
+save best policy
+ Run: 3    |     Iteration: 9     |    Steps Trained: 2.949e+05     |     Steps per Second: 9144     |     Time Spend on Rollout: 98.28%
+ Run: 3    |     Iteration: 10     |    Steps Trained: 3.277e+05     |     Steps per Second: 9171     |     Time Spend on Rollout: 98.40%
+ Run: 3    |     Iteration: 11     |    Steps Trained: 3.604e+05     |     Steps per Second: 9094     |     Time Spend on Rollout: 98.39%
+save best policy
+ Run: 3    |     Iteration: 12     |    Steps Trained: 3.932e+05     |     Steps per Second: 9365     |     Time Spend on Rollout: 97.92%
+save best policy
+ Run: 3    |     Iteration: 13     |    Steps Trained: 4.260e+05     |     Steps per Second: 9152     |     Time Spend on Rollout: 98.27%
+ Run: 3    |     Iteration: 14     |    Steps Trained: 4.588e+05     |     Steps per Second: 9229     |     Time Spend on Rollout: 98.28%
+ Run: 3    |     Iteration: 15     |    Steps Trained: 4.915e+05     |     Steps per Second: 9473     |     Time Spend on Rollout: 98.28%
+save best policy
+ Run: 3    |     Iteration: 16     |    Steps Trained: 5.243e+05     |     Steps per Second: 9250     |     Time Spend on Rollout: 98.01%
+save best policy
+ Run: 3    |     Iteration: 17     |    Steps Trained: 5.571e+05     |     Steps per Second: 9360     |     Time Spend on Rollout: 98.29%
+save best policy
+ Run: 3    |     Iteration: 18     |    Steps Trained: 5.898e+05     |     Steps per Second: 9094     |     Time Spend on Rollout: 97.88%
+ Run: 3    |     Iteration: 19     |    Steps Trained: 6.226e+05     |     Steps per Second: 9486     |     Time Spend on Rollout: 98.07%
+ Run: 3    |     Iteration: 20     |    Steps Trained: 6.554e+05     |     Steps per Second: 9842     |     Time Spend on Rollout: 98.29%
+ Run: 3    |     Iteration: 21     |    Steps Trained: 6.881e+05     |     Steps per Second: 9565     |     Time Spend on Rollout: 97.98%
+ Run: 3    |     Iteration: 22     |    Steps Trained: 7.209e+05     |     Steps per Second: 9606     |     Time Spend on Rollout: 98.31%
+save best policy
+ Run: 3    |     Iteration: 23     |    Steps Trained: 7.537e+05     |     Steps per Second: 9680     |     Time Spend on Rollout: 98.19%
+ Run: 3    |     Iteration: 24     |    Steps Trained: 7.864e+05     |     Steps per Second: 9805     |     Time Spend on Rollout: 98.08%
+ Run: 3    |     Iteration: 25     |    Steps Trained: 8.192e+05     |     Steps per Second: 9387     |     Time Spend on Rollout: 98.37%
+ Run: 3    |     Iteration: 26     |    Steps Trained: 8.520e+05     |     Steps per Second: 9921     |     Time Spend on Rollout: 98.32%
+ Run: 3    |     Iteration: 27     |    Steps Trained: 8.847e+05     |     Steps per Second: 9855     |     Time Spend on Rollout: 97.99%
+ Run: 3    |     Iteration: 28     |    Steps Trained: 9.175e+05     |     Steps per Second: 9395     |     Time Spend on Rollout: 97.76%
+save best policy
+ Run: 3    |     Iteration: 29     |    Steps Trained: 9.503e+05     |     Steps per Second: 9759     |     Time Spend on Rollout: 98.00%
+Traceback (most recent call last):
+  File "testing_env/run_test.py", line 155, in <module>
+    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id', None), args.get('model_out', None),  True)
+  File "testing_env/run_test.py", line 138, in train
+    algo.train(max_steps)
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 687, in train
+    step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 607, in train_epoch
+    batch_dict = self.play_steps()
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 384, in play_steps
+    obs, rewards, self.dones, infos, reward_constituents = self.env_step(actions)
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 335, in env_step
+    obs, rewards, dones, infos, reward_constituents = self.env.step(actions)
+  File "/home/schmijo/Documents/Workspace/tonian_train/testing_env/base_env/vec_task.py", line 327, in step
+    self.render()
+  File "/home/schmijo/Documents/Workspace/tonian_train/testing_env/base_env/vec_task.py", line 245, in render
+    self.gym.draw_viewer(self.viewer, self.sim, True)
+KeyboardInterrupt

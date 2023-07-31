@@ -678,6 +678,79 @@ class A2CBaseNet(nn.Module):
         raise NotImplementedError()
     
     
+class TransformerNetLogStd(nn.Module):
+    
+    def __init__(self, action_space: gym.spaces.Space, 
+                       action_activation: ActivationFn = nn.Identity(),
+                       is_std_fixed: bool = False, 
+                       std_activation: ActivationFn = nn.Identity(),
+                       value_activation: ActivationFn = nn.Identity(),
+                       value_size: int = 1) -> None:
+        """_summary_
+                                                        
+                                                        
+               Observations:                              Actions & Values:                                         
+                                                        
+               [...,obs(t-2),obs(t=1),obs(t=0)]           [...,action(t-1), action(t=0]
+                                                          [...,value(t-1), value(t=0]
+                              
+                              
+                               |                                       |   
+                               |                                       |                           
+                              \|/                                     \|/      
+                              
+                    |------------------|                      |------------------|            
+                    | Input Embeddings |                      | Output Embedding |            
+                    |------------------|                      |------------------|            
+                               |                                       |                           
+                              \|/           Organized Latent Space    \|/            
+             
+|------------|            |--------|                              |--------|          |------------| 
+|Pos Encoding|    ->      |    +   |                              |    +   |     <-   |Pos Encoding| 
+|------------|            |--------|                              |--------|          |------------|      
+
+                               |                                       |                           
+                              \|/                                     \|/            
+
+
+                      |---------------|                      |---------------|
+                      |               |                      |               |
+                      | Encoder Block |  x N           |---->| Decoder Block |  x N
+                      |               |                |     |               |
+                      |---------------|                |     |---------------|
+                              |                        |                            
+                              |                        |             |
+                              |________________________|             |
+                                                                     |
+                                                        _____________|__________  
+                                                        |                        |
+                                                        |                        |
+                                                        |                        |
+                                                       \|/                      \|/
+                                                
+                                               |---------------|         |---------------|        
+                                               |   Actor Net   |         |   Critic Net   |
+                                               |---------------|         |---------------|
+                                               
+                                                        |                        |
+                                                        |                        |
+                                                       \|/                      \|/
+                                                       
+                                                     Actions                  States
+                                                       
+
+        Args:
+            action_space (gym.spaces.Space): _description_
+            action_activation (ActivationFn, optional): _description_. Defaults to nn.Identity().
+            is_std_fixed (bool, optional): _description_. Defaults to False.
+            std_activation (ActivationFn, optional): _description_. Defaults to nn.Identity().
+            value_activation (ActivationFn, optional): _description_. Defaults to nn.Identity().
+            value_size (int, optional): _description_. Defaults to 1.
+        """
+        super().__init__()
+        
+    
+    
 class A2CSharedNetLogStd(A2CBaseNet):
        
     def __init__(self, 

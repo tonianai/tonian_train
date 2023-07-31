@@ -1,0 +1,500 @@
+Learning Rate
+5e-4
+RunningMeanStd:  (1,)
+Reward to beat
+None
+ Run: 5    |     Iteration: 1     |    Steps Trained: 3.277e+04     |     Steps per Second: 8303     |     Time Spend on Rollout: 98.54%
+ Run: 5    |     Iteration: 2     |    Steps Trained: 6.554e+04     |     Steps per Second: 9884     |     Time Spend on Rollout: 98.36%
+ Run: 5    |     Iteration: 3     |    Steps Trained: 9.830e+04     |     Steps per Second: 9952     |     Time Spend on Rollout: 98.33%
+ Run: 5    |     Iteration: 4     |    Steps Trained: 1.311e+05     |     Steps per Second: 9939     |     Time Spend on Rollout: 98.37%
+ Run: 5    |     Iteration: 5     |    Steps Trained: 1.638e+05     |     Steps per Second: 9988     |     Time Spend on Rollout: 98.36%
+ Run: 5    |     Iteration: 6     |    Steps Trained: 1.966e+05     |     Steps per Second: 9891     |     Time Spend on Rollout: 98.27%
+ Run: 5    |     Iteration: 7     |    Steps Trained: 2.294e+05     |     Steps per Second: 19887     |     Time Spend on Rollout: 96.66%
+ Run: 5    |     Iteration: 8     |    Steps Trained: 2.621e+05     |     Steps per Second: 31241     |     Time Spend on Rollout: 94.74%
+save best policy
+ Run: 5    |     Iteration: 9     |    Steps Trained: 2.949e+05     |     Steps per Second: 30373     |     Time Spend on Rollout: 94.06%
+ Run: 5    |     Iteration: 10     |    Steps Trained: 3.277e+05     |     Steps per Second: 32178     |     Time Spend on Rollout: 94.72%
+ Run: 5    |     Iteration: 11     |    Steps Trained: 3.604e+05     |     Steps per Second: 31596     |     Time Spend on Rollout: 94.72%
+save best policy
+ Run: 5    |     Iteration: 12     |    Steps Trained: 3.932e+05     |     Steps per Second: 31368     |     Time Spend on Rollout: 94.47%
+save best policy
+ Run: 5    |     Iteration: 13     |    Steps Trained: 4.260e+05     |     Steps per Second: 31685     |     Time Spend on Rollout: 94.60%
+ Run: 5    |     Iteration: 14     |    Steps Trained: 4.588e+05     |     Steps per Second: 32453     |     Time Spend on Rollout: 94.51%
+ Run: 5    |     Iteration: 15     |    Steps Trained: 4.915e+05     |     Steps per Second: 32858     |     Time Spend on Rollout: 94.62%
+save best policy
+ Run: 5    |     Iteration: 16     |    Steps Trained: 5.243e+05     |     Steps per Second: 32607     |     Time Spend on Rollout: 94.34%
+save best policy
+ Run: 5    |     Iteration: 17     |    Steps Trained: 5.571e+05     |     Steps per Second: 32676     |     Time Spend on Rollout: 94.30%
+save best policy
+ Run: 5    |     Iteration: 18     |    Steps Trained: 5.898e+05     |     Steps per Second: 32866     |     Time Spend on Rollout: 94.47%
+ Run: 5    |     Iteration: 19     |    Steps Trained: 6.226e+05     |     Steps per Second: 34356     |     Time Spend on Rollout: 94.33%
+ Run: 5    |     Iteration: 20     |    Steps Trained: 6.554e+05     |     Steps per Second: 34243     |     Time Spend on Rollout: 94.38%
+ Run: 5    |     Iteration: 21     |    Steps Trained: 6.881e+05     |     Steps per Second: 35029     |     Time Spend on Rollout: 94.16%
+ Run: 5    |     Iteration: 22     |    Steps Trained: 7.209e+05     |     Steps per Second: 35478     |     Time Spend on Rollout: 94.07%
+save best policy
+ Run: 5    |     Iteration: 23     |    Steps Trained: 7.537e+05     |     Steps per Second: 36288     |     Time Spend on Rollout: 93.54%
+ Run: 5    |     Iteration: 24     |    Steps Trained: 7.864e+05     |     Steps per Second: 38073     |     Time Spend on Rollout: 93.56%
+ Run: 5    |     Iteration: 25     |    Steps Trained: 8.192e+05     |     Steps per Second: 37289     |     Time Spend on Rollout: 93.77%
+ Run: 5    |     Iteration: 26     |    Steps Trained: 8.520e+05     |     Steps per Second: 36737     |     Time Spend on Rollout: 93.82%
+ Run: 5    |     Iteration: 27     |    Steps Trained: 8.847e+05     |     Steps per Second: 37987     |     Time Spend on Rollout: 92.86%
+ Run: 5    |     Iteration: 28     |    Steps Trained: 9.175e+05     |     Steps per Second: 38383     |     Time Spend on Rollout: 93.65%
+save best policy
+ Run: 5    |     Iteration: 29     |    Steps Trained: 9.503e+05     |     Steps per Second: 37341     |     Time Spend on Rollout: 92.60%
+save best policy
+ Run: 5    |     Iteration: 30     |    Steps Trained: 9.830e+05     |     Steps per Second: 38342     |     Time Spend on Rollout: 92.32%
+ Run: 5    |     Iteration: 31     |    Steps Trained: 1.016e+06     |     Steps per Second: 37360     |     Time Spend on Rollout: 92.82%
+save best policy
+ Run: 5    |     Iteration: 32     |    Steps Trained: 1.049e+06     |     Steps per Second: 38080     |     Time Spend on Rollout: 93.03%
+ Run: 5    |     Iteration: 33     |    Steps Trained: 1.081e+06     |     Steps per Second: 39163     |     Time Spend on Rollout: 93.42%
+ Run: 5    |     Iteration: 34     |    Steps Trained: 1.114e+06     |     Steps per Second: 38433     |     Time Spend on Rollout: 93.62%
+ Run: 5    |     Iteration: 35     |    Steps Trained: 1.147e+06     |     Steps per Second: 38476     |     Time Spend on Rollout: 93.66%
+ Run: 5    |     Iteration: 36     |    Steps Trained: 1.180e+06     |     Steps per Second: 38043     |     Time Spend on Rollout: 93.76%
+ Run: 5    |     Iteration: 37     |    Steps Trained: 1.212e+06     |     Steps per Second: 38730     |     Time Spend on Rollout: 93.62%
+save best policy
+ Run: 5    |     Iteration: 38     |    Steps Trained: 1.245e+06     |     Steps per Second: 38123     |     Time Spend on Rollout: 92.35%
+save best policy
+ Run: 5    |     Iteration: 39     |    Steps Trained: 1.278e+06     |     Steps per Second: 38385     |     Time Spend on Rollout: 92.24%
+ Run: 5    |     Iteration: 40     |    Steps Trained: 1.311e+06     |     Steps per Second: 39055     |     Time Spend on Rollout: 93.41%
+ Run: 5    |     Iteration: 41     |    Steps Trained: 1.343e+06     |     Steps per Second: 38930     |     Time Spend on Rollout: 92.70%
+ Run: 5    |     Iteration: 42     |    Steps Trained: 1.376e+06     |     Steps per Second: 40309     |     Time Spend on Rollout: 93.43%
+ Run: 5    |     Iteration: 43     |    Steps Trained: 1.409e+06     |     Steps per Second: 38885     |     Time Spend on Rollout: 93.54%
+ Run: 5    |     Iteration: 44     |    Steps Trained: 1.442e+06     |     Steps per Second: 38191     |     Time Spend on Rollout: 93.63%
+ Run: 5    |     Iteration: 45     |    Steps Trained: 1.475e+06     |     Steps per Second: 40298     |     Time Spend on Rollout: 93.30%
+ Run: 5    |     Iteration: 46     |    Steps Trained: 1.507e+06     |     Steps per Second: 38431     |     Time Spend on Rollout: 93.55%
+save best policy
+ Run: 5    |     Iteration: 47     |    Steps Trained: 1.540e+06     |     Steps per Second: 40332     |     Time Spend on Rollout: 92.89%
+ Run: 5    |     Iteration: 48     |    Steps Trained: 1.573e+06     |     Steps per Second: 40186     |     Time Spend on Rollout: 93.30%
+ Run: 5    |     Iteration: 49     |    Steps Trained: 1.606e+06     |     Steps per Second: 39512     |     Time Spend on Rollout: 93.34%
+save best policy
+ Run: 5    |     Iteration: 50     |    Steps Trained: 1.638e+06     |     Steps per Second: 38395     |     Time Spend on Rollout: 92.52%
+save best policy
+ Run: 5    |     Iteration: 51     |    Steps Trained: 1.671e+06     |     Steps per Second: 38698     |     Time Spend on Rollout: 92.99%
+save best policy
+ Run: 5    |     Iteration: 52     |    Steps Trained: 1.704e+06     |     Steps per Second: 38536     |     Time Spend on Rollout: 93.16%
+ Run: 5    |     Iteration: 53     |    Steps Trained: 1.737e+06     |     Steps per Second: 39338     |     Time Spend on Rollout: 93.49%
+ Run: 5    |     Iteration: 54     |    Steps Trained: 1.769e+06     |     Steps per Second: 38968     |     Time Spend on Rollout: 93.45%
+save best policy
+ Run: 5    |     Iteration: 55     |    Steps Trained: 1.802e+06     |     Steps per Second: 38455     |     Time Spend on Rollout: 92.37%
+save best policy
+ Run: 5    |     Iteration: 56     |    Steps Trained: 1.835e+06     |     Steps per Second: 38179     |     Time Spend on Rollout: 92.30%
+ Run: 5    |     Iteration: 57     |    Steps Trained: 1.868e+06     |     Steps per Second: 39103     |     Time Spend on Rollout: 93.45%
+ Run: 5    |     Iteration: 58     |    Steps Trained: 1.901e+06     |     Steps per Second: 36846     |     Time Spend on Rollout: 93.37%
+ Run: 5    |     Iteration: 59     |    Steps Trained: 1.933e+06     |     Steps per Second: 39123     |     Time Spend on Rollout: 93.64%
+save best policy
+ Run: 5    |     Iteration: 60     |    Steps Trained: 1.966e+06     |     Steps per Second: 39124     |     Time Spend on Rollout: 93.20%
+ Run: 5    |     Iteration: 61     |    Steps Trained: 1.999e+06     |     Steps per Second: 40006     |     Time Spend on Rollout: 93.42%
+ Run: 5    |     Iteration: 62     |    Steps Trained: 2.032e+06     |     Steps per Second: 39486     |     Time Spend on Rollout: 93.46%
+ Run: 5    |     Iteration: 63     |    Steps Trained: 2.064e+06     |     Steps per Second: 39762     |     Time Spend on Rollout: 93.34%
+ Run: 5    |     Iteration: 64     |    Steps Trained: 2.097e+06     |     Steps per Second: 39816     |     Time Spend on Rollout: 93.32%
+ Run: 5    |     Iteration: 65     |    Steps Trained: 2.130e+06     |     Steps per Second: 39628     |     Time Spend on Rollout: 93.42%
+ Run: 5    |     Iteration: 66     |    Steps Trained: 2.163e+06     |     Steps per Second: 38981     |     Time Spend on Rollout: 93.55%
+ Run: 5    |     Iteration: 67     |    Steps Trained: 2.195e+06     |     Steps per Second: 39738     |     Time Spend on Rollout: 93.31%
+ Run: 5    |     Iteration: 68     |    Steps Trained: 2.228e+06     |     Steps per Second: 39887     |     Time Spend on Rollout: 93.33%
+ Run: 5    |     Iteration: 69     |    Steps Trained: 2.261e+06     |     Steps per Second: 39124     |     Time Spend on Rollout: 93.47%
+save best policy
+ Run: 5    |     Iteration: 70     |    Steps Trained: 2.294e+06     |     Steps per Second: 39765     |     Time Spend on Rollout: 92.68%
+ Run: 5    |     Iteration: 71     |    Steps Trained: 2.327e+06     |     Steps per Second: 40377     |     Time Spend on Rollout: 93.41%
+ Run: 5    |     Iteration: 72     |    Steps Trained: 2.359e+06     |     Steps per Second: 39528     |     Time Spend on Rollout: 92.57%
+ Run: 5    |     Iteration: 73     |    Steps Trained: 2.392e+06     |     Steps per Second: 41266     |     Time Spend on Rollout: 93.25%
+ Run: 5    |     Iteration: 74     |    Steps Trained: 2.425e+06     |     Steps per Second: 39836     |     Time Spend on Rollout: 93.29%
+save best policy
+ Run: 5    |     Iteration: 75     |    Steps Trained: 2.458e+06     |     Steps per Second: 39451     |     Time Spend on Rollout: 92.83%
+ Run: 5    |     Iteration: 76     |    Steps Trained: 2.490e+06     |     Steps per Second: 41414     |     Time Spend on Rollout: 93.10%
+ Run: 5    |     Iteration: 77     |    Steps Trained: 2.523e+06     |     Steps per Second: 40221     |     Time Spend on Rollout: 93.16%
+ Run: 5    |     Iteration: 78     |    Steps Trained: 2.556e+06     |     Steps per Second: 39871     |     Time Spend on Rollout: 93.24%
+ Run: 5    |     Iteration: 79     |    Steps Trained: 2.589e+06     |     Steps per Second: 41308     |     Time Spend on Rollout: 93.06%
+ Run: 5    |     Iteration: 80     |    Steps Trained: 2.621e+06     |     Steps per Second: 39513     |     Time Spend on Rollout: 93.32%
+save best policy
+ Run: 5    |     Iteration: 81     |    Steps Trained: 2.654e+06     |     Steps per Second: 39485     |     Time Spend on Rollout: 92.32%
+ Run: 5    |     Iteration: 82     |    Steps Trained: 2.687e+06     |     Steps per Second: 41100     |     Time Spend on Rollout: 93.18%
+ Run: 5    |     Iteration: 83     |    Steps Trained: 2.720e+06     |     Steps per Second: 39909     |     Time Spend on Rollout: 92.78%
+ Run: 5    |     Iteration: 84     |    Steps Trained: 2.753e+06     |     Steps per Second: 40348     |     Time Spend on Rollout: 93.21%
+save best policy
+ Run: 5    |     Iteration: 85     |    Steps Trained: 2.785e+06     |     Steps per Second: 38131     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 86     |    Steps Trained: 2.818e+06     |     Steps per Second: 40451     |     Time Spend on Rollout: 93.26%
+ Run: 5    |     Iteration: 87     |    Steps Trained: 2.851e+06     |     Steps per Second: 41166     |     Time Spend on Rollout: 93.15%
+ Run: 5    |     Iteration: 88     |    Steps Trained: 2.884e+06     |     Steps per Second: 40497     |     Time Spend on Rollout: 93.33%
+ Run: 5    |     Iteration: 89     |    Steps Trained: 2.916e+06     |     Steps per Second: 40948     |     Time Spend on Rollout: 92.57%
+ Run: 5    |     Iteration: 90     |    Steps Trained: 2.949e+06     |     Steps per Second: 40388     |     Time Spend on Rollout: 93.16%
+save best policy
+ Run: 5    |     Iteration: 91     |    Steps Trained: 2.982e+06     |     Steps per Second: 40057     |     Time Spend on Rollout: 92.68%
+save best policy
+ Run: 5    |     Iteration: 92     |    Steps Trained: 3.015e+06     |     Steps per Second: 39248     |     Time Spend on Rollout: 92.21%
+ Run: 5    |     Iteration: 93     |    Steps Trained: 3.047e+06     |     Steps per Second: 41112     |     Time Spend on Rollout: 93.05%
+ Run: 5    |     Iteration: 94     |    Steps Trained: 3.080e+06     |     Steps per Second: 41153     |     Time Spend on Rollout: 93.16%
+ Run: 5    |     Iteration: 95     |    Steps Trained: 3.113e+06     |     Steps per Second: 40667     |     Time Spend on Rollout: 93.36%
+ Run: 5    |     Iteration: 96     |    Steps Trained: 3.146e+06     |     Steps per Second: 39291     |     Time Spend on Rollout: 93.36%
+ Run: 5    |     Iteration: 97     |    Steps Trained: 3.178e+06     |     Steps per Second: 41662     |     Time Spend on Rollout: 93.06%
+ Run: 5    |     Iteration: 98     |    Steps Trained: 3.211e+06     |     Steps per Second: 40169     |     Time Spend on Rollout: 93.32%
+ Run: 5    |     Iteration: 99     |    Steps Trained: 3.244e+06     |     Steps per Second: 41130     |     Time Spend on Rollout: 92.31%
+ Run: 5    |     Iteration: 100     |    Steps Trained: 3.277e+06     |     Steps per Second: 41165     |     Time Spend on Rollout: 93.26%
+ Run: 5    |     Iteration: 101     |    Steps Trained: 3.310e+06     |     Steps per Second: 40030     |     Time Spend on Rollout: 92.85%
+ Run: 5    |     Iteration: 102     |    Steps Trained: 3.342e+06     |     Steps per Second: 41029     |     Time Spend on Rollout: 93.21%
+ Run: 5    |     Iteration: 103     |    Steps Trained: 3.375e+06     |     Steps per Second: 40455     |     Time Spend on Rollout: 93.36%
+ Run: 5    |     Iteration: 104     |    Steps Trained: 3.408e+06     |     Steps per Second: 41860     |     Time Spend on Rollout: 93.15%
+save best policy
+ Run: 5    |     Iteration: 105     |    Steps Trained: 3.441e+06     |     Steps per Second: 39538     |     Time Spend on Rollout: 92.02%
+ Run: 5    |     Iteration: 106     |    Steps Trained: 3.473e+06     |     Steps per Second: 41639     |     Time Spend on Rollout: 93.18%
+save best policy
+ Run: 5    |     Iteration: 107     |    Steps Trained: 3.506e+06     |     Steps per Second: 39698     |     Time Spend on Rollout: 92.18%
+ Run: 5    |     Iteration: 108     |    Steps Trained: 3.539e+06     |     Steps per Second: 41330     |     Time Spend on Rollout: 93.16%
+save best policy
+ Run: 5    |     Iteration: 109     |    Steps Trained: 3.572e+06     |     Steps per Second: 39305     |     Time Spend on Rollout: 92.87%
+save best policy
+ Run: 5    |     Iteration: 110     |    Steps Trained: 3.604e+06     |     Steps per Second: 40797     |     Time Spend on Rollout: 92.39%
+ Run: 5    |     Iteration: 111     |    Steps Trained: 3.637e+06     |     Steps per Second: 40603     |     Time Spend on Rollout: 93.28%
+ Run: 5    |     Iteration: 112     |    Steps Trained: 3.670e+06     |     Steps per Second: 41007     |     Time Spend on Rollout: 93.15%
+ Run: 5    |     Iteration: 113     |    Steps Trained: 3.703e+06     |     Steps per Second: 40723     |     Time Spend on Rollout: 93.17%
+ Run: 5    |     Iteration: 114     |    Steps Trained: 3.736e+06     |     Steps per Second: 40824     |     Time Spend on Rollout: 93.22%
+ Run: 5    |     Iteration: 115     |    Steps Trained: 3.768e+06     |     Steps per Second: 40688     |     Time Spend on Rollout: 93.28%
+ Run: 5    |     Iteration: 116     |    Steps Trained: 3.801e+06     |     Steps per Second: 41081     |     Time Spend on Rollout: 93.16%
+ Run: 5    |     Iteration: 117     |    Steps Trained: 3.834e+06     |     Steps per Second: 41657     |     Time Spend on Rollout: 92.93%
+ Run: 5    |     Iteration: 118     |    Steps Trained: 3.867e+06     |     Steps per Second: 41111     |     Time Spend on Rollout: 93.11%
+ Run: 5    |     Iteration: 119     |    Steps Trained: 3.899e+06     |     Steps per Second: 41037     |     Time Spend on Rollout: 93.33%
+ Run: 5    |     Iteration: 120     |    Steps Trained: 3.932e+06     |     Steps per Second: 40766     |     Time Spend on Rollout: 93.30%
+ Run: 5    |     Iteration: 121     |    Steps Trained: 3.965e+06     |     Steps per Second: 41585     |     Time Spend on Rollout: 92.98%
+save best policy
+ Run: 5    |     Iteration: 122     |    Steps Trained: 3.998e+06     |     Steps per Second: 39141     |     Time Spend on Rollout: 92.35%
+ Run: 5    |     Iteration: 123     |    Steps Trained: 4.030e+06     |     Steps per Second: 41090     |     Time Spend on Rollout: 93.23%
+ Run: 5    |     Iteration: 124     |    Steps Trained: 4.063e+06     |     Steps per Second: 41267     |     Time Spend on Rollout: 93.29%
+save best policy
+ Run: 5    |     Iteration: 125     |    Steps Trained: 4.096e+06     |     Steps per Second: 39615     |     Time Spend on Rollout: 91.37%
+ Run: 5    |     Iteration: 126     |    Steps Trained: 4.129e+06     |     Steps per Second: 41726     |     Time Spend on Rollout: 93.15%
+ Run: 5    |     Iteration: 127     |    Steps Trained: 4.162e+06     |     Steps per Second: 40361     |     Time Spend on Rollout: 93.24%
+ Run: 5    |     Iteration: 128     |    Steps Trained: 4.194e+06     |     Steps per Second: 40313     |     Time Spend on Rollout: 93.31%
+ Run: 5    |     Iteration: 129     |    Steps Trained: 4.227e+06     |     Steps per Second: 41546     |     Time Spend on Rollout: 93.09%
+ Run: 5    |     Iteration: 130     |    Steps Trained: 4.260e+06     |     Steps per Second: 41185     |     Time Spend on Rollout: 93.00%
+save best policy
+ Run: 5    |     Iteration: 131     |    Steps Trained: 4.293e+06     |     Steps per Second: 38581     |     Time Spend on Rollout: 91.59%
+ Run: 5    |     Iteration: 132     |    Steps Trained: 4.325e+06     |     Steps per Second: 42957     |     Time Spend on Rollout: 92.76%
+ Run: 5    |     Iteration: 133     |    Steps Trained: 4.358e+06     |     Steps per Second: 40578     |     Time Spend on Rollout: 93.26%
+ Run: 5    |     Iteration: 134     |    Steps Trained: 4.391e+06     |     Steps per Second: 41444     |     Time Spend on Rollout: 93.14%
+ Run: 5    |     Iteration: 135     |    Steps Trained: 4.424e+06     |     Steps per Second: 40698     |     Time Spend on Rollout: 93.21%
+ Run: 5    |     Iteration: 136     |    Steps Trained: 4.456e+06     |     Steps per Second: 41016     |     Time Spend on Rollout: 92.91%
+ Run: 5    |     Iteration: 137     |    Steps Trained: 4.489e+06     |     Steps per Second: 40832     |     Time Spend on Rollout: 93.23%
+ Run: 5    |     Iteration: 138     |    Steps Trained: 4.522e+06     |     Steps per Second: 41096     |     Time Spend on Rollout: 93.23%
+ Run: 5    |     Iteration: 139     |    Steps Trained: 4.555e+06     |     Steps per Second: 39227     |     Time Spend on Rollout: 93.14%
+ Run: 5    |     Iteration: 140     |    Steps Trained: 4.588e+06     |     Steps per Second: 40960     |     Time Spend on Rollout: 93.12%
+ Run: 5    |     Iteration: 141     |    Steps Trained: 4.620e+06     |     Steps per Second: 40924     |     Time Spend on Rollout: 93.13%
+ Run: 5    |     Iteration: 142     |    Steps Trained: 4.653e+06     |     Steps per Second: 39873     |     Time Spend on Rollout: 93.39%
+ Run: 5    |     Iteration: 143     |    Steps Trained: 4.686e+06     |     Steps per Second: 40193     |     Time Spend on Rollout: 93.24%
+ Run: 5    |     Iteration: 144     |    Steps Trained: 4.719e+06     |     Steps per Second: 40682     |     Time Spend on Rollout: 93.32%
+ Run: 5    |     Iteration: 145     |    Steps Trained: 4.751e+06     |     Steps per Second: 41755     |     Time Spend on Rollout: 93.11%
+ Run: 5    |     Iteration: 146     |    Steps Trained: 4.784e+06     |     Steps per Second: 41545     |     Time Spend on Rollout: 93.08%
+ Run: 5    |     Iteration: 147     |    Steps Trained: 4.817e+06     |     Steps per Second: 40319     |     Time Spend on Rollout: 93.10%
+ Run: 5    |     Iteration: 148     |    Steps Trained: 4.850e+06     |     Steps per Second: 41966     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 149     |    Steps Trained: 4.882e+06     |     Steps per Second: 41220     |     Time Spend on Rollout: 93.19%
+save best policy
+ Run: 5    |     Iteration: 150     |    Steps Trained: 4.915e+06     |     Steps per Second: 40328     |     Time Spend on Rollout: 92.22%
+ Run: 5    |     Iteration: 151     |    Steps Trained: 4.948e+06     |     Steps per Second: 40468     |     Time Spend on Rollout: 93.24%
+ Run: 5    |     Iteration: 152     |    Steps Trained: 4.981e+06     |     Steps per Second: 42571     |     Time Spend on Rollout: 92.83%
+ Run: 5    |     Iteration: 153     |    Steps Trained: 5.014e+06     |     Steps per Second: 40585     |     Time Spend on Rollout: 93.02%
+ Run: 5    |     Iteration: 154     |    Steps Trained: 5.046e+06     |     Steps per Second: 39167     |     Time Spend on Rollout: 93.28%
+save best policy
+ Run: 5    |     Iteration: 155     |    Steps Trained: 5.079e+06     |     Steps per Second: 39834     |     Time Spend on Rollout: 92.96%
+ Run: 5    |     Iteration: 156     |    Steps Trained: 5.112e+06     |     Steps per Second: 42024     |     Time Spend on Rollout: 92.13%
+ Run: 5    |     Iteration: 157     |    Steps Trained: 5.145e+06     |     Steps per Second: 41908     |     Time Spend on Rollout: 93.09%
+ Run: 5    |     Iteration: 158     |    Steps Trained: 5.177e+06     |     Steps per Second: 41759     |     Time Spend on Rollout: 92.87%
+ Run: 5    |     Iteration: 159     |    Steps Trained: 5.210e+06     |     Steps per Second: 41203     |     Time Spend on Rollout: 92.98%
+ Run: 5    |     Iteration: 160     |    Steps Trained: 5.243e+06     |     Steps per Second: 40846     |     Time Spend on Rollout: 93.24%
+ Run: 5    |     Iteration: 161     |    Steps Trained: 5.276e+06     |     Steps per Second: 42099     |     Time Spend on Rollout: 92.98%
+ Run: 5    |     Iteration: 162     |    Steps Trained: 5.308e+06     |     Steps per Second: 41990     |     Time Spend on Rollout: 93.11%
+ Run: 5    |     Iteration: 163     |    Steps Trained: 5.341e+06     |     Steps per Second: 40685     |     Time Spend on Rollout: 93.19%
+save best policy
+ Run: 5    |     Iteration: 164     |    Steps Trained: 5.374e+06     |     Steps per Second: 40150     |     Time Spend on Rollout: 92.97%
+save best policy
+ Run: 5    |     Iteration: 165     |    Steps Trained: 5.407e+06     |     Steps per Second: 39615     |     Time Spend on Rollout: 92.30%
+ Run: 5    |     Iteration: 166     |    Steps Trained: 5.439e+06     |     Steps per Second: 41021     |     Time Spend on Rollout: 92.28%
+ Run: 5    |     Iteration: 167     |    Steps Trained: 5.472e+06     |     Steps per Second: 41921     |     Time Spend on Rollout: 93.06%
+ Run: 5    |     Iteration: 168     |    Steps Trained: 5.505e+06     |     Steps per Second: 40268     |     Time Spend on Rollout: 93.34%
+ Run: 5    |     Iteration: 169     |    Steps Trained: 5.538e+06     |     Steps per Second: 40314     |     Time Spend on Rollout: 93.17%
+ Run: 5    |     Iteration: 170     |    Steps Trained: 5.571e+06     |     Steps per Second: 41170     |     Time Spend on Rollout: 93.17%
+ Run: 5    |     Iteration: 171     |    Steps Trained: 5.603e+06     |     Steps per Second: 41149     |     Time Spend on Rollout: 92.27%
+ Run: 5    |     Iteration: 172     |    Steps Trained: 5.636e+06     |     Steps per Second: 41926     |     Time Spend on Rollout: 92.81%
+ Run: 5    |     Iteration: 173     |    Steps Trained: 5.669e+06     |     Steps per Second: 41013     |     Time Spend on Rollout: 92.87%
+ Run: 5    |     Iteration: 174     |    Steps Trained: 5.702e+06     |     Steps per Second: 40897     |     Time Spend on Rollout: 93.04%
+ Run: 5    |     Iteration: 175     |    Steps Trained: 5.734e+06     |     Steps per Second: 39687     |     Time Spend on Rollout: 93.31%
+ Run: 5    |     Iteration: 176     |    Steps Trained: 5.767e+06     |     Steps per Second: 40741     |     Time Spend on Rollout: 92.47%
+ Run: 5    |     Iteration: 177     |    Steps Trained: 5.800e+06     |     Steps per Second: 40773     |     Time Spend on Rollout: 93.00%
+save best policy
+ Run: 5    |     Iteration: 178     |    Steps Trained: 5.833e+06     |     Steps per Second: 40663     |     Time Spend on Rollout: 91.36%
+save best policy
+ Run: 5    |     Iteration: 179     |    Steps Trained: 5.865e+06     |     Steps per Second: 40382     |     Time Spend on Rollout: 92.49%
+ Run: 5    |     Iteration: 180     |    Steps Trained: 5.898e+06     |     Steps per Second: 40797     |     Time Spend on Rollout: 93.23%
+ Run: 5    |     Iteration: 181     |    Steps Trained: 5.931e+06     |     Steps per Second: 41736     |     Time Spend on Rollout: 93.01%
+ Run: 5    |     Iteration: 182     |    Steps Trained: 5.964e+06     |     Steps per Second: 41656     |     Time Spend on Rollout: 93.02%
+ Run: 5    |     Iteration: 183     |    Steps Trained: 5.997e+06     |     Steps per Second: 41970     |     Time Spend on Rollout: 93.03%
+ Run: 5    |     Iteration: 184     |    Steps Trained: 6.029e+06     |     Steps per Second: 41744     |     Time Spend on Rollout: 93.12%
+ Run: 5    |     Iteration: 185     |    Steps Trained: 6.062e+06     |     Steps per Second: 41255     |     Time Spend on Rollout: 93.09%
+save best policy
+ Run: 5    |     Iteration: 186     |    Steps Trained: 6.095e+06     |     Steps per Second: 40408     |     Time Spend on Rollout: 92.43%
+ Run: 5    |     Iteration: 187     |    Steps Trained: 6.128e+06     |     Steps per Second: 41747     |     Time Spend on Rollout: 92.96%
+ Run: 5    |     Iteration: 188     |    Steps Trained: 6.160e+06     |     Steps per Second: 41892     |     Time Spend on Rollout: 92.97%
+ Run: 5    |     Iteration: 189     |    Steps Trained: 6.193e+06     |     Steps per Second: 42006     |     Time Spend on Rollout: 93.00%
+ Run: 5    |     Iteration: 190     |    Steps Trained: 6.226e+06     |     Steps per Second: 41282     |     Time Spend on Rollout: 93.02%
+ Run: 5    |     Iteration: 191     |    Steps Trained: 6.259e+06     |     Steps per Second: 42657     |     Time Spend on Rollout: 92.85%
+ Run: 5    |     Iteration: 192     |    Steps Trained: 6.291e+06     |     Steps per Second: 41788     |     Time Spend on Rollout: 93.18%
+ Run: 5    |     Iteration: 193     |    Steps Trained: 6.324e+06     |     Steps per Second: 41411     |     Time Spend on Rollout: 93.18%
+ Run: 5    |     Iteration: 194     |    Steps Trained: 6.357e+06     |     Steps per Second: 41707     |     Time Spend on Rollout: 92.84%
+ Run: 5    |     Iteration: 195     |    Steps Trained: 6.390e+06     |     Steps per Second: 41750     |     Time Spend on Rollout: 92.99%
+ Run: 5    |     Iteration: 196     |    Steps Trained: 6.423e+06     |     Steps per Second: 42293     |     Time Spend on Rollout: 92.97%
+ Run: 5    |     Iteration: 197     |    Steps Trained: 6.455e+06     |     Steps per Second: 41722     |     Time Spend on Rollout: 93.00%
+ Run: 5    |     Iteration: 198     |    Steps Trained: 6.488e+06     |     Steps per Second: 42057     |     Time Spend on Rollout: 92.98%
+ Run: 5    |     Iteration: 199     |    Steps Trained: 6.521e+06     |     Steps per Second: 41074     |     Time Spend on Rollout: 93.08%
+ Run: 5    |     Iteration: 200     |    Steps Trained: 6.554e+06     |     Steps per Second: 41401     |     Time Spend on Rollout: 93.17%
+ Run: 5    |     Iteration: 201     |    Steps Trained: 6.586e+06     |     Steps per Second: 43676     |     Time Spend on Rollout: 92.62%
+ Run: 5    |     Iteration: 202     |    Steps Trained: 6.619e+06     |     Steps per Second: 40872     |     Time Spend on Rollout: 93.11%
+save best policy
+ Run: 5    |     Iteration: 203     |    Steps Trained: 6.652e+06     |     Steps per Second: 40876     |     Time Spend on Rollout: 92.58%
+save best policy
+ Run: 5    |     Iteration: 204     |    Steps Trained: 6.685e+06     |     Steps per Second: 40607     |     Time Spend on Rollout: 92.24%
+ Run: 5    |     Iteration: 205     |    Steps Trained: 6.717e+06     |     Steps per Second: 41805     |     Time Spend on Rollout: 92.21%
+ Run: 5    |     Iteration: 206     |    Steps Trained: 6.750e+06     |     Steps per Second: 41134     |     Time Spend on Rollout: 93.20%
+ Run: 5    |     Iteration: 207     |    Steps Trained: 6.783e+06     |     Steps per Second: 41925     |     Time Spend on Rollout: 92.89%
+ Run: 5    |     Iteration: 208     |    Steps Trained: 6.816e+06     |     Steps per Second: 41402     |     Time Spend on Rollout: 93.11%
+save best policy
+ Run: 5    |     Iteration: 209     |    Steps Trained: 6.849e+06     |     Steps per Second: 40262     |     Time Spend on Rollout: 91.84%
+ Run: 5    |     Iteration: 210     |    Steps Trained: 6.881e+06     |     Steps per Second: 40577     |     Time Spend on Rollout: 92.24%
+ Run: 5    |     Iteration: 211     |    Steps Trained: 6.914e+06     |     Steps per Second: 41596     |     Time Spend on Rollout: 93.13%
+ Run: 5    |     Iteration: 212     |    Steps Trained: 6.947e+06     |     Steps per Second: 42319     |     Time Spend on Rollout: 93.09%
+ Run: 5    |     Iteration: 213     |    Steps Trained: 6.980e+06     |     Steps per Second: 41741     |     Time Spend on Rollout: 93.06%
+ Run: 5    |     Iteration: 214     |    Steps Trained: 7.012e+06     |     Steps per Second: 41450     |     Time Spend on Rollout: 93.04%
+ Run: 5    |     Iteration: 215     |    Steps Trained: 7.045e+06     |     Steps per Second: 40710     |     Time Spend on Rollout: 92.64%
+ Run: 5    |     Iteration: 216     |    Steps Trained: 7.078e+06     |     Steps per Second: 43398     |     Time Spend on Rollout: 92.86%
+ Run: 5    |     Iteration: 217     |    Steps Trained: 7.111e+06     |     Steps per Second: 41598     |     Time Spend on Rollout: 93.21%
+ Run: 5    |     Iteration: 218     |    Steps Trained: 7.143e+06     |     Steps per Second: 41864     |     Time Spend on Rollout: 93.12%
+ Run: 5    |     Iteration: 219     |    Steps Trained: 7.176e+06     |     Steps per Second: 41050     |     Time Spend on Rollout: 93.21%
+ Run: 5    |     Iteration: 220     |    Steps Trained: 7.209e+06     |     Steps per Second: 42233     |     Time Spend on Rollout: 92.82%
+save best policy
+ Run: 5    |     Iteration: 221     |    Steps Trained: 7.242e+06     |     Steps per Second: 39979     |     Time Spend on Rollout: 92.12%
+ Run: 5    |     Iteration: 222     |    Steps Trained: 7.274e+06     |     Steps per Second: 42776     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 223     |    Steps Trained: 7.307e+06     |     Steps per Second: 40120     |     Time Spend on Rollout: 93.38%
+ Run: 5    |     Iteration: 224     |    Steps Trained: 7.340e+06     |     Steps per Second: 42481     |     Time Spend on Rollout: 92.99%
+save best policy
+ Run: 5    |     Iteration: 225     |    Steps Trained: 7.373e+06     |     Steps per Second: 41150     |     Time Spend on Rollout: 91.86%
+ Run: 5    |     Iteration: 226     |    Steps Trained: 7.406e+06     |     Steps per Second: 42327     |     Time Spend on Rollout: 92.71%
+ Run: 5    |     Iteration: 227     |    Steps Trained: 7.438e+06     |     Steps per Second: 41969     |     Time Spend on Rollout: 92.88%
+ Run: 5    |     Iteration: 228     |    Steps Trained: 7.471e+06     |     Steps per Second: 42389     |     Time Spend on Rollout: 92.98%
+ Run: 5    |     Iteration: 229     |    Steps Trained: 7.504e+06     |     Steps per Second: 39700     |     Time Spend on Rollout: 93.48%
+ Run: 5    |     Iteration: 230     |    Steps Trained: 7.537e+06     |     Steps per Second: 43682     |     Time Spend on Rollout: 92.79%
+ Run: 5    |     Iteration: 231     |    Steps Trained: 7.569e+06     |     Steps per Second: 41901     |     Time Spend on Rollout: 92.95%
+ Run: 5    |     Iteration: 232     |    Steps Trained: 7.602e+06     |     Steps per Second: 42471     |     Time Spend on Rollout: 92.80%
+ Run: 5    |     Iteration: 233     |    Steps Trained: 7.635e+06     |     Steps per Second: 41513     |     Time Spend on Rollout: 93.15%
+save best policy
+ Run: 5    |     Iteration: 234     |    Steps Trained: 7.668e+06     |     Steps per Second: 41674     |     Time Spend on Rollout: 91.98%
+ Run: 5    |     Iteration: 235     |    Steps Trained: 7.700e+06     |     Steps per Second: 42074     |     Time Spend on Rollout: 92.80%
+ Run: 5    |     Iteration: 236     |    Steps Trained: 7.733e+06     |     Steps per Second: 41309     |     Time Spend on Rollout: 93.17%
+ Run: 5    |     Iteration: 237     |    Steps Trained: 7.766e+06     |     Steps per Second: 41998     |     Time Spend on Rollout: 93.09%
+ Run: 5    |     Iteration: 238     |    Steps Trained: 7.799e+06     |     Steps per Second: 42393     |     Time Spend on Rollout: 93.01%
+save best policy
+ Run: 5    |     Iteration: 239     |    Steps Trained: 7.832e+06     |     Steps per Second: 40900     |     Time Spend on Rollout: 91.70%
+ Run: 5    |     Iteration: 240     |    Steps Trained: 7.864e+06     |     Steps per Second: 42359     |     Time Spend on Rollout: 92.88%
+save best policy
+ Run: 5    |     Iteration: 241     |    Steps Trained: 7.897e+06     |     Steps per Second: 40011     |     Time Spend on Rollout: 92.03%
+save best policy
+ Run: 5    |     Iteration: 242     |    Steps Trained: 7.930e+06     |     Steps per Second: 41029     |     Time Spend on Rollout: 91.86%
+ Run: 5    |     Iteration: 243     |    Steps Trained: 7.963e+06     |     Steps per Second: 42269     |     Time Spend on Rollout: 93.03%
+ Run: 5    |     Iteration: 244     |    Steps Trained: 7.995e+06     |     Steps per Second: 43049     |     Time Spend on Rollout: 92.74%
+ Run: 5    |     Iteration: 245     |    Steps Trained: 8.028e+06     |     Steps per Second: 42134     |     Time Spend on Rollout: 92.88%
+ Run: 5    |     Iteration: 246     |    Steps Trained: 8.061e+06     |     Steps per Second: 41996     |     Time Spend on Rollout: 93.01%
+ Run: 5    |     Iteration: 247     |    Steps Trained: 8.094e+06     |     Steps per Second: 41922     |     Time Spend on Rollout: 93.14%
+ Run: 5    |     Iteration: 248     |    Steps Trained: 8.126e+06     |     Steps per Second: 42345     |     Time Spend on Rollout: 92.91%
+ Run: 5    |     Iteration: 249     |    Steps Trained: 8.159e+06     |     Steps per Second: 43069     |     Time Spend on Rollout: 92.78%
+ Run: 5    |     Iteration: 250     |    Steps Trained: 8.192e+06     |     Steps per Second: 42322     |     Time Spend on Rollout: 92.94%
+ Run: 5    |     Iteration: 251     |    Steps Trained: 8.225e+06     |     Steps per Second: 41698     |     Time Spend on Rollout: 93.15%
+ Run: 5    |     Iteration: 252     |    Steps Trained: 8.258e+06     |     Steps per Second: 41716     |     Time Spend on Rollout: 92.89%
+ Run: 5    |     Iteration: 253     |    Steps Trained: 8.290e+06     |     Steps per Second: 41207     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 254     |    Steps Trained: 8.323e+06     |     Steps per Second: 42773     |     Time Spend on Rollout: 92.85%
+save best policy
+ Run: 5    |     Iteration: 255     |    Steps Trained: 8.356e+06     |     Steps per Second: 41091     |     Time Spend on Rollout: 92.51%
+ Run: 5    |     Iteration: 256     |    Steps Trained: 8.389e+06     |     Steps per Second: 42625     |     Time Spend on Rollout: 93.02%
+ Run: 5    |     Iteration: 257     |    Steps Trained: 8.421e+06     |     Steps per Second: 42788     |     Time Spend on Rollout: 92.85%
+ Run: 5    |     Iteration: 258     |    Steps Trained: 8.454e+06     |     Steps per Second: 42842     |     Time Spend on Rollout: 92.87%
+ Run: 5    |     Iteration: 259     |    Steps Trained: 8.487e+06     |     Steps per Second: 42420     |     Time Spend on Rollout: 92.92%
+ Run: 5    |     Iteration: 260     |    Steps Trained: 8.520e+06     |     Steps per Second: 41699     |     Time Spend on Rollout: 93.13%
+ Run: 5    |     Iteration: 261     |    Steps Trained: 8.552e+06     |     Steps per Second: 42679     |     Time Spend on Rollout: 92.89%
+ Run: 5    |     Iteration: 262     |    Steps Trained: 8.585e+06     |     Steps per Second: 42859     |     Time Spend on Rollout: 92.78%
+ Run: 5    |     Iteration: 263     |    Steps Trained: 8.618e+06     |     Steps per Second: 43101     |     Time Spend on Rollout: 92.88%
+save best policy
+ Run: 5    |     Iteration: 264     |    Steps Trained: 8.651e+06     |     Steps per Second: 40955     |     Time Spend on Rollout: 91.84%
+ Run: 5    |     Iteration: 265     |    Steps Trained: 8.684e+06     |     Steps per Second: 42402     |     Time Spend on Rollout: 92.96%
+ Run: 5    |     Iteration: 266     |    Steps Trained: 8.716e+06     |     Steps per Second: 43348     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 267     |    Steps Trained: 8.749e+06     |     Steps per Second: 41521     |     Time Spend on Rollout: 93.08%
+ Run: 5    |     Iteration: 268     |    Steps Trained: 8.782e+06     |     Steps per Second: 43427     |     Time Spend on Rollout: 92.79%
+ Run: 5    |     Iteration: 269     |    Steps Trained: 8.815e+06     |     Steps per Second: 42058     |     Time Spend on Rollout: 92.97%
+ Run: 5    |     Iteration: 270     |    Steps Trained: 8.847e+06     |     Steps per Second: 42040     |     Time Spend on Rollout: 92.99%
+ Run: 5    |     Iteration: 271     |    Steps Trained: 8.880e+06     |     Steps per Second: 43503     |     Time Spend on Rollout: 92.70%
+ Run: 5    |     Iteration: 272     |    Steps Trained: 8.913e+06     |     Steps per Second: 42399     |     Time Spend on Rollout: 92.96%
+ Run: 5    |     Iteration: 273     |    Steps Trained: 8.946e+06     |     Steps per Second: 42860     |     Time Spend on Rollout: 92.91%
+ Run: 5    |     Iteration: 274     |    Steps Trained: 8.978e+06     |     Steps per Second: 42749     |     Time Spend on Rollout: 92.80%
+ Run: 5    |     Iteration: 275     |    Steps Trained: 9.011e+06     |     Steps per Second: 43044     |     Time Spend on Rollout: 92.67%
+ Run: 5    |     Iteration: 276     |    Steps Trained: 9.044e+06     |     Steps per Second: 42763     |     Time Spend on Rollout: 92.84%
+ Run: 5    |     Iteration: 277     |    Steps Trained: 9.077e+06     |     Steps per Second: 41439     |     Time Spend on Rollout: 93.18%
+ Run: 5    |     Iteration: 278     |    Steps Trained: 9.110e+06     |     Steps per Second: 41828     |     Time Spend on Rollout: 92.97%
+ Run: 5    |     Iteration: 279     |    Steps Trained: 9.142e+06     |     Steps per Second: 43119     |     Time Spend on Rollout: 91.72%
+ Run: 5    |     Iteration: 280     |    Steps Trained: 9.175e+06     |     Steps per Second: 42848     |     Time Spend on Rollout: 92.96%
+ Run: 5    |     Iteration: 281     |    Steps Trained: 9.208e+06     |     Steps per Second: 42927     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 282     |    Steps Trained: 9.241e+06     |     Steps per Second: 42673     |     Time Spend on Rollout: 92.83%
+ Run: 5    |     Iteration: 283     |    Steps Trained: 9.273e+06     |     Steps per Second: 42353     |     Time Spend on Rollout: 92.93%
+ Run: 5    |     Iteration: 284     |    Steps Trained: 9.306e+06     |     Steps per Second: 43215     |     Time Spend on Rollout: 92.83%
+ Run: 5    |     Iteration: 285     |    Steps Trained: 9.339e+06     |     Steps per Second: 42690     |     Time Spend on Rollout: 92.84%
+ Run: 5    |     Iteration: 286     |    Steps Trained: 9.372e+06     |     Steps per Second: 41734     |     Time Spend on Rollout: 92.26%
+ Run: 5    |     Iteration: 287     |    Steps Trained: 9.404e+06     |     Steps per Second: 42733     |     Time Spend on Rollout: 92.88%
+ Run: 5    |     Iteration: 288     |    Steps Trained: 9.437e+06     |     Steps per Second: 42765     |     Time Spend on Rollout: 92.96%
+ Run: 5    |     Iteration: 289     |    Steps Trained: 9.470e+06     |     Steps per Second: 42518     |     Time Spend on Rollout: 92.99%
+ Run: 5    |     Iteration: 290     |    Steps Trained: 9.503e+06     |     Steps per Second: 43781     |     Time Spend on Rollout: 92.63%
+ Run: 5    |     Iteration: 291     |    Steps Trained: 9.535e+06     |     Steps per Second: 42103     |     Time Spend on Rollout: 92.88%
+ Run: 5    |     Iteration: 292     |    Steps Trained: 9.568e+06     |     Steps per Second: 43316     |     Time Spend on Rollout: 91.77%
+ Run: 5    |     Iteration: 293     |    Steps Trained: 9.601e+06     |     Steps per Second: 43225     |     Time Spend on Rollout: 92.76%
+ Run: 5    |     Iteration: 294     |    Steps Trained: 9.634e+06     |     Steps per Second: 43181     |     Time Spend on Rollout: 92.64%
+ Run: 5    |     Iteration: 295     |    Steps Trained: 9.667e+06     |     Steps per Second: 42924     |     Time Spend on Rollout: 92.93%
+save best policy
+ Run: 5    |     Iteration: 296     |    Steps Trained: 9.699e+06     |     Steps per Second: 40767     |     Time Spend on Rollout: 91.99%
+ Run: 5    |     Iteration: 297     |    Steps Trained: 9.732e+06     |     Steps per Second: 42655     |     Time Spend on Rollout: 92.84%
+save best policy
+ Run: 5    |     Iteration: 298     |    Steps Trained: 9.765e+06     |     Steps per Second: 41633     |     Time Spend on Rollout: 92.04%
+ Run: 5    |     Iteration: 299     |    Steps Trained: 9.798e+06     |     Steps per Second: 43012     |     Time Spend on Rollout: 92.88%
+ Run: 5    |     Iteration: 300     |    Steps Trained: 9.830e+06     |     Steps per Second: 42290     |     Time Spend on Rollout: 93.10%
+ Run: 5    |     Iteration: 301     |    Steps Trained: 9.863e+06     |     Steps per Second: 42744     |     Time Spend on Rollout: 92.04%
+save best policy
+ Run: 5    |     Iteration: 302     |    Steps Trained: 9.896e+06     |     Steps per Second: 41389     |     Time Spend on Rollout: 91.24%
+ Run: 5    |     Iteration: 303     |    Steps Trained: 9.929e+06     |     Steps per Second: 43485     |     Time Spend on Rollout: 92.70%
+ Run: 5    |     Iteration: 304     |    Steps Trained: 9.961e+06     |     Steps per Second: 42490     |     Time Spend on Rollout: 93.04%
+ Run: 5    |     Iteration: 305     |    Steps Trained: 9.994e+06     |     Steps per Second: 42948     |     Time Spend on Rollout: 92.78%
+ Run: 5    |     Iteration: 306     |    Steps Trained: 1.003e+07     |     Steps per Second: 42816     |     Time Spend on Rollout: 92.89%
+ Run: 5    |     Iteration: 307     |    Steps Trained: 1.006e+07     |     Steps per Second: 42402     |     Time Spend on Rollout: 92.94%
+ Run: 5    |     Iteration: 308     |    Steps Trained: 1.009e+07     |     Steps per Second: 43050     |     Time Spend on Rollout: 92.79%
+ Run: 5    |     Iteration: 309     |    Steps Trained: 1.013e+07     |     Steps per Second: 42057     |     Time Spend on Rollout: 93.01%
+ Run: 5    |     Iteration: 310     |    Steps Trained: 1.016e+07     |     Steps per Second: 42782     |     Time Spend on Rollout: 92.71%
+save best policy
+ Run: 5    |     Iteration: 311     |    Steps Trained: 1.019e+07     |     Steps per Second: 41248     |     Time Spend on Rollout: 92.08%
+ Run: 5    |     Iteration: 312     |    Steps Trained: 1.022e+07     |     Steps per Second: 43385     |     Time Spend on Rollout: 92.83%
+ Run: 5    |     Iteration: 313     |    Steps Trained: 1.026e+07     |     Steps per Second: 41857     |     Time Spend on Rollout: 93.14%
+ Run: 5    |     Iteration: 314     |    Steps Trained: 1.029e+07     |     Steps per Second: 43413     |     Time Spend on Rollout: 92.13%
+ Run: 5    |     Iteration: 315     |    Steps Trained: 1.032e+07     |     Steps per Second: 42247     |     Time Spend on Rollout: 92.87%
+ Run: 5    |     Iteration: 316     |    Steps Trained: 1.035e+07     |     Steps per Second: 43843     |     Time Spend on Rollout: 92.84%
+ Run: 5    |     Iteration: 317     |    Steps Trained: 1.039e+07     |     Steps per Second: 42825     |     Time Spend on Rollout: 92.87%
+ Run: 5    |     Iteration: 318     |    Steps Trained: 1.042e+07     |     Steps per Second: 42697     |     Time Spend on Rollout: 92.61%
+ Run: 5    |     Iteration: 319     |    Steps Trained: 1.045e+07     |     Steps per Second: 43505     |     Time Spend on Rollout: 92.94%
+ Run: 5    |     Iteration: 320     |    Steps Trained: 1.049e+07     |     Steps per Second: 43257     |     Time Spend on Rollout: 92.80%
+ Run: 5    |     Iteration: 321     |    Steps Trained: 1.052e+07     |     Steps per Second: 43525     |     Time Spend on Rollout: 92.73%
+ Run: 5    |     Iteration: 322     |    Steps Trained: 1.055e+07     |     Steps per Second: 43245     |     Time Spend on Rollout: 92.74%
+ Run: 5    |     Iteration: 323     |    Steps Trained: 1.058e+07     |     Steps per Second: 42777     |     Time Spend on Rollout: 92.88%
+ Run: 5    |     Iteration: 324     |    Steps Trained: 1.062e+07     |     Steps per Second: 42552     |     Time Spend on Rollout: 92.85%
+ Run: 5    |     Iteration: 325     |    Steps Trained: 1.065e+07     |     Steps per Second: 42746     |     Time Spend on Rollout: 92.76%
+ Run: 5    |     Iteration: 326     |    Steps Trained: 1.068e+07     |     Steps per Second: 42085     |     Time Spend on Rollout: 93.04%
+ Run: 5    |     Iteration: 327     |    Steps Trained: 1.072e+07     |     Steps per Second: 42569     |     Time Spend on Rollout: 91.81%
+ Run: 5    |     Iteration: 328     |    Steps Trained: 1.075e+07     |     Steps per Second: 43190     |     Time Spend on Rollout: 92.53%
+ Run: 5    |     Iteration: 329     |    Steps Trained: 1.078e+07     |     Steps per Second: 43282     |     Time Spend on Rollout: 92.86%
+ Run: 5    |     Iteration: 330     |    Steps Trained: 1.081e+07     |     Steps per Second: 41893     |     Time Spend on Rollout: 93.06%
+ Run: 5    |     Iteration: 331     |    Steps Trained: 1.085e+07     |     Steps per Second: 43037     |     Time Spend on Rollout: 92.46%
+ Run: 5    |     Iteration: 332     |    Steps Trained: 1.088e+07     |     Steps per Second: 43474     |     Time Spend on Rollout: 92.86%
+ Run: 5    |     Iteration: 333     |    Steps Trained: 1.091e+07     |     Steps per Second: 43575     |     Time Spend on Rollout: 92.73%
+ Run: 5    |     Iteration: 334     |    Steps Trained: 1.094e+07     |     Steps per Second: 43578     |     Time Spend on Rollout: 92.47%
+ Run: 5    |     Iteration: 335     |    Steps Trained: 1.098e+07     |     Steps per Second: 42752     |     Time Spend on Rollout: 92.99%
+ Run: 5    |     Iteration: 336     |    Steps Trained: 1.101e+07     |     Steps per Second: 42760     |     Time Spend on Rollout: 92.82%
+save best policy
+ Run: 5    |     Iteration: 337     |    Steps Trained: 1.104e+07     |     Steps per Second: 41630     |     Time Spend on Rollout: 91.77%
+ Run: 5    |     Iteration: 338     |    Steps Trained: 1.108e+07     |     Steps per Second: 43286     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 339     |    Steps Trained: 1.111e+07     |     Steps per Second: 42468     |     Time Spend on Rollout: 92.97%
+ Run: 5    |     Iteration: 340     |    Steps Trained: 1.114e+07     |     Steps per Second: 43319     |     Time Spend on Rollout: 92.69%
+ Run: 5    |     Iteration: 341     |    Steps Trained: 1.117e+07     |     Steps per Second: 43200     |     Time Spend on Rollout: 92.81%
+ Run: 5    |     Iteration: 342     |    Steps Trained: 1.121e+07     |     Steps per Second: 42827     |     Time Spend on Rollout: 92.92%
+ Run: 5    |     Iteration: 343     |    Steps Trained: 1.124e+07     |     Steps per Second: 43219     |     Time Spend on Rollout: 92.60%
+ Run: 5    |     Iteration: 344     |    Steps Trained: 1.127e+07     |     Steps per Second: 42518     |     Time Spend on Rollout: 91.90%
+ Run: 5    |     Iteration: 345     |    Steps Trained: 1.130e+07     |     Steps per Second: 43916     |     Time Spend on Rollout: 92.66%
+ Run: 5    |     Iteration: 346     |    Steps Trained: 1.134e+07     |     Steps per Second: 42610     |     Time Spend on Rollout: 92.87%
+ Run: 5    |     Iteration: 347     |    Steps Trained: 1.137e+07     |     Steps per Second: 43530     |     Time Spend on Rollout: 92.73%
+ Run: 5    |     Iteration: 348     |    Steps Trained: 1.140e+07     |     Steps per Second: 42525     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 349     |    Steps Trained: 1.144e+07     |     Steps per Second: 42883     |     Time Spend on Rollout: 92.22%
+ Run: 5    |     Iteration: 350     |    Steps Trained: 1.147e+07     |     Steps per Second: 42870     |     Time Spend on Rollout: 92.92%
+ Run: 5    |     Iteration: 351     |    Steps Trained: 1.150e+07     |     Steps per Second: 42902     |     Time Spend on Rollout: 92.77%
+ Run: 5    |     Iteration: 352     |    Steps Trained: 1.153e+07     |     Steps per Second: 43770     |     Time Spend on Rollout: 92.69%
+ Run: 5    |     Iteration: 353     |    Steps Trained: 1.157e+07     |     Steps per Second: 43610     |     Time Spend on Rollout: 92.66%
+ Run: 5    |     Iteration: 354     |    Steps Trained: 1.160e+07     |     Steps per Second: 43585     |     Time Spend on Rollout: 92.74%
+ Run: 5    |     Iteration: 355     |    Steps Trained: 1.163e+07     |     Steps per Second: 43488     |     Time Spend on Rollout: 92.74%
+ Run: 5    |     Iteration: 356     |    Steps Trained: 1.167e+07     |     Steps per Second: 44022     |     Time Spend on Rollout: 92.76%
+ Run: 5    |     Iteration: 357     |    Steps Trained: 1.170e+07     |     Steps per Second: 42818     |     Time Spend on Rollout: 92.89%
+ Run: 5    |     Iteration: 358     |    Steps Trained: 1.173e+07     |     Steps per Second: 43023     |     Time Spend on Rollout: 92.72%
+ Run: 5    |     Iteration: 359     |    Steps Trained: 1.176e+07     |     Steps per Second: 42785     |     Time Spend on Rollout: 92.91%
+save best policy
+ Run: 5    |     Iteration: 360     |    Steps Trained: 1.180e+07     |     Steps per Second: 41629     |     Time Spend on Rollout: 92.62%
+ Run: 5    |     Iteration: 361     |    Steps Trained: 1.183e+07     |     Steps per Second: 43008     |     Time Spend on Rollout: 91.78%
+ Run: 5    |     Iteration: 362     |    Steps Trained: 1.186e+07     |     Steps per Second: 42487     |     Time Spend on Rollout: 92.95%
+ Run: 5    |     Iteration: 363     |    Steps Trained: 1.189e+07     |     Steps per Second: 43164     |     Time Spend on Rollout: 92.77%
+ Run: 5    |     Iteration: 364     |    Steps Trained: 1.193e+07     |     Steps per Second: 42897     |     Time Spend on Rollout: 92.75%
+ Run: 5    |     Iteration: 365     |    Steps Trained: 1.196e+07     |     Steps per Second: 42857     |     Time Spend on Rollout: 92.85%
+save best policy
+ Run: 5    |     Iteration: 366     |    Steps Trained: 1.199e+07     |     Steps per Second: 42867     |     Time Spend on Rollout: 92.00%
+ Run: 5    |     Iteration: 367     |    Steps Trained: 1.203e+07     |     Steps per Second: 43291     |     Time Spend on Rollout: 92.55%
+ Run: 5    |     Iteration: 368     |    Steps Trained: 1.206e+07     |     Steps per Second: 41356     |     Time Spend on Rollout: 91.67%
+save best policy
+ Run: 5    |     Iteration: 369     |    Steps Trained: 1.209e+07     |     Steps per Second: 36276     |     Time Spend on Rollout: 92.60%
+ Run: 5    |     Iteration: 370     |    Steps Trained: 1.212e+07     |     Steps per Second: 38268     |     Time Spend on Rollout: 93.22%
+ Run: 5    |     Iteration: 371     |    Steps Trained: 1.216e+07     |     Steps per Second: 39901     |     Time Spend on Rollout: 92.77%
+ Run: 5    |     Iteration: 372     |    Steps Trained: 1.219e+07     |     Steps per Second: 38778     |     Time Spend on Rollout: 92.22%
+save best policy
+ Run: 5    |     Iteration: 373     |    Steps Trained: 1.222e+07     |     Steps per Second: 37638     |     Time Spend on Rollout: 92.26%
+ Run: 5    |     Iteration: 374     |    Steps Trained: 1.226e+07     |     Steps per Second: 39183     |     Time Spend on Rollout: 93.40%
+ Run: 5    |     Iteration: 375     |    Steps Trained: 1.229e+07     |     Steps per Second: 41436     |     Time Spend on Rollout: 92.26%
+ Run: 5    |     Iteration: 376     |    Steps Trained: 1.232e+07     |     Steps per Second: 36435     |     Time Spend on Rollout: 92.45%
+ Run: 5    |     Iteration: 377     |    Steps Trained: 1.235e+07     |     Steps per Second: 37072     |     Time Spend on Rollout: 92.75%
+ Run: 5    |     Iteration: 378     |    Steps Trained: 1.239e+07     |     Steps per Second: 40717     |     Time Spend on Rollout: 93.19%
+save best policy
+ Run: 5    |     Iteration: 379     |    Steps Trained: 1.242e+07     |     Steps per Second: 39657     |     Time Spend on Rollout: 92.58%
+ Run: 5    |     Iteration: 380     |    Steps Trained: 1.245e+07     |     Steps per Second: 40639     |     Time Spend on Rollout: 92.35%
+ Run: 5    |     Iteration: 381     |    Steps Trained: 1.248e+07     |     Steps per Second: 39367     |     Time Spend on Rollout: 93.21%
+ Run: 5    |     Iteration: 382     |    Steps Trained: 1.252e+07     |     Steps per Second: 41733     |     Time Spend on Rollout: 92.84%
+ Run: 5    |     Iteration: 383     |    Steps Trained: 1.255e+07     |     Steps per Second: 43035     |     Time Spend on Rollout: 92.78%
+ Run: 5    |     Iteration: 384     |    Steps Trained: 1.258e+07     |     Steps per Second: 40069     |     Time Spend on Rollout: 92.67%
+ Run: 5    |     Iteration: 385     |    Steps Trained: 1.262e+07     |     Steps per Second: 40993     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 386     |    Steps Trained: 1.265e+07     |     Steps per Second: 40447     |     Time Spend on Rollout: 92.15%
+ Run: 5    |     Iteration: 387     |    Steps Trained: 1.268e+07     |     Steps per Second: 41700     |     Time Spend on Rollout: 92.74%
+ Run: 5    |     Iteration: 388     |    Steps Trained: 1.271e+07     |     Steps per Second: 40996     |     Time Spend on Rollout: 92.38%
+save best policy
+ Run: 5    |     Iteration: 389     |    Steps Trained: 1.275e+07     |     Steps per Second: 38998     |     Time Spend on Rollout: 92.49%
+ Run: 5    |     Iteration: 390     |    Steps Trained: 1.278e+07     |     Steps per Second: 43050     |     Time Spend on Rollout: 92.93%
+save best policy
+ Run: 5    |     Iteration: 391     |    Steps Trained: 1.281e+07     |     Steps per Second: 41707     |     Time Spend on Rollout: 92.07%
+ Run: 5    |     Iteration: 392     |    Steps Trained: 1.285e+07     |     Steps per Second: 40475     |     Time Spend on Rollout: 91.76%
+save best policy
+ Run: 5    |     Iteration: 393     |    Steps Trained: 1.288e+07     |     Steps per Second: 35985     |     Time Spend on Rollout: 92.83%
+ Run: 5    |     Iteration: 394     |    Steps Trained: 1.291e+07     |     Steps per Second: 38272     |     Time Spend on Rollout: 92.43%
+ Run: 5    |     Iteration: 395     |    Steps Trained: 1.294e+07     |     Steps per Second: 38577     |     Time Spend on Rollout: 91.79%
+ Run: 5    |     Iteration: 396     |    Steps Trained: 1.298e+07     |     Steps per Second: 41790     |     Time Spend on Rollout: 91.94%
+ Run: 5    |     Iteration: 397     |    Steps Trained: 1.301e+07     |     Steps per Second: 40808     |     Time Spend on Rollout: 92.89%
+ Run: 5    |     Iteration: 398     |    Steps Trained: 1.304e+07     |     Steps per Second: 38097     |     Time Spend on Rollout: 93.51%
+ Run: 5    |     Iteration: 399     |    Steps Trained: 1.307e+07     |     Steps per Second: 42495     |     Time Spend on Rollout: 92.85%
+ Run: 5    |     Iteration: 400     |    Steps Trained: 1.311e+07     |     Steps per Second: 42122     |     Time Spend on Rollout: 93.03%
+ Run: 5    |     Iteration: 401     |    Steps Trained: 1.314e+07     |     Steps per Second: 36502     |     Time Spend on Rollout: 92.94%
+ Run: 5    |     Iteration: 402     |    Steps Trained: 1.317e+07     |     Steps per Second: 39206     |     Time Spend on Rollout: 91.92%
+ Run: 5    |     Iteration: 403     |    Steps Trained: 1.321e+07     |     Steps per Second: 38505     |     Time Spend on Rollout: 92.99%
+ Run: 5    |     Iteration: 404     |    Steps Trained: 1.324e+07     |     Steps per Second: 42954     |     Time Spend on Rollout: 92.76%
+ Run: 5    |     Iteration: 405     |    Steps Trained: 1.327e+07     |     Steps per Second: 41227     |     Time Spend on Rollout: 91.37%
+ Run: 5    |     Iteration: 406     |    Steps Trained: 1.330e+07     |     Steps per Second: 42070     |     Time Spend on Rollout: 92.72%
+save best policy
+ Run: 5    |     Iteration: 407     |    Steps Trained: 1.334e+07     |     Steps per Second: 40552     |     Time Spend on Rollout: 92.39%
+ Run: 5    |     Iteration: 408     |    Steps Trained: 1.337e+07     |     Steps per Second: 40212     |     Time Spend on Rollout: 92.99%
+ Run: 5    |     Iteration: 409     |    Steps Trained: 1.340e+07     |     Steps per Second: 41580     |     Time Spend on Rollout: 92.71%
+ Run: 5    |     Iteration: 410     |    Steps Trained: 1.343e+07     |     Steps per Second: 40148     |     Time Spend on Rollout: 91.66%
+ Run: 5    |     Iteration: 411     |    Steps Trained: 1.347e+07     |     Steps per Second: 39136     |     Time Spend on Rollout: 92.90%
+ Run: 5    |     Iteration: 412     |    Steps Trained: 1.350e+07     |     Steps per Second: 39275     |     Time Spend on Rollout: 91.62%
+ Run: 5    |     Iteration: 413     |    Steps Trained: 1.353e+07     |     Steps per Second: 42582     |     Time Spend on Rollout: 92.82%
+ Run: 5    |     Iteration: 414     |    Steps Trained: 1.357e+07     |     Steps per Second: 42115     |     Time Spend on Rollout: 92.02%
+ Run: 5    |     Iteration: 415     |    Steps Trained: 1.360e+07     |     Steps per Second: 38858     |     Time Spend on Rollout: 93.64%
+Traceback (most recent call last):
+  File "testing_env/run_test.py", line 155, in <module>
+    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id', None), args.get('model_out', None),  True)
+  File "testing_env/run_test.py", line 138, in train
+    algo.train(max_steps)
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 687, in train
+    step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 607, in train_epoch
+    batch_dict = self.play_steps()
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 384, in play_steps
+    obs, rewards, self.dones, infos, reward_constituents = self.env_step(actions)
+  File "/home/schmijo/Documents/Workspace/tonian_train/tonian_train/algorithms.py", line 335, in env_step
+    obs, rewards, dones, infos, reward_constituents = self.env.step(actions)
+  File "/home/schmijo/Documents/Workspace/tonian_train/testing_env/base_env/vec_task.py", line 328, in step
+    self.gym.simulate(self.sim)
+KeyboardInterrupt

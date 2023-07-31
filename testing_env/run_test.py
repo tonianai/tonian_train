@@ -6,8 +6,8 @@ from testing_env.cartpole.cartpole_task import Cartpole
 import yaml, argparse, os, csv
 
 from tonian_train.algorithms import PPOAlgorithm
-from tonian_train.policies import  build_A2CSharedLogStdPolicy
-from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger
+from tonian_train.policies import  build_a2c_simple_policy
+from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace
 
 
@@ -56,7 +56,7 @@ def train(config_path: str,
     task = task_from_config(config['task'], headless)
      
      
-    policy = build_A2CSharedLogStdPolicy(config['policy'], 
+    policy = build_a2c_simple_policy(config['policy'], 
                                             obs_space=task.observation_space,  
                                             action_space= task.action_space)
     
@@ -102,19 +102,16 @@ def train(config_path: str,
 
     # create the run folder here
     run_folder_name, run_id = create_new_run_directory(config, batch_id)
-        
-    tb_logger = TensorboardLogger(run_folder_name, run_id)
-
-    tb_logger.log_config('policy',config['policy'])
-    tb_logger.log_config('algo',config['algo'])
-    tb_logger.log_config('task', config['task'])
-
+         
 
     csv_logger = CsvFileLogger(run_folder_name, run_id)
     max_csv_logger = CsvMaxFileLogger(run_folder_name, run_id)
     
+    wandb_logger = WandbLogger(str(run_id), "training_alg")
+    wandb_logger.log_config('algo',config['algo'])
+
     
-    logger_list = [tb_logger, csv_logger, max_csv_logger]
+    logger_list = [ csv_logger, max_csv_logger, wandb_logger]
     
         
     

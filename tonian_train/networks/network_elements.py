@@ -1,5 +1,4 @@
 
-
 from typing import Callable, Dict, Union, List, Any, Tuple, Optional
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -9,10 +8,7 @@ import torch.nn as nn
 import numpy as np
 
 from tonian_train.common.spaces import MultiSpace
-from tonian_train.common.aliases import ActivationFn, InitializerFn
-from tonian_train.common.spaces import MultiSpace
-
-
+from tonian_train.common.aliases import ActivationFn, InitializerFn 
 
 
 class DictConfigurationType(ABC, Callable):
@@ -36,6 +32,7 @@ class DictConfigurationType(ABC, Callable):
     
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.build(*args, **kwargs)
+
 
 class ActivationConfiguration(DictConfigurationType):
     
@@ -82,6 +79,7 @@ class ActivationConfiguration(DictConfigurationType):
     
         return activation_fn_class_map[self.name](**self.kwargs) 
 
+
 class InitializerConfiguration(DictConfigurationType):
     
     def __init__(self, config: Dict) -> None:
@@ -125,7 +123,6 @@ class InitializerConfiguration(DictConfigurationType):
         assert self.name in intializer_fn_class_map, f"The initializer function {self.name} was not found. Please check your config."
     
         return intializer_fn_class_map[self.name]
-    
 
 
 class CnnConfiguration(DictConfigurationType):
@@ -184,10 +181,9 @@ class CnnConfiguration(DictConfigurationType):
             in_channels = conv['filters']
             layers.append(torch.nn.BatchNorm2d(in_channels))
             
-        return nn.Sequential(*layers, nn.Flatten())
-                
+        return nn.Sequential(*layers, nn.Flatten())    
+          
             
-
 class MultispaceNetElement(nn.Module):
     
     def __init__(self, name: str, inputs_names: List[str], net: nn.Sequential, out_size: int) -> None:
@@ -210,6 +206,7 @@ class MultispaceNetElement(nn.Module):
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
+
 
 class MultispaceNet(nn.Module):
     
@@ -283,9 +280,7 @@ class MultispaceNet(nn.Module):
                         network.load_state_dict(torch.load(file_name))
                     else:
                         print("Warning, loading of mulispacenet requested sumnets, that do not exist")
-        
-        
-
+    
     
 class MlpConfiguration(DictConfigurationType):
     
@@ -332,7 +327,6 @@ class MlpConfiguration(DictConfigurationType):
         """
         return self.units[-1]
     
-        
         
 class MultiSpaceNetworkConfiguration(DictConfigurationType):
     
@@ -652,360 +646,4 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
             
         return MultispaceNet(network_layers)
         
-        
-
-     
-class A2CBaseNet(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        
-
-    def is_rnn(self):
-        return False
-
-    def get_default_rnn_state(self):
-        return None
-    
-    
-    def forward(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str,torch.Tensor]] = None ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Forward pass on a A2C sequential logstd policy
-
-        Args:
-            actor_obs (Dict[torch.Tensor]): Multispace Observation of the actor
-            critic_obs (Optional[Dict[torch.Tensor]], optional): Multispace Observation of the critic, that are additional to the actor_ibs.
-                Defaults to None.
-        """
-        raise NotImplementedError()
-    
-    
-class A2CSharedNetLogStd(A2CBaseNet):
-       
-    def __init__(self, 
-                       action_space: gym.spaces.Space,
-                       shared_net: Optional[MultispaceNet] = None, 
-                       actor_net: Optional[MultispaceNet] = None,
-                       critic_net: Optional[MultispaceNet] = None,
-                       action_activation: ActivationFn = nn.Identity(),
-                       is_std_fixed: bool = False, 
-                       std_activation: ActivationFn = nn.Identity(),
-                       value_activation: ActivationFn = nn.Identity(),
-                       value_size: int = 1
-                       ) -> None:
-        """ A2CPolicy with seperated actor_critic approach
-
-            Note: in this approach the critic also has all the actor observations
-                     
-                                                      (optional)
-                        |-----------------|         |-------------|     |--------------------|
-              obs  ---> |    shared_net   | -->     |  actor_net  | --> | residual_actor_net | -> action_dist -> action
-                        |-----------------| \       |-------------|     |--------------------|
-                                             \        (optional)
-                                              \     |-------------|     |--------------------|
-                                               ---> |  critic_net | --> | residual_critic_net| -> value
-                                                    |-------------|     |--------------------|
-        
-        
-            # If the shared net is not set:
-                   
-                       |------------|         |--------------------|
-              obs ->   | actor_net  | -->     | residual_actor_net | -> action_dist -> action
-                       |------------|         |--------------------|
-                                            
-                       |------------|         |--------------------|
-              obs ->   | critic_net | -->     | residual_critic_net| -> value
-                       |------------|         |--------------------|
-        
-
-        Args:
-            shared_net (MultispaceNet): Network, that takes in the obs and is a predceding net for both actor and critic
-            action_space (gym.spaces.Space): The space the output of the policy should conform to
-            action_activation (ActivationFn): The activation function of the actions 
-            is_std_fixed (bool): Determines whether the action stanadard deviation (aslo called sigma) is dependend on the output of the aciton
-                - it is a parameter of the network eitherways
-            critic_net (MultispaceNet): Network of the critic
-            residual_actor_net (MultispaceNet): residual network of the actor
-            residual_critic_net (MultispaceNet): residual netowrk of the crititic, that takes outputs from shared_actor_net and from critic_net
-        """
-        super().__init__()
-        self.shared_net = shared_net
-        self.has_shared_net = shared_net is not None
-        self.actor_net = actor_net
-        self.has_actor_net = actor_net is not None
-        self.critic_net = critic_net
-        self.has_critic_net = critic_net is not None
-        
-        assert self.has_shared_net or (self.has_actor_net and self.has_critic_net), 'Either the shared net, or the '
-        assert len(action_space.shape) == 1, 'Multidim actions are not yet supported'
-        self.num_actions = action_space.shape[0]
-        
-        
-        if self.has_actor_net:
-            self.residual_actor_net = torch.nn.Linear(actor_net.out_size(), self.num_actions)
-        else:
-            self.residual_actor_net = torch.nn.Linear(shared_net.out_size(), self.num_actions)
-            
-        if self.has_critic_net:
-            self.residual_critic_net = torch.nn.Linear(critic_net.out_size() , value_size)
-        else:
-            self.residual_critic_net = torch.nn.Linear(shared_net.out_size() , value_size) 
-        
-        self.action_space = action_space
-        
-        self.action_mu_activation = action_activation
-        self.value_activation = value_activation
-        
-        self.is_continuous = isinstance(self.action_space, gym.spaces.Box)
-        
-        self.is_std_fixed = is_std_fixed
-        if self.is_std_fixed:
-            self.action_std = nn.Parameter(torch.zeros(self.num_actions, requires_grad=True))
-        else:
-            self.action_std = torch.nn.Linear(shared_net.out_size(), self.num_actions)
-        
-        assert self.is_continuous, "Non continuous action spaces are not yet supported in A2CSequentialPolicyLogStd"
-        
-        self.std_activation = std_activation
-        
-    def is_rnn(self):
-        return False
-    
-        
-    def forward(self, obs: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Forward pass on a A2C sequential logstd policy
-
-        Args:
-            actor_obs (Dict[torch.Tensor]): Multispace Observation of the actor
-        """
-        
-        s_out = obs 
-        
-        if self.has_shared_net:
-            s_out = self.shared_net(s_out)
-            s_out = s_out.flatten(1) # the batch must be preserved
-        
-        a_out = s_out
-        c_out = s_out
-        
-        if self.has_actor_net:
-            a_out = self.actor_net(a_out)
-            a_out = a_out.flatten(1) # the batch must be preserved
-            
-        if self.has_critic_net:
-            c_out = self.critic_net(c_out)
-            c_out = c_out.flatten(1) # the batch must be preserved
-            
-        
-        value = self.value_activation(self.residual_critic_net(a_out))
-            
-        if self.is_continuous:
-            mu = self.action_mu_activation(self.residual_actor_net(a_out))
-            
-            if self.is_std_fixed:
-                std = self.std_activation(self.action_std)
-            else:
-                std = self.std_activation(self.action_std(a_out))
-                
-            # mu*0 + std uses the approptiate shape 
-            return mu, mu*0 + std, value
-        
-        else:
-            raise Exception("non continuous spaces are not yet implemented")       
-    
-    
-    
-    
-class A2CSequentialNetLogStd(A2CBaseNet):
-    
-    def __init__(self, shared_actor_net: MultispaceNet,
-                       action_space: gym.spaces.Space,
-                       action_activation: ActivationFn = nn.Identity(),
-                       is_std_fixed: bool = False, 
-                       std_activation: ActivationFn = nn.Identity(),
-                       value_activation: ActivationFn = nn.Identity(),
-                       value_size: int = 1,
-                       critic_net: Optional[MultispaceNet] = None,
-                       ) -> None:
-        """ A2CPolicy with seperated actor_critic approach
-
-            Note: in this approach the critic also has all the actor observations
-                     
-                     
-                       |-----------------|         |--------------------|
-        actor obs ->   | shared_actor_net| -->     | residual_actor_net | -> action_dist -> action
-                       |-----------------| \       |--------------------|
-                                            \
-                       |------------|        \     |--------------------|
-        critic_obs ->  | critic_net |   ->    ---> | residual_critic_net| -> value
-                       |------------|              |--------------------|
-        
-        
-
-        Args:
-            shared_actor_net (MultispaceNet): Network, that takes in the actor_obs and is a predceding net for both actor and critic
-            action_space (gym.spaces.Space): The space the output of the policy should conform to
-            action_activation (ActivationFn): The activation function of the actions 
-            is_std_fixed (bool): Determines whether the action stanadard deviation (aslo called sigma) is dependend on the output of the aciton
-                - it is a parameter of the network eitherways
-            critic_net (MultispaceNet): Network of the critic
-            residual_actor_net (MultispaceNet): residual network of the actor
-            residual_critic_net (MultispaceNet): residual netowrk of the crititic, that takes outputs from shared_actor_net and from critic_net
-        """
-        super().__init__()
-        self.shared_actor_net = shared_actor_net
-        self.critic_net = critic_net
-        assert len(action_space.shape) == 1, 'Multidim actions are not yet supported'
-        self.num_actions = action_space.shape[0]
-        
-        self._has_critic_obs = self.critic_net is not None
-        self.residual_actor_net = torch.nn.Linear(shared_actor_net.out_size(), self.num_actions)
-        
-        
-        if self._has_critic_obs:
-            self.residual_critic_net = torch.nn.Linear(shared_actor_net.out_size() + critic_net.out_size(), value_size)
-        else:
-            self.residual_critic_net = torch.nn.Linear(shared_actor_net.out_size() , value_size) 
-        
-        self.action_space = action_space
-        
-        self.action_mu_activation = action_activation
-        self.value_activation = value_activation
-        
-        self.is_continuous = isinstance(self.action_space, gym.spaces.Box)
-        
-        self.is_std_fixed = is_std_fixed
-        if self.is_std_fixed:
-            self.action_std = nn.Parameter(torch.zeros(self.num_actions, requires_grad=True))
-        else:
-            self.action_std = torch.nn.Linear(shared_actor_net.out_size(), self.num_actions)
-        
-        assert self.is_continuous, "Non continuous action spaces are not yet supported in A2CSequentialPolicyLogStd"
-        
-        self.std_activation = std_activation
-        
-    def is_rnn(self):
-        return False
-    
-    def has_critic_obs(self):
-        return self._has_critic_obs
-        
-    
-        
-        
-    def forward(self, actor_obs: Dict[str, torch.Tensor], critic_obs: Optional[Dict[str, torch.Tensor]] = None ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Forward pass on a A2C sequential logstd policy
-
-        Args:
-            actor_obs (Dict[torch.Tensor]): Multispace Observation of the actor
-            critic_obs (Optional[Dict[torch.Tensor]], optional): Multispace Observation of the critic, that are additional to the actor_ibs.
-                Defaults to None.
-        """
-        
-        a_out = self.shared_actor_net(actor_obs)
-        
-        
-        if self._has_critic_obs and self.critic_net is not None:
-            c_out = self.critic_net(critic_obs)
-            
-            critic_in = torch.cat((c_out, a_out), dim=1)
-            value = self.value_activation(self.residual_critic_net(critic_in))
-            
-            
-        else:
-            a_out = a_out.flatten(1) # the batch must be preserved
-            value = self.value_activation(self.residual_critic_net(a_out))
-            
-        if self.is_continuous:
-            mu = self.action_mu_activation(self.residual_actor_net(a_out))
-            
-            if self.is_std_fixed:
-                std = self.std_activation(self.action_std)
-            else:
-                std = self.std_activation(self.action_std(a_out))
-                
-            # mu*0 + std uses the approptiate shape 
-            return mu, mu*0 + std, value
-        
-        else:
-            raise Exception("non continuous spaces are not yet implemented")       
-        
-        
-def build_A2CSharedNetLogStd(config: Dict, 
-                             obs_space: MultiSpace,
-                             action_space: gym.spaces.Space) -> A2CSharedNetLogStd:
-    """build the A2C Shared Net Log Std
-
-    Args:
-        config (Dict): config
-        obs_space (MultiSpace): observations
-        action_space (gym.spaces.Space): actions space
-
-    Returns:
-        A2CSharedNetLogStd
-    """
-    
-    actor_net = None
-    critic_net = None
-    shared_net = None
-    
-    if "shared_net" in config:
-        shared_net = MultiSpaceNetworkConfiguration(config['shared_net']).build(obs_space)
-    
-    if "actor_net" in config:
-        actor_net = MultiSpaceNetworkConfiguration(config['actor_net']).build(obs_space)
-    
-    if "critic_net" in config:
-        critic_net = MultiSpaceNetworkConfiguration(config['critic_net']).build(obs_space)
-    
-    action_activation = ActivationConfiguration(config.get('action_activation', 'None')).build()
-    std_activation = ActivationConfiguration(config.get('std_activation', 'None')).build()
-
-    value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
-    
-    value_size = config.get('value_size', 1)
- 
-    return A2CSharedNetLogStd(action_space, shared_net, actor_net, critic_net, action_activation, True, std_activation, value_activation, value_size)
-     
-        
-def build_A2CSequientialNetLogStd(config: Dict,
-                                  actor_obs_space: MultiSpace, 
-                                  critic_obs_space: MultiSpace, 
-                                  action_space: gym.spaces.Space) -> A2CSequentialNetLogStd:
-    """build the A2C Sequintial Net Log Std
-
-    Args:
-        config (Dict): config 
-        actor_obs_space (MultiSpace): shared observation space
-        critic_obs_space (MultiSpace): critic only observation space
-        action_space (gym.spaces.Space): action space 
-
-    Returns:
-        A2CSequentialNetLogStd
-    """
-    
-    print(config)
-    
-    actor_net = MultiSpaceNetworkConfiguration(config['actor_net']).build(actor_obs_space)
-    
-    if 'critic_net' in config:
-        critic_net = MultiSpaceNetworkConfiguration(config['critic_net']).build(critic_obs_space)
-    else:
-        critic_net = None
-    action_activation = ActivationConfiguration(config.get('action_activation', 'None')).build()
-    std_activation = ActivationConfiguration(config.get('std_activation', 'None')).build()
-
-    value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
-    
-    value_size = config.get('value_size', 1)
-    
-    
-    return A2CSequentialNetLogStd(actor_net,
-                                  action_space,
-                                  action_activation, 
-                                  True, 
-                                  std_activation, 
-                                  value_activation, 
-                                  value_size, 
-                                  critic_net)
-
-                
         
