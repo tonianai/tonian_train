@@ -237,7 +237,15 @@ class MultispaceNet(nn.Module):
         """
         return self.network_layers[-1][-1].out_size
         
-    def forward(self, x: Dict[str, torch.Tensor]):
+    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """Todo: make more performant by creating a single network and storing it as such
+
+        Args:
+            x (Dict[str, torch.Tensor]): _description_
+
+        Returns:
+            _type_: torch.Tensor
+        """
         
         for i_layer in range(len(self.network_layers)):
                 
