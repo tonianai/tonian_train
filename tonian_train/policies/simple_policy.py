@@ -53,8 +53,7 @@ class A2CSimplePolicy(A2CBasePolicy):
         if self.obs_normalizer:
             obs = self.obs_normalizer(obs)
              
-            
-            
+             
         return obs
         
     def forward(self, is_train: bool, obs: Dict[str, torch.Tensor], prev_actions: Optional[torch.Tensor] = None) -> Dict:

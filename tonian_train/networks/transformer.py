@@ -182,8 +182,11 @@ class TransformerNetLogStd(nn.Module):
                  input_embedding: InputEmbedding,
                  output_embedding: OutputEmbedding,
                  d_model: int,
-                 sequence_length: int,
                  action_space: gym.spaces.Space, 
+                 action_head: Optional[nn.Sequential] = None,
+                 action_head_size: Optional[int] = None,
+                 critic_head: Optional[nn.Sequential] = None,
+                 critic_head_size: Optional[int] = None,
                  action_activation: ActivationFn = nn.Identity(),
                  is_std_fixed: bool = False, 
                  std_activation: ActivationFn = nn.Identity(),
@@ -234,14 +237,14 @@ class TransformerNetLogStd(nn.Module):
                                                        \|/                      \|/
                                                 
                                                |---------------|         |---------------|        
-                                               |   Actor Net   |         |   Critic Net   |
+                                               |   Actor Head  |         |  Critic Head  |
                                                |---------------|         |---------------|
                                                
                                                         |                        |
                                                         |                        |
                                                        \|/                      \|/
                                                        
-                                                     Actions                  States
+                                                     Actions (mu & std)        States
                                                        
 
         Args:
@@ -273,8 +276,34 @@ class TransformerNetLogStd(nn.Module):
             batch_first= True
         )
         
-        self.out = nn.Linear(d_model, action_space.shape[0])
+         
+        self.action_head = action_head
+        self.critic_head = critic_head
+        self.num_actions = action_space.shape[0]
         
+        if self.action_head is not None:    
+            self.a_out = nn.Linear(action_head_size, self.num_actions)
+        else:
+            self.action_head = nn.Identity()
+            self.a_out = nn.Linear(self.d_model, self.num_actions)
+            
+        if self.critic_head is not None:
+            self.c_out = nn.Linear(critic_head_size, value_size)
+        else:
+            self.critic_head = nn.Identity()
+            self.c_out = nn.Linear(self.d_model, critic_head_size)
+        
+        
+        self.is_std_fixed = is_std_fixed
+        if self.is_std_fixed:
+            self.action_std = nn.Parameter(torch.zeros(self.num_actions, requires_grad=True))
+        else:
+            self.action_std = torch.nn.Linear(self.d_model, self.num_actions)
+        
+        
+        self.action_activation = action_activation
+        self.std_activation = std_activation
+        self.value_activation = value_activation
         
     def forward(self, src_obs: Dict[str, torch.Tensor], 
                       tgt_action_mu: torch.Tensor,  
@@ -300,9 +329,20 @@ class TransformerNetLogStd(nn.Module):
         
         transformer_out = self.transformer.forward(src=src, tgt=tgt, tgt_mask= tgt_mask, src_key_padding_mask= src_pad_mask, tgt_key_padding_mask= tgt_pad_mask)
         
-        out = self.out(transformer_out)
+        result =  transformer_out
         
-        return out 
+        
+        value = self.value_activation(self.c_out(self.critic_head(result)))
+        
+        mu = self.action_activation(self.a_out(self.action_head(result)))
+        
+        if self.is_std_fixed:
+            std = self.std_activation(self.action_std)
+        else:
+            std = self.std_activation(self.action_std(result))
+        
+        
+        return mu, mu*0 + std, value 
         
     
     def get_tgt_mask(self, size) -> torch.tensor:
@@ -357,6 +397,13 @@ def build_transformer_a2c_from_config(config: Dict,
     std_activation = ActivationConfiguration(config.get('std_activation', 'None')).build()
     value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
     
+    action_head_factory = MlpConfiguration(config['action_head'])
+    action_head = action_head_factory.build(d_model)
+    
+    critic_head_factory =  MlpConfiguration(config['critic_head'])
+    critic_head = critic_head_factory.build(d_model)
+    
+    
     num_encoder_layers = config['num_encoder_layers']
     num_decoder_layers = config['num_decoder_layers']
     n_heads = config['n_heads']
@@ -369,9 +416,12 @@ def build_transformer_a2c_from_config(config: Dict,
             n_heads= n_heads,
             input_embedding=input_embedding,
             output_embedding=output_embedding,
-            d_model=d_model,
-            sequence_length=seq_len,
+            d_model=d_model, 
             action_space=action_space,
+            action_head=action_head,
+            action_head_size = action_head_factory.get_out_size(),
+            critic_head=critic_head,
+            critic_head_out_size = critic_head_factory.get_out_size(),
             action_activation=action_activation,
             is_std_fixed= is_std_fixed,
             std_activation=std_activation,

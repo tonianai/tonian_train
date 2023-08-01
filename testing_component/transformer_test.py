@@ -50,13 +50,23 @@ config = {
                   'activation': 'relu',
                   'initializer': 'default' 
                  
-               }
-              
-            }
-            
-            
+               } 
+            } 
           }
-            
+          ,  
+          "action_head": { 
+            'units': [128, 64],
+            'activation': 'relu',
+            'initializer': 'default' 
+          },
+          
+          "critic_head": {
+            'units': [128, 64],
+            'activation': 'relu',
+            'initializer': 'default' 
+          }
+          
+          
             
        }
       }
