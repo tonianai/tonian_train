@@ -13,6 +13,10 @@ config = {
           
        "network": {
           "d_model": 512,
+          "n_heads": 16,
+          "num_encoder_layers": 7,
+          "num_decoder_layers": 10,
+          "is_std_fixed": False,
           
           "policy_type": "a2c_transformer", 
           "normalize_input": True,

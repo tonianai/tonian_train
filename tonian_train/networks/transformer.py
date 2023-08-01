@@ -160,13 +160,13 @@ class PositionalEncoding(nn.Module):
     def __init__(self, d_model:int , dropout_p: float=  0.1 , max_len: int = 5000):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout_p)
-
+        print("pos encoder init")
         position = torch.arange(max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        self.pos_encoding = torch.zeros(max_len, 1, d_model)
-        self.pos_encoding[:, 0, 0::2] = torch.sin(position * div_term)
-        self.pos_encoding[:, 0, 1::2] = torch.cos(position * div_term)
-        self.register_buffer('pos_encoding', self.pos_encoding)
+        pos_encoding = torch.zeros(max_len, 1, d_model)
+        pos_encoding[:, 0, 0::2] = torch.sin(position * div_term)
+        pos_encoding[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pos_encoding', pos_encoding)
         
     def forward(self, token_embedding: torch.tensor) -> torch.tensor:
         # Residual connection + pos encoding
@@ -270,7 +270,10 @@ class TransformerNetLogStd(nn.Module):
             num_encoder_layers=num_encoder_layers,
             num_decoder_layers=num_decoder_layers,
             dropout=dropout_p,
+            batch_first= True
         )
+        
+        self.out = nn.Linear(d_model, action_space.shape[0])
         
         
     def forward(self, src_obs: Dict[str, torch.Tensor], 
@@ -294,7 +297,29 @@ class TransformerNetLogStd(nn.Module):
          
         src = self.positional_encoder(src)
         tgt = self.positional_encoder(tgt)
+        
+        transformer_out = self.transformer.forward(src=src, tgt=tgt, tgt_mask= tgt_mask, src_key_padding_mask= src_pad_mask, tgt_key_padding_mask= tgt_pad_mask)
+        
+        out = self.out(transformer_out)
+        
+        return out 
+        
     
+    def get_tgt_mask(self, size) -> torch.tensor:
+        # Generates a squeare matrix where the each row allows one word more to be seen
+        mask = torch.tril(torch.ones(size, size) == 1) # Lower triangular matrix
+        mask = mask.float()
+        mask = mask.masked_fill(mask == 0, float('-inf')) # Convert zeros to -inf
+        mask = mask.masked_fill(mask == 1, float(0.0)) # Convert ones to 0
+        
+        # EX for size=5:
+        # [[0., -inf, -inf, -inf, -inf],
+        #  [0.,   0., -inf, -inf, -inf],
+        #  [0.,   0.,   0., -inf, -inf],
+        #  [0.,   0.,   0.,   0., -inf],
+        #  [0.,   0.,   0.,   0.,   0.]]
+        
+        return mask
     
     
 def build_transformer_a2c_from_config(config: Dict,
@@ -326,6 +351,36 @@ def build_transformer_a2c_from_config(config: Dict,
                                        d_model= d_model,
                                        action_space= action_space,
                                        value_size= value_size )
+    
+    
+    action_activation = ActivationConfiguration(config.get('action_activation', 'None')).build()
+    std_activation = ActivationConfiguration(config.get('std_activation', 'None')).build()
+    value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
+    
+    num_encoder_layers = config['num_encoder_layers']
+    num_decoder_layers = config['num_decoder_layers']
+    n_heads = config['n_heads']
+    is_std_fixed = config['is_std_fixed']
+    
+    
+    transformer = TransformerNetLogStd(
+            num_encoder_layers=num_encoder_layers,
+            num_decoder_layers=num_decoder_layers,
+            n_heads= n_heads,
+            input_embedding=input_embedding,
+            output_embedding=output_embedding,
+            d_model=d_model,
+            sequence_length=seq_len,
+            action_space=action_space,
+            action_activation=action_activation,
+            is_std_fixed= is_std_fixed,
+            std_activation=std_activation,
+            value_activation=value_activation,
+            pos_encoder_dropout_p= 0.1,
+            dropout_p= 0.1,
+            value_size=value_size
+    )
+    
     
     
     
