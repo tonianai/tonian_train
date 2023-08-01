@@ -18,7 +18,11 @@ from tonian_train.networks.network_elements import *
 
 class InputEmbedding(nn.Module):
     
-    def __init__(self, config: Dict, sequence_length: int , obs_space: Dict[str, gym.Space]) -> None:
+    def __init__(self, config: Dict, 
+                       sequence_length: int,
+                       d_model: int, 
+                       obs_space: MultiSpace) -> None:
+
         """
         The goal of this network is to order the Observations in a ordered latent space, ready for self attention 
         
@@ -44,11 +48,13 @@ class InputEmbedding(nn.Module):
         """
         super().__init__()
         self.sequence_length = sequence_length
-        assert config.has_key('encoder'), "Input Embeddings needs a encoder specified in the config"
-        assert config['encoder'].has_key('network'), "The Input Embedding encoder needs a specified network. (List with mlp architecture)"
+        assert 'encoder' in config, "Input Embeddings needs a encoder specified in the config"
+        assert 'network' in config['encoder'], "The Input Embedding encoder needs a specified network. (List with mlp architecture)"
         
-        self.network: MultispaceNet = MultiSpaceNetworkConfiguration(config['encoder']['network']).build(MultiSpace(obs_space))
+        self.network: MultispaceNet = MultiSpaceNetworkConfiguration(config['encoder']['network']).build(obs_space)
         
+        self.d_model = d_model
+        self.out_nn: nn.Linear = nn.Linear(self.network.out_size(), d_model )
         
     def forward(self, obs: Dict[str, torch.Tensor]):
         """_summary_
@@ -71,15 +77,19 @@ class InputEmbedding(nn.Module):
             assert obs_tensor.shape[1] == self.sequence_length, "The second dim of data sequence tensor must be equal to the sequence length"   
             unstructured_obs_dict[key] = obs_tensor.view((obs_tensor.shape[0] * obs_tensor.shape[1], ) + obs_tensor.shape[2::])
             
-        unstructured_result = self.network(unstructured_obs_dict)
+        unstructured_result = self.network(unstructured_obs_dict) # (batch_size * sequence_length, ) + output_dim
         
         # restructuring, so that the output is (batch_size, sequence_length, ) + output_dim
-        return unstructured_result.reshape((batch_size, self.sequence_length,)  +  unstructured_result.shape[1::])
+        return self.out_nn(unstructured_result).reshape((batch_size, self.sequence_length, self.d_model) )
     
      
 class OutputEmbedding(nn.Module):
     
-    def __init__(self, config: Dict, sequence_length: int, action_size: int, value_size: int = 1) -> None:
+    def __init__(self, config: Dict, 
+                       sequence_length: int, 
+                       d_model: int, 
+                       action_space: gym.spaces.Space,
+                       value_size: int = 1) -> None:
         """
         The goal of this network is to order the actions (mu & std), values in a ordered latent space
 
@@ -94,16 +104,24 @@ class OutputEmbedding(nn.Module):
         """
         super().__init__()
         
+        print(config)
         self.sequence_length = sequence_length
-        assert config.has_key('encoder'), "Output Embeddings needs a encoder specified in the config"
-        assert config['encoder'].has_key('mlp'), "The Output Embedding encoder needs a specified mlp architecture (key = mlp)."
+        assert 'encoder' in config, "Output Embeddings needs a encoder specified in the config"
+        assert 'mlp' in config['encoder'], "The Output Embedding encoder needs a specified mlp architecture (key = mlp)."
         
-        self.action_size = action_size
+        assert isinstance(action_space, gym.spaces.Box), "Only continuous action spaces are implemented at the moment"
+        
+        
+        self.action_size = action_space.shape[0]
         self.value_size = value_size
         self.mlp_input_size = self.action_size *2 + self.value_size
         
-        self.network: nn.Sequential = MlpConfiguration(config['encoder']['mlp']).build(self.mlp_input_size)
+        mlp_config = MlpConfiguration(config['encoder']['mlp'])
+        self.network: nn.Sequential = mlp_config.build(self.mlp_input_size)
         
+        
+        self.d_model = d_model
+        self.out_nn: nn.Linear = nn.Linear(mlp_config.get_out_size(), d_model )
         
         
             
@@ -135,23 +153,20 @@ class OutputEmbedding(nn.Module):
         
         result: torch.Tensor = self.network(unstructured_all_outputs)
     
-        return result.reshape(all_outputs.shape[0], all_outputs.shape[1], result.shape[2])
-        
-        
-        
-        
+        return self.out_nn(result).reshape(all_outputs.shape[0], all_outputs.shape[1], self.d_model)
+       
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, sequence_length:int , dropout_p: float=  0.1 , max_len: int = 5000):
+    def __init__(self, d_model:int , dropout_p: float=  0.1 , max_len: int = 5000):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout_p)
 
         position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, sequence_length, 2) * (-math.log(10000.0) / sequence_length))
-        pos_encoding = torch.zeros(max_len, 1, sequence_length)
-        pos_encoding[:, 0, 0::2] = torch.sin(position * div_term)
-        pos_encoding[:, 0, 1::2] = torch.cos(position * div_term)
-        self.register_buffer('pos_encoding', pos_encoding)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        self.pos_encoding = torch.zeros(max_len, 1, d_model)
+        self.pos_encoding[:, 0, 0::2] = torch.sin(position * div_term)
+        self.pos_encoding[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pos_encoding', self.pos_encoding)
         
     def forward(self, token_embedding: torch.tensor) -> torch.tensor:
         # Residual connection + pos encoding
@@ -161,11 +176,20 @@ class PositionalEncoding(nn.Module):
 class TransformerNetLogStd(nn.Module):
     
     def __init__(self, 
+                 num_encoder_layers: int,
+                 num_decoder_layers: int,
+                 n_heads: int,
+                 input_embedding: InputEmbedding,
+                 output_embedding: OutputEmbedding,
+                 d_model: int,
+                 sequence_length: int,
                  action_space: gym.spaces.Space, 
                  action_activation: ActivationFn = nn.Identity(),
                  is_std_fixed: bool = False, 
                  std_activation: ActivationFn = nn.Identity(),
                  value_activation: ActivationFn = nn.Identity(),
+                 pos_encoder_dropout_p: float = 0.1,
+                 dropout_p: float = 0.1,
                  value_size: int = 1) -> None:
         """_summary_
                                                         
@@ -174,15 +198,14 @@ class TransformerNetLogStd(nn.Module):
                                                         
                [...,obs(t-2),obs(t=1),obs(t=0)]           [...,action_mean(t-1), action_mean(t=0]
                                                           [...,action_std(t-1), action_std(t=0]
-                                                          [...,value(t-1), value(t=0]
-                              
+                                                          [...,value(t-1), value(t=0] 
                               
                                |                                       |   
                                |                                       |                           
                               \|/                                     \|/      
                               
                     |------------------|                      |------------------|     
-<Multipsace Net>--> | Input Embeddings |                      | Output Embedding |  <-- <Multispace Net>            
+<Multipsace Net> -> | Input Embeddings |                      | Output Embedding |  <- <MLP>            
                     |------------------|                      |------------------|            
                                |                                       |                           
                               \|/           Organized Latent Space    \|/            
@@ -231,4 +254,82 @@ class TransformerNetLogStd(nn.Module):
         """
         super().__init__()
         
+        self.model_type = "Transformer"
+        
+        self.positional_encoder = PositionalEncoding(
+            d_model=d_model , dropout_p=pos_encoder_dropout_p, max_len=5000
+        )
+        
+        self.input_embedding = input_embedding
+        self.output_embedding = output_embedding
+        self.d_model = d_model
+        
+        self.transformer = nn.Transformer(
+            d_model=d_model,
+            nhead= n_heads, 
+            num_encoder_layers=num_encoder_layers,
+            num_decoder_layers=num_decoder_layers,
+            dropout=dropout_p,
+        )
+        
+        
+    def forward(self, src_obs: Dict[str, torch.Tensor], 
+                      tgt_action_mu: torch.Tensor,  
+                      tgt_action_std: torch.Tensor,  
+                      tgt_value: torch.Tensor,  
+                      tgt_mask=None, 
+                      src_pad_mask=None,
+                      tgt_pad_mask=None):
+        """_summary_
+
+        Args:
+            src (torch.Tensor): (batch_size, src_seq_length, encdoding_length)
+            tgt (torch.Tensor): (batch_size, src_seq_length, encoding_length)
+        
+        """
+        
+        
+        src = self.input_embedding(src_obs) * math.sqrt(self.d_model)
+        tgt = self.output_embedding(tgt_action_mu, tgt_action_std, tgt_value) * math.sqrt(self.d_model)
+         
+        src = self.positional_encoder(src)
+        tgt = self.positional_encoder(tgt)
+    
+    
+    
+def build_transformer_a2c_from_config(config: Dict,
+                                      seq_len: int, 
+                                      value_size: int, 
+                                      obs_space: MultiSpace,
+                                      action_space: gym.spaces.Space) -> TransformerNetLogStd:
+    """Build a transformer model for Advantage Actor Crititc Policy
+
+    Args:
+        config (Dict): config
+        obs_space (MultiSpace): Observations
+        action_space (gym.spaces.Space): Actions Spaces
+
+    Returns:
+        TransformerNetLogStd: _description_
+    """
+    
+    d_model = config['d_model']
+
+    
+    input_embedding = InputEmbedding(config['input_embedding'], 
+                                     sequence_length= seq_len,
+                                     d_model= d_model,
+                                     obs_space= obs_space)
+    
+    output_embedding = OutputEmbedding(config=config['output_embedding'],
+                                       sequence_length= seq_len,
+                                       d_model= d_model,
+                                       action_space= action_space,
+                                       value_size= value_size )
+    
+    
+    
+    
+    
+    
     

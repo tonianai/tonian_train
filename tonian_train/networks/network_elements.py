@@ -54,13 +54,13 @@ class ActivationConfiguration(DictConfigurationType):
         super().__init__(config)
         
         if isinstance(config, str):
-            self.name = config
+            self.name = config.lower()
             self.kwargs = {}
         elif isinstance(config, type(None)):
-            self.name = 'None'
+            self.name = 'none'
             self.kwargs = {}
         else:
-            self.name = config['name']
+            self.name = config['name'].lower()
             self.kwargs = config
             config.pop('name')
         
@@ -72,7 +72,7 @@ class ActivationConfiguration(DictConfigurationType):
         'elu': nn.ELU,
         'selu': nn.SELU,
         'softplus': nn.Softplus,
-        'None': nn.Identity
+        'none': nn.Identity
         }
          
         assert self.name in activation_fn_class_map, f"The activation function {self.name} was not found. Please check your config."
@@ -94,13 +94,13 @@ class InitializerConfiguration(DictConfigurationType):
         super().__init__(config)
         
         if isinstance(config, str):
-            self.name = config
+            self.name = config.lower()
             self.kwargs = {}
         elif isinstance(config, type(None)):
             self.name = 'default'
             self.kwargs = {}
         else:
-            self.name = config['name']
+            self.name = config['name'].lower()
             self.kwargs = config
             self.kwargs.pop('name')
             
