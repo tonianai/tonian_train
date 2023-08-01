@@ -7,7 +7,7 @@ from tonian_train.tasks import VecTask
 from tonian_train.common.logger import BaseLogger, TensorboardLogger
 from tonian_train.common.spaces import MultiSpace
 from tonian_train.common.schedulers import AdaptiveScheduler, LinearScheduler, IdentityScheduler
-from tonian_train.policies import A2CBasePolicy
+from tonian_train.policies.policies import A2CBasePolicy
 from tonian_train.common.helpers import DefaultRewardsShaper
 from tonian_train.common.running_mean_std import RunningMeanStd, RunningMeanStdObs
 from tonian_train.common.buffers import DictExperienceBuffer
