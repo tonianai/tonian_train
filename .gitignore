@@ -36,4 +36,5 @@ outputs/
 ./build
 ./dist
 
+./wandb
 ./tonian_train/wandb
