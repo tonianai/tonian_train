@@ -315,10 +315,19 @@ class TransformerNetLogStd(nn.Module):
         """_summary_
 
         Args:
-            src (torch.Tensor): (batch_size, src_seq_length, encdoding_length)
-            tgt (torch.Tensor): (batch_size, src_seq_length, encoding_length)
-        
+            src_obs (Dict[str, torch.Tensor]): tensor shape (batch_size, src_seq_length, ) + obs_shape
+            tgt_action_mu (torch.Tensor): shape (batch_size, tgt_seq_length, action_length)
+            tgt_action_std (torch.Tensor):  (batch_size, tgt_seq_length, action_length)
+            tgt_value (torch.Tensor): (batch_size, sr)
+            tgt_mask (_type_, optional): _description_. Defaults to None.
+            src_pad_mask (_type_, optional): _description_. Defaults to None.
+            tgt_pad_mask (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
         """
+         
+    
         
         
         src = self.input_embedding(src_obs) * math.sqrt(self.d_model)
@@ -430,6 +439,8 @@ def build_transformer_a2c_from_config(config: Dict,
             dropout_p= 0.1,
             value_size=value_size
     )
+    
+    return transformer
     
     
     

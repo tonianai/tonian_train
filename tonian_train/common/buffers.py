@@ -9,8 +9,7 @@ import numpy as np
 import torch
 
 """
-The Buffer structure was largely insipred by stable-baselines-3 implementation
-But written in such a way, that the data does not have to leave the gpu memory 
+The Buffer structure was largely insipred by stable-baselines-3 implementation 
 """
 
 
@@ -110,7 +109,7 @@ class DictExperienceBuffer(BaseBuffer):
         self.sigmas = torch.zeros((self.horizon_length, self.n_actors_per_step, self.action_size), dtype= torch.float32, device=self.store_device)
         
         
-        # critic obs and actor obs must be dicts, because this enables multispace environments
+        #  obs must be dicts, because this enables multispace environments
   
         self.actor_obs = {}
         
