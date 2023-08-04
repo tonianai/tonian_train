@@ -84,11 +84,9 @@ class A2CBaseAlgorithm(ABC):
         
         self.num_envs = env.num_envs
         self.num_actors = 1
-        
-        
+         
         self.seq_len = self.config.get('seq_length', 4)
-        
-        
+         
         self.value_size = config.get('value_size',1)
         self.actor_obs_space: MultiSpace = env.observation_space  
         
@@ -109,8 +107,7 @@ class A2CBaseAlgorithm(ABC):
         print(self.learning_rate)
         
         self.max_epochs = self.config.get('max_epochs', 1e6)
-        
-        
+         
         if self.is_adaptive_lr:
             self.kl_threshold = config['kl_threshold']
             self.scheduler = AdaptiveScheduler(self.kl_threshold)

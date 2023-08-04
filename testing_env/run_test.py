@@ -5,7 +5,7 @@ from testing_env.cartpole.cartpole_task import Cartpole
 
 import yaml, argparse, os, csv
 
-from tonian_train.algorithms import PPOAlgorithm
+from tonian_train.algorithms.algorithms import PPOAlgorithm
 from tonian_train.policies import  build_a2c_simple_policy
 from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace

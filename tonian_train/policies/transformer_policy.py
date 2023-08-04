@@ -16,102 +16,6 @@ import torch.nn as nn
 import numpy as np
  
  
-
-class SequenceBuffer():
-    
-    def __init__(self,
-                 sequence_length: int, 
-                 obs_space: MultiSpace,
-                 action_space: gym.spaces.Space,
-                 store_device: Union[str, torch.device] = "cuda:0",
-                 out_device: Union[str, torch.device] = "cuda:0",
-                 n_envs: int = 1, 
-                 n_values: int = 1) -> None:
-        """Buffer, that stores the observations and the outputs for the transformer sequence length
-        
-        Args:
-            sequence_length (int): _description_
-            actor_obs_space (MultiSpace): _description_
-            action_space (gym.spaces.Space): _description_
-            store_device (_type_, optional): _description_. Defaults to "cuda:0".
-            out_device (_type_, optional): _description_. Defaults to "cuda:0".
-            n_envs (int, optional): _description_. Defaults to 1. 
-            n_values (int, optional): _description_. Defaults to 1.
-        """
-        self.action_space = action_space
-        self.action_size = action_space.shape[0]
-        assert self.action_size, "Action size must not be zero"
-        
-
-        self.n_values = n_values
-        self.sequence_length = sequence_length 
-        self.obs_space = obs_space
-        
-        self.store_device = store_device
-        self.out_device = out_device
-        self.n_envs = n_envs
-        
-        pass
-    
-    def reset(self) -> None:
-        """
-        Create the buffers and set all initial values to zero
- 
-        """
-        self.dones = torch.zeros(( self.n_envs, self.sequence_length,), dtype=torch.int8, device=self.store_device)
-        self.values = torch.zeros((self.n_envs, self.sequence_length, self.n_values), dtype=torch.float32, device=self.store_device)
-         
-        # the mean of the action distributions
-        self.action_mu = torch.zeros((self.n_envs, self.sequence_length, self.action_size), dtype=torch.float32, device=self.store_device)
-        # the std(sigma) of the action distributions   
-        self.action_std = torch.zeros((self.n_envs, self.sequence_length, self.action_size), dtype= torch.float32, device=self.store_device)
-         
-        
-        self.obs = {}
-        for key, obs_shape in self.obs_space.dict_shape.items():
-            self.obs[key] = torch.zeros((self.n_envs, self.sequence_length) + obs_shape, dtype=torch.float32, device= self.store_device)
-        
-        self.src_key_padding_mask = torch.ones((self.n_envs, self.sequence_length), device= self.store_device)
-        self.tgt_key_padding_mask = torch.ones((self.n_envs, self.sequence_length), device= self.store_device)
-        
-        
-    def add(
-        self, 
-        obs: Dict[str, torch.Tensor],
-        action_mu: torch.Tensor,
-        action_std: torch.Tensor,
-        values: torch.Tensor,
-        dones: torch.Tensor):
-        
-        
-        # roll the last to the first position
-        
-        # The tensord fill upd from 
-        for key in self.obs:   
-            self.obs[key] =  torch.roll(self.obs[key], shifts=(-1), dims=(1)) 
-        
-        self.action_mu = torch.roll(self.action_mu, shifts=(-1), dims=(1))
-        self.action_std = torch.roll(self.action_std, shifts=(-1), dims=(1))
-        self.values = torch.roll(self.values, shifts=(-1), dims=(1))
-        self.dones = torch.roll(self.dones, shifts=(-1), dims=(1))
-        
-        for key in self.obs:   
-            self.obs[key][:, 0] = obs[key].detach().to(self.store_device)
-            
-        self.action_mu[:, 0] = action_mu.detach().to(self.store_device)
-        self.action_std[:, 0] = action_std.detach().to(self.store_device)
-        self.values[:, 0] = values.detach().to(self.store_device)
-        self.dones[:, 0] = dones.detach().to(self.store_device)
-        
-        # for every true dones at index 1 -> erase all old states to the left
-        
-        last_dones = self.dones[:, 1]
-        
-        self.action_mu[1::]
-        
-    def get(self):
-        
-        return self.
         
         
  
@@ -147,6 +51,42 @@ class TransformerPolicy(A2CBasePolicy):
         
         with torch.no_grad():
             obs = self._normalize_obs(obs)
+            
+        mu, logstd, value = self.transformer_net(obs) # TODO: This must add the proper masks
+ 
+        sigma = torch.exp(logstd)
+   
+        distr = torch.distributions.Normal(mu, sigma)
+        
+        if is_train:
+            entropy = distr.entropy().sum(dim=-1)
+            prev_neglogprob = self.neglogprob(prev_actions, mu, sigma, logstd)
+            
+            result = {
+                    'prev_neglogprob' : torch.squeeze(prev_neglogprob),
+                    'values' : value,
+                    'entropy' : entropy, 
+                    'mus' : mu,
+                    'sigmas' : sigma
+                }                
+            return result
+        else:
+            selected_action = distr.sample()
+            neglogprob = self.neglogprob(selected_action, mu, sigma, logstd)
+            
+            result = {
+                    'neglogpacs' : torch.squeeze(neglogprob),
+                    'values' : value,
+                    'actions' : selected_action,
+                    'mus' : mu,
+                    'sigmas' : sigma
+                }
+            return result
+                
+    def neglogprob(self, x, mean, std, logstd):
+        return 0.5 * (((x - mean) / std)**2).sum(dim=-1) \
+                + 0.5 * np.log(2.0 * np.pi) * x.size()[-1] \
+                + logstd.sum(dim=-1)
             
         
         
