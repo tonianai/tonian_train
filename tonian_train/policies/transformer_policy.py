@@ -87,7 +87,7 @@ class TransformerPolicy(A2CBasePolicy):
             neglogprob = self.neglogprob(selected_action, mu, sigma, logstd)
             
             result = {
-                    'neglogpacs' : torch.squeeze(neglogprob),
+                    'neglogprobs' : torch.squeeze(neglogprob),
                     'values' : value,
                     'actions' : selected_action,
                     'mus' : mu,

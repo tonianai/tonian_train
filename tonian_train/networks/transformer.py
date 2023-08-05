@@ -182,6 +182,7 @@ class TransformerNetLogStd(nn.Module):
                  input_embedding: InputEmbedding,
                  output_embedding: OutputEmbedding,
                  d_model: int,
+                 target_seq_len: int, 
                  action_space: gym.spaces.Space, 
                  action_head: Optional[nn.Sequential] = None,
                  action_head_size: Optional[int] = None,
@@ -276,6 +277,7 @@ class TransformerNetLogStd(nn.Module):
             batch_first= True
         )
         
+        
          
         self.action_head = action_head
         self.critic_head = critic_head
@@ -298,7 +300,7 @@ class TransformerNetLogStd(nn.Module):
         if self.is_std_fixed:
             self.action_std = nn.Parameter(torch.zeros(self.num_actions, requires_grad=True))
         else:
-            self.action_std = torch.nn.Linear(self.d_model, self.num_actions)
+            self.action_std = torch.nn.Linear(self.d_model * target_seq_len, self.num_actions)
         
         
         self.action_activation = action_activation
@@ -338,8 +340,11 @@ class TransformerNetLogStd(nn.Module):
         
         transformer_out = self.transformer.forward(src=src, tgt=tgt, tgt_mask= tgt_mask)
         
-        result =  transformer_out
         
+        out_seq_length = transformer_out.shape[1]
+        out_model_size = transformer_out.shape[2]
+        
+        result =  transformer_out.reshape(-1 , out_seq_length * out_model_size)
         
         value = self.value_activation(self.c_out(self.critic_head(result)))
         
@@ -407,10 +412,10 @@ def build_transformer_a2c_from_config(config: Dict,
     value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
     
     action_head_factory = MlpConfiguration(config['action_head'])
-    action_head = action_head_factory.build(d_model)
+    action_head = action_head_factory.build(d_model * seq_len)
     
     critic_head_factory =  MlpConfiguration(config['critic_head'])
-    critic_head = critic_head_factory.build(d_model)
+    critic_head = critic_head_factory.build(d_model * seq_len)
     
     
     num_encoder_layers = config['num_encoder_layers']
@@ -425,6 +430,7 @@ def build_transformer_a2c_from_config(config: Dict,
             n_heads= n_heads,
             input_embedding=input_embedding,
             output_embedding=output_embedding,
+            target_seq_len= seq_len,
             d_model=d_model, 
             action_space=action_space,
             action_head=action_head,
