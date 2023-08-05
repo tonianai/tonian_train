@@ -48,6 +48,7 @@ class SequenceBuffer():
     def __init__(self,
                  n_envs: int,  
                  horizon_length: int,
+                 sequence_length: int, 
                  obs_space: MultiSpace,
                  action_space: gym.spaces.Space,
                  store_device: Union[str, torch.device] = "cuda:0",
@@ -72,12 +73,20 @@ class SequenceBuffer():
         
 
         self.n_values = n_values 
-        self.horizon_length = horizon_length
+        self.horizon_length = horizon_length # The amount of steps played per epoch
+        self.sequence_length = sequence_length # The amount of observations and actions taken into account by the network
+        
+        self.buffer_length = self.horizon_length + self.sequence_length # The 
+        
+        
         self.obs_space = obs_space
         
         self.store_device = store_device
         self.out_device = out_device
         self.n_envs = n_envs
+
+        # The Sequence buffer can go in a state of refusing writes during learning        
+        self.can_write = True
         
         self.reset()
         pass
@@ -87,44 +96,29 @@ class SequenceBuffer():
         Create the buffers and set all initial values to zero
  
         """
-        self.dones = torch.zeros(( self.n_envs, self.horizon_length,), dtype=torch.int8, device=self.store_device)
-        self.values = torch.zeros((self.n_envs, self.horizon_length, self.n_values), dtype=torch.float32, device=self.store_device)
+        self.dones = torch.zeros(( self.n_envs, self.buffer_length,), dtype=torch.int8, device=self.store_device)
+        self.values = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
         
-        self.rewards = torch.zeros((self.n_envs, self.horizon_length, self.n_values), dtype=torch.float32, device=self.store_device)
+        self.rewards = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
         
-        self.action = torch.zeros((self.n_envs, self.horizon_length, self.action_size), dtype=torch.float32, device=self.store_device)
+        self.action = torch.zeros((self.n_envs, self.buffer_length, self.action_size), dtype=torch.float32, device=self.store_device)
         
         # the mean of the action distributions
-        self.action_mu = torch.zeros((self.n_envs, self.horizon_length, self.action_size), dtype=torch.float32, device=self.store_device)
+        self.action_mu = torch.zeros((self.n_envs, self.buffer_length, self.action_size), dtype=torch.float32, device=self.store_device)
         # the std(sigma) of the action distributions   
-        self.action_std = torch.zeros((self.n_envs, self.horizon_length, self.action_size), dtype= torch.float32, device=self.store_device)
+        self.action_std = torch.zeros((self.n_envs, self.buffer_length, self.action_size), dtype= torch.float32, device=self.store_device)
          
-        self.neglogprobs = torch.zeros((self.n_envs, self.horizon_length), dtype= torch.float32, device=self.store_device)
+        self.neglogprobs = torch.zeros((self.n_envs, self.buffer_length), dtype= torch.float32, device=self.store_device)
          
         
         self.obs = {}
         for key, obs_shape in self.obs_space.dict_shape.items():
-            self.obs[key] = torch.zeros((self.n_envs, self.horizon_length) + obs_shape, dtype=torch.float32, device= self.store_device)
+            self.obs[key] = torch.zeros((self.n_envs, self.buffer_length) + obs_shape, dtype=torch.float32, device= self.store_device)
         
         # when the padding masks are true, the values will be disgarded
-        self.src_key_padding_mask = torch.ones((self.n_envs, self.horizon_length), device= self.store_device, dtype=torch.bool)
-        self.tgt_key_padding_mask = torch.ones((self.n_envs, self.horizon_length), device= self.store_device, dtype=torch.bool)
-        
-        
-        self.tensor_dict = {
-            'dones': self.dones,
-            'values': self.values,
-            'rewards': self.rewards,
-            'action': self.action,
-            'action_mu': self.action_mu,
-            'action_std': self.action_std,
-            'neglogprobs': self.neglogprobs,
-            'obs': self.obs,
-            'src_key_padding_mask': self.src_key_padding_mask,
-            'tgt_key_padding_mask': self.tgt_key_padding_mask 
-            
-        }
-        
+        self.src_key_padding_mask = torch.ones((self.n_envs, self.buffer_length), device= self.store_device, dtype=torch.bool)
+        self.tgt_key_padding_mask = torch.ones((self.n_envs, self.buffer_length), device= self.store_device, dtype=torch.bool)
+          
         
     def add(
         self, 
@@ -146,6 +140,7 @@ class SequenceBuffer():
             dones (torch.Tensor): determines, whether the step was terminal for the episode (num_envs)
         """
         
+        assert self.can_write, "The Sequence buffer cannot be written to while the can_write flag is set to false"
         
         # roll the last to the first position
         
@@ -182,14 +177,14 @@ class SequenceBuffer():
         self.tgt_key_padding_mask[:,-1] = torch.zeros_like(last_dones).to(torch.bool)
         
         # only full row paddings have to be made, because the old padding still exist  
-        additive_padding_dones_mask =  torch.unsqueeze((last_dones), 1).tile(1, self.horizon_length)
+        additive_padding_dones_mask =  torch.unsqueeze((last_dones), 1).tile(1, self.buffer_length)
         additive_padding_dones_mask[:, -1] = torch.zeros_like(last_dones).to(torch.bool)
         
         self.src_key_padding_mask = torch.logical_or(self.src_key_padding_mask, additive_padding_dones_mask)
         self.tgt_key_padding_mask = torch.logical_or(self.tgt_key_padding_mask, additive_padding_dones_mask)
 
         
-    def get_and_merge_last_obs(self, obs_dict: Dict[str, torch.Tensor], sequence_length: int) -> Dict[str, torch.Tensor]:
+    def get_and_merge_last_obs(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Gets the sequence length -1 amount of previous observations and merges them with the obs dict, given as input
         
         This function does not change the 
@@ -208,7 +203,7 @@ class SequenceBuffer():
         return obs_dict
     
     
-    def get_last_sequence_step_data(self, sequence_length: int, obs: Dict[str, torch.Tensor]) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]:
+    def get_last_sequence_step_data(self, obs: Dict[str, torch.Tensor]) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]:
         """returns the relevant data for the next step 
 
         Args:
@@ -221,16 +216,16 @@ class SequenceBuffer():
         """
         obs_dict = {}
         for key in self.obs.keys():
-            res = self.obs[key][:, -(sequence_length)::, :]  
+            res = self.obs[key][:, -(self.sequence_length)::, :]  
             obs_dict[key] = torch.concat((res, torch.unsqueeze(obs[key], 1)), dim= 1)
             
-        sequence_action_mu = self.action_mu[:, -(sequence_length)::,:]
-        sequence_action_std = self.action_std[:, -(sequence_length)::,:]
-        sequence_value = self.values[:, -(sequence_length)::,:]
-        seq_src_key_padding_mask = self.src_key_padding_mask[:, -(sequence_length)::]
+        sequence_action_mu = self.action_mu[:, -(self.sequence_length)::,:]
+        sequence_action_std = self.action_std[:, -(self.sequence_length)::,:]
+        sequence_value = self.values[:, -(self.sequence_length)::,:]
+        seq_src_key_padding_mask = self.src_key_padding_mask[:, -(self.sequence_length)::]
         seq_src_key_padding_mask = torch.concat((seq_src_key_padding_mask,torch.unsqueeze(torch.zeros((self.n_envs, ), device = self.out_device).to(torch.bool), 1)),1)
             
-        seq_tgt_key_padding_mask = self.tgt_key_padding_mask[:, -(sequence_length)::]
+        seq_tgt_key_padding_mask = self.tgt_key_padding_mask[:, -(self.sequence_length)::]
             
         return {
             'src_obs': obs_dict,
@@ -251,9 +246,15 @@ class SequenceBuffer():
         Returns:
             Dict[str, torch.Tensor]: keys() => {'action', ''}
         """
-        return {tensor_name: torch.flip(self.tensor_dict[tensor_name], (1,)) for tensor_name in tensor_names }
+        return {tensor_name: torch.flip(getattr(self, tensor_name)[:, -self.horizon_length::], (1,)) for tensor_name in tensor_names }
             
-             
+    def block_write(self):
+        self.can_write = False
+        
+    def allow_write(self):
+        self.can_write = True
+        
+
         
 class TransformerPPO:
     
@@ -432,6 +433,7 @@ class TransformerPPO:
         
         self.sequence_buffer = SequenceBuffer( 
             horizon_length= self.horizon_length,
+            sequence_length= self.sequence_length,
             obs_space=self.obs_space,
             action_space=self.action_space,
             store_device=self.device,
@@ -542,7 +544,7 @@ class TransformerPPO:
     def play_steps(self):
         """Play the environment for horizon_length amount of steps
         """
-        
+        self.sequence_buffer.allow_write() # The sequence buffer should only be written to during the play steps function
         step_time = 0.0
         
         # cumulative sum of  episode rewards within rollout ()
@@ -565,7 +567,7 @@ class TransformerPPO:
         for n in range(self.horizon_length):
             self.policy.eval()
             
-            last_data_dict = self.sequence_buffer.get_last_sequence_step_data(sequence_length=self.sequence_length, obs=self.obs)
+            last_data_dict = self.sequence_buffer.get_last_sequence_step_data(obs=self.obs)
             
             with torch.no_grad():
                 res = self.policy.forward(is_train= False, prev_actions= None, **last_data_dict)
@@ -641,10 +643,10 @@ class TransformerPPO:
         # ---- get the valus of the last state 
         with torch.no_grad():
             self.policy.eval()
-            last_state_dict = self.sequence_buffer.get_last_sequence_step_data(sequence_length=self.sequence_length, obs=self.obs)
+            last_state_dict = self.sequence_buffer.get_last_sequence_step_data( obs=self.obs)
             result = self.policy.forward(is_train= False, **last_state_dict)
             
-            last_value = result['value']
+            last_value = result['values']
             
             if self.normalize_value:
                 last_value = self.value_mean_std(last_value, True)
@@ -664,9 +666,49 @@ class TransformerPPO:
         if "objective_episode_reward" in infos: 
             self.logger.log("run/last_1000_obj_ep_reward", sum(self.last_1000_ep_reward)/1000, self.num_timesteps)
         
-        step_reward = torch.sum(rewards) / (self.num_envs * self.horizon_length)
        
+        # this dict will be returned from the play steps function, to facilitate training
+        result_dict = {}
+        result_dict['returns'] = returns  
+        result_dict['played_frames'] = self.batch_size
+        result_dict['step_time'] = step_time
+        self.sequence_buffer.block_write()
+        
+        
+        step_reward = torch.sum(rewards) / (self.num_envs * self.horizon_length)
+        
+        # --- log the results before exiting
+        
+        if n_completed_episodes != 0:
+            self.logger.log("run/episode_rewards", sum_ep_reward / n_completed_episodes, self.num_timesteps)
             
+            self.logger.log("run/objective_episode_rewards", sum_ep_objective_reward / n_completed_episodes, self.num_timesteps)
+            
+            self.logger.log("run/steps_per_episode", sum_steps_per_episode / n_completed_episodes, self.num_timesteps)
+        
+            if sum_ep_objective_reward == 0:
+                self.current_avg_reward = sum_ep_reward / n_completed_episodes
+            else:
+                self.current_avg_reward = sum_ep_objective_reward / n_completed_episodes
+                
+                
+            if self.current_avg_reward > self.most_avg_reward_received:
+                self.most_avg_reward_received = self.current_avg_reward
+                self.save(best_model = True)
+            self.save(best_model= False)
+            
+            if sum_reward_consituents:
+                # log the reward constituents
+                for key, value in sum_reward_consituents.items():
+                    self.logger.log(f"run_reward_{key}", value / self.horizon_length, self.num_timesteps )
+            
+        
+        
+        
+        return result_dict
+        
+            
+        
             
     def calc_advantages(self, 
                         final_dones: torch.Tensor, 
@@ -688,24 +730,25 @@ class TransformerPPO:
         last_gae_lam = 0
         advantages = torch.zeros_like(rewards)
         
-        for t in range(self.horizon_length):
+        for t in reversed(range(self.horizon_length)):
             if t == self.horizon_length -1:
                 next_non_terminal = 1.0 - final_dones # shape (num_envs)
                 next_values = final_pred_values
             else:
-                next_non_terminal = 1.0  - dones[t+1]
-                next_values = pred_values[t+1]
+                next_non_terminal = 1.0  - dones[:,t+1]
+                next_values = pred_values[:, t+1]
             next_non_terminal = next_non_terminal.unsqueeze(1)
                 
             
             # discounted differenct between last predicted values and current predicted values + reward
-            delta = rewards[t] + self.gamma * next_values * next_non_terminal - pred_values[t]
-            advantages[t] = last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+            delta = rewards[:, t] + self.gamma * next_values * next_non_terminal - pred_values[:, t]
+            advantages[:, t] = last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
             
         return advantages
                 
         
-        
+    def save(self, best_model: bool = True):
+        pass
             
     
     def preprocess_actions(self, actions: torch.Tensor):
