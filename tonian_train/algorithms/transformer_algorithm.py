@@ -177,32 +177,37 @@ class SequenceBuffer():
         return obs_dict
     
     
-    def get_last_sequence_step_data(self, sequence_length: int) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]:
+    def get_last_sequence_step_data(self, sequence_length: int, obs: Dict[str, torch.Tensor]) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]:
         """returns the relevant data for the next step 
 
         Args:
             sequence_length (int): amount of time the agent can look into the past
+            
+            the sequence length of the observation and the src key padding mask is one larger, because the most recent observations are obvioulsy included
 
         Returns:
             Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]: Dict containing relevant info 
         """
         obs_dict = {}
         for key in self.obs.keys():
-            obs_dict[key] = self.obs[key][:, -(sequence_length)::, :] 
+            res = self.obs[key][:, -(sequence_length)::, :]  
+            obs_dict[key] = torch.concat((res, torch.unsqueeze(obs[key], 1)), dim= 1)
             
         sequence_action_mu = self.action_mu[:, -(sequence_length)::,:]
         sequence_action_std = self.action_std[:, -(sequence_length)::,:]
         sequence_value = self.values[:, -(sequence_length)::,:]
-        seq_src_key_padding_mask = self.src_key_padding_mask[:, -(sequence_length)::, :]
-        seq_tgt_key_padding_mask = self.tgt_key_padding_mask[:, -(sequence_length)::, :]
+        seq_src_key_padding_mask = self.src_key_padding_mask[:, -(sequence_length)::]
+        seq_src_key_padding_mask = torch.concat((seq_src_key_padding_mask,torch.unsqueeze(torch.zeros((self.n_envs, ), device = self.out_device).to(torch.bool), 1)),1)
+            
+        seq_tgt_key_padding_mask = self.tgt_key_padding_mask[:, -(sequence_length)::]
             
         return {
             'src_obs': obs_dict,
             'tgt_action_mu': sequence_action_mu,
             'tgt_action_std': sequence_action_std,
             'tgt_value': sequence_value,
-            'src_pad_mask': seq_src_key_padding_mask,
-            'src_tgt_pad_mask': seq_tgt_key_padding_mask
+            'src_padding_mask': seq_src_key_padding_mask,
+            'tgt_padding_mask': seq_tgt_key_padding_mask
         }
     
         
@@ -238,7 +243,7 @@ class TransformerPPO:
         
         self.num_envs = env.num_envs  
         
-        self.seq_len = self.config.get('seq_length', 4)
+        self.seq_len = policy.sequence_length
          
         self.value_size = config.get('value_size',1)
         self.obs_space: MultiSpace = env.observation_space          
@@ -359,6 +364,8 @@ class TransformerPPO:
         
         self.model_out_name = model_out_name
         
+        self.first_step = True 
+        
         
         
         # from the continuois A2cBaseAlgorithm
@@ -379,8 +386,7 @@ class TransformerPPO:
          
     def init_tensors(self):
         
-        self.sequence_buffer = SequenceBuffer(
-            sequence_length=self.sequence_length,
+        self.sequence_buffer = SequenceBuffer( 
             horizon_length= self.horizon_length,
             obs_space=self.obs_space,
             action_space=self.action_space,
@@ -395,6 +401,7 @@ class TransformerPPO:
         self.current_lengths = torch.zeros(self.num_envs, dtype= torch.float32, device= self.device)
         self.current_dones = torch.ones((self.num_envs, ), dtype=torch.uint8, device=self.device)
         
+        self.dones = torch.ones((self.num_envs, ), dtype=torch.uint8, device=self.device)
          
     def set_eval(self):
         self.policy.eval() 
@@ -453,8 +460,44 @@ class TransformerPPO:
         for key, val in sim_logs.items():
             self.logger.log('sim/'+ key, val, step=self.num_timesteps)
         
+    
+    def train(self, max_steps:Optional[int] = None):
         
+        self.init_tensors()
+        self.obs = self.env.reset()
+        
+        total_time = 0
+        
+        epoch_num = 0
+        
+        while True:
+            
+            self.train_epoch()
+            
+            epoch_num += 1
+                              
+                
+                
+    def train_epoch(self):
+        """Play and train the policy once
+
+        Returns:
+            _type_: _description_
+        """
+        
+        self.set_eval()
+        
+        play_time_start = time.time()
+        
+        
+        with torch.no_grad():
+            batch_dict = self.play_steps()
+        
+    
+                                                     
     def play_steps(self):
+        """Play the environment for horizon_length amount of steps
+        """
         
         step_time = 0.0
         
@@ -476,25 +519,56 @@ class TransformerPPO:
         step_reward = 0
         
         for n in range(self.horizon_length):
+            self.policy.eval()
             
-            res_dict = self.get_action_values(self.obs)
+            last_data_dict = self.sequence_buffer.get_last_sequence_step_data(sequence_length=self.sequence_length, obs=self.obs)
             
-     
-    def get_action_values(self, obs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-        """_summary_
+            with torch.no_grad():
+                res = self.policy.forward(is_train= False, prev_actions= None, **last_data_dict)
+            
+            if self.normalize_value:
+                res['values'] = self.value_mean_std(res['values'], True)
+            
+            actions = res['actions']
+            values = res['values']
+            action_mus = res['mus']
+            action_sigmas = res['sigmas']
+            neglogpacs = res['neglogpacs']
+            
+            
+            self.sequence_buffer.add(obs=self.obs,
+                                     action_mu=action_mus,
+                                     action_std=action_sigmas,
+                                     values = values,
+                                     dones= self.dones)
+            
+            self.obs, rewards, self.dones, infos, reward_constituents = self.env_step(actions)
+            
+            
+    
+    def preprocess_actions(self, actions: torch.Tensor):
+        """preprocess the actions
 
         Args:
-            obs (Dict[str, torch.Tensor]): observation dict 
+            actions torch.Tensor: 
 
         Returns:
-            Dict[str, torch.Tensor]: result dict with keys: 'value', 'mu'
+            _type_: _description_
         """
-        self.policy.eval()
         
-        with torch.no_grad():
-            res = self.policy(is_train= False, obs= obs, prev_actions= None)
-        
-        if self.normalize_value:
-            res['values'] = self.value_mean_std(res['values'], True)
-        
-        return res
+        if self.clip_actions:
+            clamped_actions = torch.clamp(actions, -1.0, 1.0)
+            rescaled_actions = rescale_actions(self.actions_low, self.actions_high, clamped_actions)
+        else:
+            rescaled_actions = actions
+
+        return rescaled_actions
+            
+            
+    def env_step(self, actions: torch.Tensor):
+        actions = self.preprocess_actions(actions)
+        obs, rewards, dones, infos, reward_constituents = self.env.step(actions)
+ 
+        if self.value_size == 1:
+            rewards = rewards.unsqueeze(1)
+        return obs, rewards.to(self.device), dones.to(self.device), infos, reward_constituents

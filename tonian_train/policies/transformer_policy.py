@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Union, Tuple, Any, Optional, List
 
 from tonian_train.common.spaces import MultiSpace
-from tonian_train.networks import A2CBaseNet, A2CSimpleNet, build_simple_a2c_from_config
+from tonian_train.networks import build_transformer_a2c_from_config
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy
@@ -32,8 +32,14 @@ class TransformerPolicy(A2CBasePolicy):
         
     
     def forward(self, is_train: bool,   
-                      actor_obs: Dict[str, torch.Tensor],  
-                      prev_actions: Optional[torch.Tensor]) -> Dict:
+                      src_obs: Dict[str, torch.Tensor],  
+                      tgt_action_mu: torch.Tensor,
+                      tgt_action_std: torch.Tensor,
+                      tgt_value: torch.Tensor,
+                      src_padding_mask: torch.Tensor,
+                      tgt_padding_mask: torch.Tensor,
+                      prev_actions: Optional[torch.Tensor] = None,
+                      tgt_mask: Optional[torch.Tensor] = None,) -> Dict:
         """
 
         Args:
@@ -50,9 +56,15 @@ class TransformerPolicy(A2CBasePolicy):
         # This function must provide the correct masks and it must tile the padding for episodes, that just began
         
         with torch.no_grad():
-            obs = self._normalize_obs(obs)
+            src_obs = self._normalize_obs(src_obs)
             
-        mu, logstd, value = self.transformer_net(obs) # TODO: This must add the proper masks
+        mu, logstd, value = self.transformer_net.forward(src_obs, 
+                                                         tgt_action_mu,
+                                                         tgt_action_std, 
+                                                         tgt_value,
+                                                         tgt_mask=tgt_mask,
+                                                         src_pad_mask=src_padding_mask,
+                                                         tgt_pad_mask=tgt_padding_mask) # TODO: This must add the proper masks
  
         sigma = torch.exp(logstd)
    
@@ -123,3 +135,26 @@ class TransformerPolicy(A2CBasePolicy):
         if self.obs_normalizer:
             torch.save(self.obs_normalizer.state_dict(), os.path.join(path, 'obs_norm.pth'))
             
+
+
+def build_a2c_transformer_policy(config: Dict, obs_space: MultiSpace, action_space:gym.spaces.Space):
+    
+    
+    
+    sequence_length = config.get('sequence_length', 32)
+    network = build_transformer_a2c_from_config(config['network'],
+                                                seq_len= sequence_length, 
+                                                value_size= 1, 
+                                                obs_space = obs_space,
+                                                action_space= action_space)
+    
+    normalize_inputs = config.get('normalize_inputs', True)
+    
+    if normalize_inputs:
+        
+        obs_normalizer = RunningMeanStdObs(obs_space.dict_shape)
+        
+    return TransformerPolicy( transformer_net= network,
+                             sequence_length= sequence_length,
+                             obs_normalizer= obs_normalizer
+                             )

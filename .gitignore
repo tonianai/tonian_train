@@ -37,4 +37,7 @@ outputs/
 ./dist
 
 ./wandb
+./wandb/
+./wandb/*
+wandb/
 ./tonian_train/wandb
