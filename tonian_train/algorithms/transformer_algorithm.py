@@ -19,6 +19,8 @@ from tonian_train.common.utils import join_configs
 import torch.nn as nn
 import torch, gym, os, yaml, time
 
+from torch.utils.data import Dataset
+
 def rescale_actions(low, high, action):
     d = (high - low) / 2.0
     m = (high + low) / 2.0
@@ -36,11 +38,7 @@ def policy_kl(p0_mu, p0_sigma, p1_mu, p1_sigma, reduce=True):
     else:
         return kl
     
-    
-class TransformerBuffer():
-    
-    pass
-
+  
 
 
 class SequenceBuffer():
@@ -88,14 +86,10 @@ class SequenceBuffer():
         # The Sequence buffer can go in a state of refusing writes during learning        
         self.can_write = True
         
-        self.reset()
-        pass
-    
-    def reset(self) -> None:
-        """
-        Create the buffers and set all initial values to zero
+        self.tensor_names = ['dones', 'values', 'rewards', 'action', 'action_mu', 'action_std', 'neglogprobs', 'obs', 'src_key_padding_mask', 'tgt_key_padding_mask']
+        
+        # ----- Create the buffers and set all initial values to zero
  
-        """
         self.dones = torch.zeros(( self.n_envs, self.buffer_length,), dtype=torch.int8, device=self.store_device)
         self.values = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
         
@@ -142,6 +136,7 @@ class SequenceBuffer():
         
         assert self.can_write, "The Sequence buffer cannot be written to while the can_write flag is set to false"
         
+         
         # roll the last to the first position
         
         # The tensord fill upd from 
@@ -161,6 +156,7 @@ class SequenceBuffer():
         
         for key in self.obs:   
             self.obs[key][:, -1, :] = obs[key].detach().to(self.store_device)
+             
             
         self.action[:, -1, :] = action.detach().to(self.store_device)
         self.action_mu[:, -1, :] = action_mu.detach().to(self.store_device)
@@ -190,14 +186,14 @@ class SequenceBuffer():
         This function does not change the 
         Args:
             obs_dict (Dict[str, torch.Tensor]): observations of the last world iteration shape(num_envs, ) + obs _shape
-            sequence_length (int): dim of output tensors => (n_envs,sequence_length, ) + obs_shape
-
+    
         Returns:
-            Dict[str, torch.Tensor]: _description_
+            Dict[str, torch.Tensor]: dim of output tensors => (n_envs,sequence_length, ) + obs_shape
+
         """
         
         for key in obs_dict.keys():
-            res = self.obs[key][:, -(sequence_length-1)::, :] 
+            res = self.obs[key][:, -(self.sequence_length-1)::, :] 
             obs_dict[key] = torch.concat((res, torch.unsqueeze(obs_dict[key], 1)), dim= 1)
         
         return obs_dict
@@ -205,11 +201,6 @@ class SequenceBuffer():
     
     def get_last_sequence_step_data(self, obs: Dict[str, torch.Tensor]) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]:
         """returns the relevant data for the next step 
-
-        Args:
-            sequence_length (int): amount of time the agent can look into the past
-            
-            the sequence length of the observation and the src key padding mask is one larger, because the most recent observations are obvioulsy included
 
         Returns:
             Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]: Dict containing relevant info 
@@ -237,7 +228,7 @@ class SequenceBuffer():
         }
     
     
-    def get_reversed_order(self, tensor_names: List[str]) -> Dict[str, torch.Tensor]:
+    def get_reversed_order(self, tensor_names: Optional[List[str]] = None  ) -> Dict[str, torch.Tensor]:
         """Return every tensor in the reversed order
         -> the smallest timestep will be at 0 
            and the largest timestep will be at horizon_length
@@ -246,7 +237,20 @@ class SequenceBuffer():
         Returns:
             Dict[str, torch.Tensor]: keys() => {'action', ''}
         """
-        return {tensor_name: torch.flip(getattr(self, tensor_name)[:, -self.horizon_length::], (1,)) for tensor_name in tensor_names }
+        if tensor_names is None:
+            tensor_names = self.tensor_names
+            
+        res_dict = {}
+        for tensor_name in tensor_names:
+            
+            curr_tensor = getattr(self, tensor_name) # could be the obs dict
+            
+            if isinstance(curr_tensor, Dict):
+                res_dict[tensor_name] = {obs_name: curr_tensor[obs_name][:, -self.horizon_length::] for obs_name in curr_tensor.keys()}
+            else:
+                res_dict[tensor_name] = torch.flip( curr_tensor[:, -self.horizon_length::], (1,))
+            
+        return res_dict
             
     def block_write(self):
         self.can_write = False
@@ -254,8 +258,94 @@ class SequenceBuffer():
     def allow_write(self):
         self.can_write = True
         
-
         
+    def __len__(self):
+        return self.buffer_length
+        
+class SequenceDataset(Dataset):
+    
+    def __init__(self, buffer: SequenceBuffer, minibatch_size: int) -> None:
+        
+        self.buffer = buffer
+        self.horizon_length = buffer.horizon_length # The amount of steps played per epoch
+        self.sequence_length = buffer.sequence_length # The amount of observations and actions taken into account by the network
+        
+        self.buffer_length = self.horizon_length + self.sequence_length # The 
+        
+        self.minibatch_size = minibatch_size    
+        
+        self.length = buffer.n_envs * buffer.buffer_length // self.minibatch_size 
+        
+        self.initialize_buffer()
+        
+    
+    def initialize_buffer(self):
+        
+        self.data_buffer = {}
+        buffer_res_dict = self.buffer.get_reversed_order()
+        
+        for key in buffer_res_dict.keys():
+            
+            if isinstance(buffer_res_dict[key], Dict):
+                # obs dict
+                self.data_buffer[key] = {obs_key : SequenceDataset.expand_and_compacify_tensor(buffer_res_dict[key][obs_key]) for obs_key in buffer_res_dict[key].keys()}
+            else:
+                # just tensor
+                self.data_buffer[key] = SequenceDataset.expand_and_compacify_tensor(buffer_res_dict[key])
+                
+                 
+    def expand_and_compacify_tensor(tensor: torch.Tensor) -> torch.Tensor:
+        """Expand the shape of a tensor of shape (a,b,c, ...)
+        to the shape (a, b, b, c, ...)
+        and than compactify it into shape (a * b, b, c, ...)
+
+        Args:
+            tensor (torch.Tensor): Tensor of shape (a,b,c,...)
+
+        Returns:
+            torch.Tensor: Tensor of shape (a*b, b, c, ....)
+        """
+        
+        # create the new tensor shape (-1, -1, b, -1 ***)
+        expanded_shape = (-1,-1,)+ (tensor.shape[1],) + ((-1,) * (len(tensor.shape) - 2))  
+        expanded_tensor = tensor.unsqueeze(2).expand(expanded_shape)
+        
+        # contract the first two dimensions
+        
+        compacted_shape = (expanded_tensor.shape[0] * expanded_tensor.shape[1], ) + tensor.shape[1:]
+        return expanded_tensor.contiguous().view(compacted_shape)
+        
+        
+        
+    
+    def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
+        """get the minibatch at the specified indes 
+
+        Args:
+            index (int): index ranging from 0 to len(self) -1
+
+        Returns:
+            Dict[str, torch.Tensor]: torch(minibatch_size, sequence_length, ) + singluar_tensor_shape
+        """
+        
+        start = index * self.minibatch_size
+        end = start + self.minibatch_size
+        
+        out_dict = {}
+        
+        for key, buffer_item in self.data_buffer.items():
+            if isinstance(buffer_item, Dict):
+                out_dict[key] = {obs_key: buffer_item[obs_key][start: end] for  obs_key in buffer_item.keys()}
+            else:
+                out_dict[key] = buffer_item[start: end]
+                
+        
+        return out_dict
+        
+        
+    def __len__(self):
+        return self.length
+ 
 class TransformerPPO:
     
     def __init__(self,
@@ -537,9 +627,28 @@ class TransformerPPO:
         
         
         with torch.no_grad():
-            batch_dict = self.play_steps()
+            res_dict = self.play_steps()
         
+        play_time_end = time.time()
+        update_time_start = play_time_end
+        
+        dataset = SequenceDataset(self.sequence_buffer, self.minibatch_size)
     
+        self.set_train()
+        
+        a_losses = [] # actor losses
+        c_losses = [] # critic losses
+        b_losses = [] # boudning losses
+        entropies = [] # entropy losses
+        kls = [] # kl divergences 
+        
+        for _ in range(0,self.mini_epochs_num):
+            ep_kls = []
+            
+            for i in range(len(dataset)):
+                data = dataset[i]
+                pass
+                
                                                      
     def play_steps(self):
         """Play the environment for horizon_length amount of steps
@@ -567,7 +676,9 @@ class TransformerPPO:
         for n in range(self.horizon_length):
             self.policy.eval()
             
-            last_data_dict = self.sequence_buffer.get_last_sequence_step_data(obs=self.obs)
+            last_obs = self.obs
+            last_dones = self.dones
+            last_data_dict = self.sequence_buffer.get_last_sequence_step_data(obs=last_obs)
             
             with torch.no_grad():
                 res = self.policy.forward(is_train= False, prev_actions= None, **last_data_dict)
@@ -596,13 +707,13 @@ class TransformerPPO:
                 
                 shaped_rewards += self.gamma * values * infos['time_outs'].unsqueeze(1).float()
     
-            self.sequence_buffer.add(obs=self.obs,
+            self.sequence_buffer.add(obs=last_obs,
                             action= actions,
                             rewards=rewards,
                             action_mu=action_mus,
                             action_std=action_sigmas,
                             values = values,
-                            dones= self.dones,
+                            dones= last_dones,
                             neglogprobs= neglogprobs)
             
             self.current_rewards += rewards
@@ -707,9 +818,7 @@ class TransformerPPO:
         
         return result_dict
         
-            
-        
-            
+             
     def calc_advantages(self, 
                         final_dones: torch.Tensor, 
                         final_pred_values: torch.Tensor, 
@@ -745,7 +854,7 @@ class TransformerPPO:
             advantages[:, t] = last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
             
         return advantages
-                
+                 
         
     def save(self, best_model: bool = True):
         pass
