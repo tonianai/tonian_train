@@ -57,13 +57,15 @@ class SequenceBuffer():
         TODO: fix that horizon length must be bigger than sequence length
         
         Args:
-            sequence_length (int): _description_
-            actor_obs_space (MultiSpace): _description_
-            action_space (gym.spaces.Space): _description_
-            store_device (_type_, optional): _description_. Defaults to "cuda:0".
-            out_device (_type_, optional): _description_. Defaults to "cuda:0".
-            n_envs (int, optional): _description_. Defaults to 1. 
-            n_values (int, optional): _description_. Defaults to 1.
+        
+            horizon_length (int): the amount of steps taken in one epoch 
+            sequence_length (int): the amount of steps the actor can look back
+            obs_space (MultiSpace): the observation space 
+            action_space (gym.spaces.Space): the action space
+            store_device (_type_, optional): the device on which the tensors will be stored. Defaults to "cuda:0".
+            out_device (_type_, optional): the device on which the tensors will be outputed. Defaults to "cuda:0".
+            n_envs (int, optional): The amount of environments. Defaults to 1. 
+            n_values (int, optional): The amount of values. Defaults to 1.
         """
         self.action_space = action_space
         self.action_size = action_space.shape[0]
@@ -74,7 +76,7 @@ class SequenceBuffer():
         self.horizon_length = horizon_length # The amount of steps played per epoch
         self.sequence_length = sequence_length # The amount of observations and actions taken into account by the network
         
-        self.buffer_length = self.horizon_length + self.sequence_length # The 
+        self.buffer_length = self.horizon_length + self.sequence_length # This buffer length is required, because 
         
         
         self.obs_space = obs_space
@@ -86,7 +88,15 @@ class SequenceBuffer():
         # The Sequence buffer can go in a state of refusing writes during learning        
         self.can_write = True
         
-        self.tensor_names = ['dones', 'values', 'rewards', 'action', 'action_mu', 'action_std', 'neglogprobs', 'obs', 'src_key_padding_mask', 'tgt_key_padding_mask']
+        
+        # the data in these tensors comes from the outside
+        self.external_tensor_names = ['dones', 'values', 'rewards', 'action', 'action_mu', 'action_std', 'neglogprobs', 'obs']
+        
+        # the data from these tensors is derived within the buffer
+        self.derived_tensor_names = ['src_key_padding_mask', 'tgt_key_padding_mask', 'returns', 'advantages']
+        
+        
+        self.tensor_names = self.external_tensor_names + self.derived_tensor_names
         
         # ----- Create the buffers and set all initial values to zero
  
@@ -94,7 +104,7 @@ class SequenceBuffer():
         self.values = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
         
         self.rewards = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
-        
+     
         self.action = torch.zeros((self.n_envs, self.buffer_length, self.action_size), dtype=torch.float32, device=self.store_device)
         
         # the mean of the action distributions
@@ -103,6 +113,10 @@ class SequenceBuffer():
         self.action_std = torch.zeros((self.n_envs, self.buffer_length, self.action_size), dtype= torch.float32, device=self.store_device)
          
         self.neglogprobs = torch.zeros((self.n_envs, self.buffer_length), dtype= torch.float32, device=self.store_device)
+     
+        self.advantages = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
+        self.returns = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
+        
          
         
         self.obs = {}
@@ -114,6 +128,10 @@ class SequenceBuffer():
         self.tgt_key_padding_mask = torch.ones((self.n_envs, self.buffer_length), device= self.store_device, dtype=torch.bool)
           
         
+        # the advantage pointer always refer to the second (1) dimesnion, that correspons to the buffer length
+        self.left_advantage_pointer = self.buffer_length -1 # the pointer at which the first correct advantages are
+        self.right_advantage_pointer = self.buffer_length -1 # the pointer at which the last correct advantages are
+  
     def add(
         self, 
         obs: Dict[str, torch.Tensor],
@@ -136,7 +154,6 @@ class SequenceBuffer():
         
         assert self.can_write, "The Sequence buffer cannot be written to while the can_write flag is set to false"
         
-         
         # roll the last to the first position
         
         # The tensord fill upd from 
@@ -150,6 +167,23 @@ class SequenceBuffer():
         self.dones = torch.roll(self.dones, shifts=(-1), dims=(1))
         self.neglogprobs = torch.roll(self.neglogprobs, shifts=(-1), dims = (1))
         self.rewards = torch.roll(self.rewards, shifts=(-1), dims=(1))
+        
+        # advantage and returns will also be rolled and set to 0, so that they align with the rest of the data
+        self.advantages = torch.roll(self.advantages, shifts=(-1), dims=(1))
+        self.returns = torch.roll(self.returns, shifts=(-1), dims=(1))
+        
+        self.advantages[:, -1,:] = torch.zeros_like(values, device= self.store_device)
+        self.returns[:, -1,:] = torch.zeros_like(values, device= self.store_device)
+        
+        # both pointers get deducted one, because no additional data was added, the data was just shifted down by one
+        # pointers can also not be smaller than 0
+        self.left_advantage_pointer -= 1
+        if self.left_advantage_pointer <= 0:
+            self.left_advantage_pointer = 0
+        self.right_advantage_pointer -= 1 
+        if self.right_advantage_pointer <= 0:
+            self.right_advantage_pointer = 0
+        
         
         self.src_key_padding_mask = torch.roll(self.tgt_key_padding_mask, shifts = (-1), dims= (1))
         self.tgt_key_padding_mask = torch.roll(self.tgt_key_padding_mask, shifts = (-1), dims= (1))
@@ -183,7 +217,7 @@ class SequenceBuffer():
     def get_and_merge_last_obs(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Gets the sequence length -1 amount of previous observations and merges them with the obs dict, given as input
         
-        This function does not change the 
+        This function does not change the obs buffer and is meant as a direct output for the trnsformer, hence the output in the shape of the sequence length
         Args:
             obs_dict (Dict[str, torch.Tensor]): observations of the last world iteration shape(num_envs, ) + obs _shape
     
@@ -228,7 +262,7 @@ class SequenceBuffer():
         }
     
     
-    def get_reversed_order(self, tensor_names: Optional[List[str]] = None  ) -> Dict[str, torch.Tensor]:
+    def get_reversed_order(self, tensor_names: Optional[List[str]] = None  ) -> Dict[str, Union[torch.Tensor, Dict]]:
         """Return every tensor in the reversed order
         -> the smallest timestep will be at 0 
            and the largest timestep will be at horizon_length
@@ -250,8 +284,51 @@ class SequenceBuffer():
             else:
                 res_dict[tensor_name] = torch.flip( curr_tensor[:, -self.horizon_length::], (1,))
             
+        if len(tensor_names) == 1:
+            return res_dict[tensor_name]
         return res_dict
             
+            
+    def calc_advantages(self, 
+                        final_dones: torch.Tensor, 
+                        final_pred_values: torch.Tensor,
+                        gamma: float,
+                        gae_lambda: float
+                        ):
+        """Discout the values and calculate the advantages for the horizon_len and add to the buffer
+
+        Args:
+            final_dones (torch.Tensor): shape (num_envs)
+            final_pred_values (torch.Tensor): shape(num_envs, num_values) 
+            gamma (float): discount factor
+            gae_lambda (float): bootstrapping tradeoff
+        """
+        assert (self.buffer_length -1) - self.right_advantage_pointer == self.horizon_length, "The complete horizon length must be played before the advantage will be calculated"
+        
+        last_gae_lam = 0
+        
+        for i in range(self.horizon_length + 1):
+            t = self.right_advantage_pointer + i # index in the uncalculated territory
+            if i == 0:
+                next_non_terminal = 1.0 - final_dones
+                next_values = final_pred_values
+            else:
+                next_non_terminal = 1.0 - self.dones[:, t-1]
+                next_values = self.values[:, t-1]
+            next_non_terminal = next_non_terminal.unsqueeze(1)
+                         
+            # discounted differenct between last predicted values and current predicted values + reward
+            delta = self.rewards[:, t] + gamma * next_values * next_non_terminal - self.values[:, t]    
+            self.advantages[:, t] = last_gae_lam = delta + gamma * gae_lambda * next_non_terminal * last_gae_lam
+        
+        
+        # calculate returns 
+        self.returns[:, self.right_advantage_pointer::] = self.advantages[:, self.right_advantage_pointer::] + self.values[:, self.right_advantage_pointer::]
+        
+        self.right_advantage_pointer = self.buffer_length -1
+        
+         
+         
     def block_write(self):
         self.can_write = False
         
@@ -264,25 +341,22 @@ class SequenceBuffer():
         
 class SequenceDataset(Dataset):
     
-    def __init__(self, buffer: SequenceBuffer, minibatch_size: int) -> None:
+    def __init__(self, data: Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]],
+                 n_envs: int,
+                 horizon_len: int ,
+                 sequence_len: int,
+                 minibatch_size: int) -> None:
+         
         
-        self.buffer = buffer
-        self.horizon_length = buffer.horizon_length # The amount of steps played per epoch
-        self.sequence_length = buffer.sequence_length # The amount of observations and actions taken into account by the network
-        
-        self.buffer_length = self.horizon_length + self.sequence_length # The 
+        self.sequence_length = sequence_len
+        self.horizon_length = horizon_len
         
         self.minibatch_size = minibatch_size    
         
-        self.length = buffer.n_envs * buffer.buffer_length // self.minibatch_size 
-        
-        self.initialize_buffer()
-        
-    
-    def initialize_buffer(self):
-        
+        self.length = n_envs * horizon_len // self.minibatch_size 
+          
         self.data_buffer = {}
-        buffer_res_dict = self.buffer.get_reversed_order()
+        buffer_res_dict : Dict[str, Union[Dict, torch.Tensor]] = data
         
         for key in buffer_res_dict.keys():
             
@@ -292,10 +366,11 @@ class SequenceDataset(Dataset):
             else:
                 # just tensor
                 self.data_buffer[key] = SequenceDataset.expand_and_compacify_tensor(buffer_res_dict[key])
+        pass
                 
                  
     def expand_and_compacify_tensor(tensor: torch.Tensor) -> torch.Tensor:
-        """Expand the shape of a tensor of shape (a,b,c, ...)
+        """Expand the shape of a tensor of shape (num_envs, horizon_length ,c, ...)
         to the shape (a, b, b, c, ...)
         and than compactify it into shape (a * b, b, c, ...)
 
@@ -430,7 +505,7 @@ class TransformerPPO:
         self.clip_value = config['clip_value']
         
         # sequence length refers to the length of the sequence ingested by the transformer network
-        self.sequence_length = self.config['sequence_length']
+        self.sequence_length = self.policy.sequence_length
         
         # horizon length is the amount of data after which the agent begins training 
         self.horizon_length = config['horizon_length']
@@ -632,7 +707,15 @@ class TransformerPPO:
         play_time_end = time.time()
         update_time_start = play_time_end
         
-        dataset = SequenceDataset(self.sequence_buffer, self.minibatch_size)
+        
+        data_to_sequence = self.sequence_buffer.get_reversed_order()
+        # todo augment the data with the advantage gathered from the res_dict of the play steps function
+        
+        dataset = SequenceDataset(data= data_to_sequence, 
+                                  n_envs= self.num_envs,
+                                  horizon_len= self.horizon_length,
+                                  sequence_len= self.sequence_length,
+                                  minibatch_size= self.minibatch_size)
     
         self.set_train()
         
@@ -770,17 +853,15 @@ class TransformerPPO:
         dones = buffer_result['dones'].float()
         values = buffer_result['values']
         rewards = buffer_result['rewards']
-        
-        advantages = self.calc_advantages(last_dones, last_value, dones, values, rewards)
-        returns = advantages + values
+         
+        self.sequence_buffer.calc_advantages(last_dones, last_value, self.gamma, self.gae_lambda)
          
         if "objective_episode_reward" in infos: 
             self.logger.log("run/last_1000_obj_ep_reward", sum(self.last_1000_ep_reward)/1000, self.num_timesteps)
         
        
         # this dict will be returned from the play steps function, to facilitate training
-        result_dict = {}
-        result_dict['returns'] = returns  
+        result_dict = {} 
         result_dict['played_frames'] = self.batch_size
         result_dict['step_time'] = step_time
         self.sequence_buffer.block_write()
@@ -818,43 +899,11 @@ class TransformerPPO:
         
         return result_dict
         
-             
-    def calc_advantages(self, 
-                        final_dones: torch.Tensor, 
-                        final_pred_values: torch.Tensor, 
-                        dones: torch.Tensor,
-                        pred_values: torch.Tensor,
-                        rewards: torch.Tensor
-                        ) -> torch.Tensor:
-        """Discout the values and calculate the advantages
-
-        Args:
-            final_dones (torch.Tensor): shape (num_envs)
-            final_pred_values (torch.Tensor): shape(num_envs, num_values)
-            dones (torch.Tensor): (horizon_length, num_envs)
-            pred_values (torch.Tensor): (horizon_length, num_envs, num_values)
-            rewards (torch.Tensor): (horizon_length, num_envs, num_values)
-        """
-        
-        last_gae_lam = 0
-        advantages = torch.zeros_like(rewards)
-        
-        for t in reversed(range(self.horizon_length)):
-            if t == self.horizon_length -1:
-                next_non_terminal = 1.0 - final_dones # shape (num_envs)
-                next_values = final_pred_values
-            else:
-                next_non_terminal = 1.0  - dones[:,t+1]
-                next_values = pred_values[:, t+1]
-            next_non_terminal = next_non_terminal.unsqueeze(1)
-                
-            
-            # discounted differenct between last predicted values and current predicted values + reward
-            delta = rewards[:, t] + self.gamma * next_values * next_non_terminal - pred_values[:, t]
-            advantages[:, t] = last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-            
-        return advantages
                  
+    def calc_gradients(input_dict: Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]):
+        
+        pass
+        
         
     def save(self, best_model: bool = True):
         pass

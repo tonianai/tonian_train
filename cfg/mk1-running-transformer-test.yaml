@@ -102,7 +102,7 @@ task:
  
 
 policy:
-    seq_len: 100
+    sequence_length: 20 # the amount of steps the agent can look back 
     normalize_input: True
  
     network:
@@ -164,8 +164,7 @@ algo:
   kl_threshold: 0.008
   e_clip: 0.2
   clip_value: True
-  horizon_length: 32
-  sequence_length: 32
+  horizon_length: 32 # the amount of steps per epoch
   minibatch_size: 64
   mini_epochs: 5
   reward_shaper:

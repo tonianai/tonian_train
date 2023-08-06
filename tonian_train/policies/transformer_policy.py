@@ -141,7 +141,7 @@ def build_a2c_transformer_policy(config: Dict, obs_space: MultiSpace, action_spa
     
     
     
-    sequence_length = config.get('sequence_length', 32)
+    sequence_length = config['sequence_length']
     network = build_transformer_a2c_from_config(config['network'],
                                                 seq_len= sequence_length, 
                                                 value_size= 1, 
