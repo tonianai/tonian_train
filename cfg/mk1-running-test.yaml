@@ -7,7 +7,7 @@ task:
   name: "02_mk1_running"
 
   vec_task: 
-    num_envs: 1024
+    num_envs: 128
     
 
   mk1: 

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Union, Tuple, Any, Optional, List
 
 from tonian_train.common.spaces import MultiSpace
-from tonian_train.networks import build_transformer_a2c_from_config
+from tonian_train.networks import build_transformer_a2c_from_config, build_simple_sequential_nn_from_config
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy
@@ -139,12 +139,24 @@ def build_a2c_transformer_policy(config: Dict, obs_space: MultiSpace, action_spa
     
     
     sequence_length = config['sequence_length']
-    network = build_transformer_a2c_from_config(config['network'],
-                                                seq_len= sequence_length, 
-                                                value_size= 1, 
-                                                obs_space = obs_space,
-                                                action_space= action_space)
+    network_type = config['network']['network_type']
     
+    if network_type == 'transformer':
+        network = build_transformer_a2c_from_config(config['network'],
+                                                    seq_len= sequence_length, 
+                                                    value_size= 1, 
+                                                    obs_space = obs_space,
+                                                    action_space= action_space)
+    elif network_type == 'simple_sequential':
+        network = build_simple_sequential_nn_from_config(config['network'],
+                                                    seq_len= sequence_length, 
+                                                    value_size= 1, 
+                                                    obs_space = obs_space,
+                                                    action_space= action_space)
+    else:
+        raise 'network_type not supported'
+
+
     normalize_inputs = config.get('normalize_inputs', True)
     
     if normalize_inputs:

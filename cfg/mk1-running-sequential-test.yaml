@@ -106,9 +106,8 @@ policy:
     normalize_input: True
  
     network:
-
-        network_type: "transformer"
-        d_model: 32
+        network_type: "simple_sequential"
+        d_model: 64
         n_heads: 8
         num_encoder_layers: 3
         num_decoder_layers: 5
@@ -147,6 +146,14 @@ policy:
                 - 64
             activation: relu
             initializer: default
+
+        main_body:
+          units: 
+            - 128
+            - 128
+          activation: relu
+          initializer: default
+
 
 
 
