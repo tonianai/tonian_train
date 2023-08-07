@@ -211,7 +211,7 @@ class TransformerPPO:
         self.best_episode_reward = -np.inf
         self.last_lr = float(self.last_lr)
         
-        # TODO add appropriate Dataset
+        self.has_value_loss = True  
         
          
     def init_tensors(self):
@@ -303,10 +303,37 @@ class TransformerPPO:
         
         while True:
             
-            self.train_epoch()
+            step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
             
+            total_time += sum_time
             epoch_num += 1
-                              
+            steps_per_second = self.batch_size / (play_time + update_time)
+                               
+            self.logger.log("z_speed/steps_per_second", steps_per_second , self.num_timesteps)
+            self.logger.log("z_speed/time_on_rollout", play_time, self.num_timesteps)
+            self.logger.log("z_speed/time_on_train", update_time, self.num_timesteps)
+            self.logger.log("z_speed/step_time", step_time, self.num_timesteps)
+            self.logger.log("z_speed/time_fraq_on_rollout", play_time / ( update_time + play_time), self.num_timesteps)
+            self.logger.log("z_speed/time_fraq_on_train", update_time / (update_time + play_time), self.num_timesteps)
+
+            self.logger.log('losses/a_loss', torch.mean(torch.stack(a_losses)).item(), self.num_timesteps)
+            self.logger.log('losses/c_loss', torch.mean(torch.stack(c_losses)).item(), self.num_timesteps)
+            self.logger.log('losses/entropy', torch.mean(torch.stack(entropies)).item(), self.num_timesteps)
+            self.logger.log('info/last_lr', last_lr * lr_mul, self.num_timesteps)
+            self.logger.log('info/lr_mul', lr_mul, self.num_timesteps)
+            self.logger.log('info/e_clip', self.e_clip * lr_mul, self.num_timesteps)
+            self.logger.log('info/kl', torch.mean(torch.stack(kls)).item(), self.num_timesteps)
+            self.logger.log('info/epochs', epoch_num, self.num_timesteps)
+            if len(b_losses) > 0:
+                self.logger.log('losses/bounds_loss', torch.mean(torch.stack(b_losses)), self.num_timesteps)
+            
+            self.logger.update_saved()
+            
+            if self.verbose: 
+                print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,epoch_num, self.num_timesteps, steps_per_second, play_time / (update_time + play_time)))
+            
+            if max_steps is not None and max_steps < self.num_timesteps:
+                break;
                 
                 
     def train_epoch(self):
@@ -346,8 +373,44 @@ class TransformerPPO:
             
             for i in range(len(dataset)):
                 data = dataset[i]
-                pass
                 
+                a_loss, c_loss, entropy, kl, last_lr, lr_mul, cmu, csigma, b_loss = self.calc_gradients(data)    
+                a_losses.append(a_loss)
+                c_losses.append(c_loss)
+                ep_kls.append(kl)
+                entropies.append(entropy)
+                
+                if self.bounds_loss_coef is not None:
+                    b_losses.append(b_loss) 
+                    
+                # todo: add mu and sigma to dataset maybe
+                    
+                if self.schedule_type == 'legacy':  
+                    self.last_lr, self.entropy_coef = self.scheduler.update(self.last_lr, self.entropy_coef, self.epoch_num, 0,kl.item())
+                    self.update_lr(self.last_lr)
+                
+            av_kls = torch.mean(torch.stack(ep_kls))  
+                
+            if self.schedule_type == 'standard': 
+                self.last_lr, self.entropy_coef = self.scheduler.update(self.last_lr, self.entropy_coef, self.epoch_num, 0,av_kls.item())
+                self.update_lr(self.last_lr)
+            kls.append(av_kls)
+                
+        if self.schedule_type == 'standard_epoch':
+            self.last_lr, self.entropy_coef = self.scheduler.update(self.last_lr, self.entropy_coef, self.epoch_num, 0,av_kls.item())
+            self.update_lr(self.last_lr)
+            
+        
+        update_time_end = time.time()
+        play_time = play_time_end - play_time_start
+        
+        # print(f" Play TIme is {play_time}")
+        update_time = update_time_end - update_time_start
+        # print(f" Update TIme is {update_time} N_Epochs {self.mini_epochs_num}")
+        total_time = update_time_end - play_time_start
+        
+        return res_dict['step_time'], play_time, update_time, total_time, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
+    
                                                      
     def play_steps(self):
         """Play the environment for horizon_length amount of steps
@@ -516,9 +579,87 @@ class TransformerPPO:
         return result_dict
         
                  
-    def calc_gradients(input_dict: Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]):
+    def calc_gradients(self, input_dict: Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]) -> Tuple[torch.Tensor]:
+        """calculate the gradients and all losses 
+
+        Args:
+            input_dict (Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]): _description_
+
+        Returns:
+            Tuple[torch.Tensor]: _description_
+        """
         
-        pass
+        
+        lr_mul = 1.0
+        
+        curr_e_clip = lr_mul * self.e_clip
+        
+        with torch.cuda.amp.autocast( enabled=self.mixed_precision):
+            
+            # the mask is necessary, because the agent sees otherwise sees the action made by the actor given the most recent observation
+            tgt_mask = self.policy.get_tgt_mask(self.sequence_length)
+            res_dict = self.policy.forward(is_train= True, 
+                                               src_obs= input_dict['obs'], 
+                                               tgt_action_mu= input_dict['action_mu'], 
+                                               tgt_action_std= input_dict['action_std'],
+                                               tgt_value= input_dict['values'],
+                                               prev_actions= input_dict['action'],
+                                               src_padding_mask= input_dict['src_key_padding_mask'],
+                                               tgt_padding_mask= input_dict['src_key_padding_mask'])
+            
+            
+            action_log_probs = res_dict['prev_neglogprob']
+            values = res_dict['values']
+            entropy = res_dict['entropy']
+            mu = res_dict['mus']
+            sigma = res_dict['sigmas']
+            
+            old_action_log_probs_batch = input_dict['neglogprobs'][:, -1]
+            advantage = torch.squeeze(input_dict['advantages'][:, -1])
+            value_preds_batch = input_dict['values'][:, -1]
+            return_batch = input_dict['returns'][: , -1]
+            
+            old_mu_batch = input_dict['action_mu'][: , -1]
+            old_sigma_batch = input_dict['action_std'][: , -1]
+            
+
+            a_loss = actor_loss(old_action_log_probs_batch, action_log_probs, advantage, True,  curr_e_clip)
+            
+            if self.has_value_loss:
+                c_loss = critic_loss(value_preds_batch, values, curr_e_clip, return_batch, self.clip_value)
+            else:
+                c_loss = torch.zeros(1, device=self.device)
+                
+            a_loss = a_loss.unsqueeze(1)
+            b_loss = self.bound_loss(mu).unsqueeze(1)
+            entropy_loss = entropy.unsqueeze(1)
+            
+            a_loss = torch.mean(a_loss)
+            b_loss = torch.mean(b_loss)
+            c_loss = torch.mean(c_loss)
+            entropy = torch.mean(entropy_loss)
+            
+            loss = a_loss + 0.5 * c_loss * self.critic_coef - entropy * self.entropy_coef + b_loss * self.bounds_loss_coef
+            
+            for param in self.policy.parameters():
+                param.grad = None
+        
+        self.scaler.scale(loss).backward()
+        
+        if self.truncate_grads:
+            self.scaler.unscale_(self.optimizer)
+            nn.utils.clip_grad_norm_(self.policy.parameters(), self.grad_norm)
+            
+        self.scaler.step(self.optimizer)
+        self.scaler.update()    
+        
+        with torch.no_grad():
+            kl_dist = policy_kl(mu.detach(), sigma.detach(), old_mu_batch, old_sigma_batch, True)
+        
+        return (a_loss, c_loss, entropy, \
+            kl_dist, self.last_lr, lr_mul, \
+            mu.detach(), sigma.detach(), b_loss)
+        
         
         
     def save(self, best_model: bool = True):
@@ -551,3 +692,20 @@ class TransformerPPO:
         if self.value_size == 1:
             rewards = rewards.unsqueeze(1)
         return obs, rewards.to(self.device), dones.to(self.device), infos, reward_constituents
+    
+    
+    def bound_loss(self, mu):
+        if self.bounds_loss_coef is not None:
+            soft_bound = 1.1
+            mu_loss_high = torch.clamp_max(mu - soft_bound, 0.0)**2
+            mu_loss_low = torch.clamp_max(-mu + soft_bound, 0.0)**2
+            b_loss = (mu_loss_low + mu_loss_high).sum(axis=-1)
+        else:
+            b_loss = 0
+        return b_loss
+    
+    
+    def update_lr(self, lr):
+        
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = lr

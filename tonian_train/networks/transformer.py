@@ -74,6 +74,8 @@ class InputEmbedding(nn.Module):
         for key, obs_tensor in obs.items():
                 
             batch_size = obs_tensor.shape[0]
+            
+            # TODO: THe error could be here
             assert obs_tensor.shape[1] == self.sequence_length +1 , "The second dim of data sequence tensor must be equal to the sequence length +1"   
             unstructured_obs_dict[key] = obs_tensor.view((obs_tensor.shape[0] * obs_tensor.shape[1], ) + obs_tensor.shape[2::])
             
@@ -173,6 +175,27 @@ class PositionalEncoding(nn.Module):
         return self.dropout(token_embedding + self.pos_encoding[:token_embedding.size(0), :])
 
 
+class EncoderBlock(nn.Module):
+    
+    def __init__(self) -> None:
+        super().__init__()
+        
+class Encoder(nn.Module):
+    
+    def __init__(self) -> None:
+        super().__init__()
+        
+class DecoderBlock(nn.Module):
+    
+    def __init__(self) -> None:
+        super().__init__()
+        
+        
+class Decoder(nn.Module):
+    
+    def __init__(self) -> None:
+        super().__init__()
+
 class TransformerNetLogStd(nn.Module):
     
     def __init__(self, 
@@ -203,6 +226,8 @@ class TransformerNetLogStd(nn.Module):
                [...,obs(t-2),obs(t=1),obs(t=0)]           [...,action_mean(t-1), action_mean(t=0]
                                                           [...,action_std(t-1), action_std(t=0]
                                                           [...,value(t-1), value(t=0] 
+                                                          
+                                                          
                               
                                |                                       |   
                                |                                       |                           

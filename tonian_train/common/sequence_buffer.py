@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch, gym, os, yaml, time
 
 from torch.utils.data import Dataset
+from tonian_train.common.running_mean_std import RunningMeanStd, RunningMeanStdObs
 
 
 class SequenceBuffer():
@@ -232,7 +233,7 @@ class SequenceBuffer():
     
     def get_reversed_order(self, tensor_names: Optional[List[str]] = None  ) -> Dict[str, Union[torch.Tensor, Dict]]:
         """Return every tensor in the reversed order
-        -> the smallest timestep will be at 0 
+        -> the most recent timestamp will be at 0
            and the largest timestep will be at horizon_length
            
          
@@ -255,6 +256,7 @@ class SequenceBuffer():
         if len(tensor_names) == 1:
             return res_dict[tensor_name]
         return res_dict
+
             
             
     def calc_advantages(self, 
@@ -314,7 +316,10 @@ class SequenceDataset(Dataset):
     
     def __init__(self, 
                     buffer: SequenceBuffer,
-                    minibatch_size: int) -> None:
+                    minibatch_size: int,
+                    runnign_mean_value: Optional[RunningMeanStd] = None,
+                    running_mean_advantage: Optional[RunningMeanStd] = None
+                    ) -> None:
              
         
         self.minibatch_size = minibatch_size    
@@ -332,14 +337,21 @@ class SequenceDataset(Dataset):
             
             if isinstance(buffer_res_dict[key], Dict):
                 # obs dict
-                self.data_buffer[key] = {obs_key : self.expand_and_compacify_tensor(buffer_res_dict[key][obs_key]) for obs_key in buffer_res_dict[key].keys()}
+                self.data_buffer[key] = {obs_key : self.expand_and_compacify_tensor(buffer_res_dict[key][obs_key], self.sequence_length + 1 ) for obs_key in buffer_res_dict[key].keys()}
             else:
                 # just tensor
-                self.data_buffer[key] = self.expand_and_compacify_tensor(buffer_res_dict[key])
+                self.data_buffer[key] = self.expand_and_compacify_tensor(buffer_res_dict[key], self.sequence_length)
+        
+        
+        self.normalize_values(runnign_mean_value, running_mean_advantage)
+                
+    def normalize_values(self, running_mean_value: Optional[RunningMeanStd], running_mean_advantage: Optional[RunningMeanStd]):
+        # TODO add this 
         pass
+        
                 
                 
-    def expand_and_compacify_tensor(self, tensor: torch.Tensor) -> torch.Tensor:
+    def expand_and_compacify_tensor(self, tensor: torch.Tensor, sequence_length: int ) -> torch.Tensor:
         """Expand the shape of a tensor of shape (num_envs, buffer_length, c, ...)
         to the shape (num_envs, buffer_length, buffer_length, c, ...)
         cropped to (num_envs, horizon_length, sequence_length, c, ...)
@@ -357,11 +369,16 @@ class SequenceDataset(Dataset):
         expanded_tensor = tensor.unsqueeze(2).expand(expanded_shape)
         
         # crop the buffer_length to only be horizon_length and sequence_length
-        expanded_tensor = expanded_tensor[:, 0:self.horizon_length, 0:self.sequence_length, ]
+        expanded_tensor = expanded_tensor[:, 0:self.horizon_length + 1, 0:sequence_length, ]
         
         # contract the first two dimensions
         compacted_shape = (expanded_tensor.shape[0] * expanded_tensor.shape[1], expanded_tensor.shape[2] ,) + tensor.shape[2:]
-        return expanded_tensor.contiguous().view(compacted_shape)
+        
+        # reflip the sequence dimension
+        expanded_tensor =  expanded_tensor.contiguous().view(compacted_shape) 
+        
+        # in the sequence, the oldest timestamp is at index 0 and the most recent at index sequence_length
+        return torch.flip(expanded_tensor, [1]).contiguous() 
         
         
         
@@ -374,6 +391,7 @@ class SequenceDataset(Dataset):
 
         Returns:
             Dict[str, torch.Tensor]: torch(minibatch_size, sequence_length, ) + singluar_tensor_shape
+                                     The sequence_length dimension is ordered, so that the oldest timestamp is at the 0 position
         """
         
         start = index * self.minibatch_size
@@ -383,6 +401,7 @@ class SequenceDataset(Dataset):
         
         for key, buffer_item in self.data_buffer.items():
             if isinstance(buffer_item, Dict):
+                # the network exp
                 out_dict[key] = {obs_key: buffer_item[obs_key][start: end] for  obs_key in buffer_item.keys()}
             else:
                 out_dict[key] = buffer_item[start: end]

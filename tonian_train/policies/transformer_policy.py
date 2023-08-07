@@ -72,7 +72,7 @@ class TransformerPolicy(A2CBasePolicy):
         
         if is_train:
             entropy = distr.entropy().sum(dim=-1)
-            prev_neglogprob = self.neglogprob(prev_actions, mu, sigma, logstd)
+            prev_neglogprob = self.neglogprob(prev_actions[:, -1], mu, sigma, logstd)
             
             result = {
                     'prev_neglogprob' : torch.squeeze(prev_neglogprob),
@@ -100,11 +100,8 @@ class TransformerPolicy(A2CBasePolicy):
                 + 0.5 * np.log(2.0 * np.pi) * x.size()[-1] \
                 + logstd.sum(dim=-1)
             
-        
-        
-          
-        
-        raise NotImplementedError()
+    def get_tgt_mask(self, size) -> torch.tensor:
+        return self.transformer_net.get_tgt_mask(size=size)
 
     def _normalize_obs(self, 
                        obs: Dict[str, torch.Tensor]) -> Tuple[Dict[str, torch.Tensor], Optional[Dict[str, torch.Tensor]]]:
