@@ -1,1 +1,1 @@
-# Training Algorithm using PPo an dsequential self attention 
+# Training Algorithm using PPO  and sequential self attention 
