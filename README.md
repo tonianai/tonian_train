@@ -1,12 +1,1 @@
-# HUmanoid Builder Robot
-
-
-
-## Agent Inputs:
-
-### Observation 
-
-### State
-
-### Reward 
- 
+# Training Algorithm using PPo an dsequential self attention 
