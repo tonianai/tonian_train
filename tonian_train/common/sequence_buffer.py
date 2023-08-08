@@ -2,6 +2,7 @@
 from typing import Dict, Tuple, Any, Union, Optional, List
 
 from tonian_train.common.spaces import MultiSpace  
+from tonian_train.common.torch_utils import indexed_tensor_roll
 
 import torch.nn as nn
 import torch, gym, os, yaml, time
@@ -373,9 +374,11 @@ class SequenceDataset(Dataset):
             torch.Tensor: Tensor of shape ( num_envs * horizon_length, sequence_length, c, ...)
         """
         
+        """
         # create the new tensor shape (-1, -1, b, -1 ***)
         expanded_shape = (-1,-1,)+ (tensor.shape[1],) + ((-1,) * (len(tensor.shape) - 2))  
         expanded_tensor = tensor.unsqueeze(2).expand(expanded_shape)
+        # shape (num_envs, buffer_length, buffer_length. obs_size)
         
         # crop the buffer_length to only be horizon_length and sequence_length
         expanded_tensor = expanded_tensor[:, 0:self.horizon_length + 1, 0:sequence_length, ]
@@ -388,7 +391,19 @@ class SequenceDataset(Dataset):
         
         # in the sequence, the oldest timestamp is at index 0 and the most recent at index sequence_length
         return torch.flip(expanded_tensor, [1]).contiguous() 
+        """
         
+        
+        roll_amount_tensor = - torch.arange(tensor.shape[0]).tile(self.horizon_length)
+        
+        tensor = torch.repeat_interleave(tensor, self.horizon_length, dim = 0)
+        # -> tensor shape (self.horizon_length * num_env, buffer_length,  ) + extra shape
+        
+        tensor = indexed_tensor_roll(tensor, roll_amount_tensor, 0)
+        
+        tensor = tensor[:,  0:sequence_length ] # shape(self.horizon_length * num_env, sequence_length, ) + extra_shape
+        
+        return torch.flip(tensor, [1]).contiguous() 
         
         
     

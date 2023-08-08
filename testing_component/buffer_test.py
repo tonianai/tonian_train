@@ -1,4 +1,4 @@
-from tonian_train.algorithms.transformer_algorithm import SequenceBuffer
+from tonian_train.algorithms.transformer_algorithm import SequenceBuffer, SequenceDataset
 import numpy as np
 import torch 
 from gym.spaces import Box
@@ -21,7 +21,7 @@ print(action_space.sample())
 horizon_length = 100
 seq_len = 10
 seq_len = 50
-num_envs = 10
+num_envs = 13
 
 buffer = SequenceBuffer(horizon_length=horizon_length, sequence_length= seq_len ,obs_space=obs_space, action_space= action_space, store_device='cuda:0', out_device= 'cuda_0', n_envs=num_envs)
 
@@ -34,18 +34,21 @@ for i in range(horizon_length):
     
     actions_mu = torch.zeros((num_envs, 2), device='cuda:0')
     
+    actions = torch.zeros((num_envs, 2), device='cuda:0')
+    
     actions_std = torch.zeros((num_envs, 2), device='cuda:0')
     
     values = torch.zeros((num_envs,1 ), device='cuda:0')
     
     dones = torch.zeros((num_envs,), device= 'cuda:0' )
     
-    rewards = torch.zeros((num_envs,), device= 'cuda:0' )
+    rewards = torch.zeros((num_envs, 1), device= 'cuda:0' )
     neglogprobs = torch.zeros((num_envs,), device= 'cuda:0' )
+     
     
     
     for o in range(num_envs):
-        obs['linear'][o] = (obs_space.sample()['linear']).to('cuda:0') 
+        obs['linear'][o] =  torch.arange(i , (i+1), step=0.2).to('cuda:0')  #(obs_space.sample()['linear']).to('cuda:0') 
         
         actions_mu[o] = torch.from_numpy(action_space.sample()* 0 + o).to('cuda:0')
         actions_std[o] = torch.from_numpy(action_space.sample()* 0 + 1).to('cuda:0')
@@ -60,15 +63,40 @@ for i in range(horizon_length):
             dones[1] = 1
         
         
-    buffer.add(obs=obs, action_mu=actions_mu, action_std= actions_std, values= values, dones= dones, rewards= rewards, neglogprobs= neglogprobs)
+    buffer.add(obs=obs, action_mu=actions_mu, action_std= actions_std, values= values, dones= dones, rewards= rewards, neglogprobs= neglogprobs, action= actions)
         
         
 obs = {
-        'linear': torch.zeros((num_envs, 2) , device='cuda:0' ),
-        'extra': torch.zeros((num_envs, 2), device='cuda:0')
+        'linear': torch.zeros((num_envs, 5) , device='cuda:0' )
         
 }
     
-res = buffer.get_and_merge_last_obs(obs, 10 )
+res = buffer.get_and_merge_last_obs(obs )
 
-print(res)
+res_linear = res['linear']
+
+
+
+
+
+
+
+
+
+print(res_linear.shape) 
+
+#  num_envs, seq_pos,  obs_len 
+pass
+
+batch_size = 2
+
+dataset = SequenceDataset(buffer, 2)
+
+obs =  dataset[i]['obs']['linear']
+
+# what would i expect?
+# batch_size, seq_len, obs_len
+print(obs.shape)
+
+pass
+

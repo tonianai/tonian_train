@@ -47,3 +47,24 @@ def tensor_clamp(t, min_t, max_t):
 
 def tensor_clamp(t, min_t, max_t):
     return torch.max(torch.min(t, max_t), min_t)
+
+
+def indexed_tensor_roll(tensor: torch.Tensor, roll_tensor: torch.Tensor, dim = 0 ):
+    """Roll a tensor of shape (a,b,..) with roll tensor shape(a or b)  
+
+    Args:
+        tensor (torch.Tensor): multidomensopnal tensor
+        roll_tensor (torch.Tensor): shift tensor dtype = int
+        dim (_type_): int, dimension to shift
+
+    Returns:
+        _type_: _description_
+    """
+    assert roll_tensor.shape[0] == tensor.shape[dim]
+    
+    
+    for row in range(tensor.shape[dim]):
+        shift_amount = roll_tensor[row].item()
+        tensor[row] = torch.roll(tensor[row], shifts=shift_amount, dims= 0)
+        
+    return tensor
