@@ -317,8 +317,7 @@ class SequenceDataset(Dataset):
     def __init__(self, 
                     buffer: SequenceBuffer,
                     minibatch_size: int,
-                    runnign_mean_value: Optional[RunningMeanStd] = None,
-                    running_mean_advantage: Optional[RunningMeanStd] = None
+                    runnign_mean_value: Optional[RunningMeanStd] = None
                     ) -> None:
              
         
@@ -343,10 +342,16 @@ class SequenceDataset(Dataset):
                 self.data_buffer[key] = self.expand_and_compacify_tensor(buffer_res_dict[key], self.sequence_length)
         
         
-        self.normalize_values(runnign_mean_value, running_mean_advantage)
+        self.normalize_values(runnign_mean_value)
                 
-    def normalize_values(self, running_mean_value: Optional[RunningMeanStd], running_mean_advantage: Optional[RunningMeanStd]):
+    def normalize_values(self, running_mean_value: Optional[RunningMeanStd]):
         # TODO add this 
+        
+        advantages = torch.sum(self.data_buffer['advantages'], axis = 1)
+        
+        if self.normalize_values:
+            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        
         pass
         
                 

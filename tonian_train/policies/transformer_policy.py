@@ -161,7 +161,7 @@ def build_a2c_transformer_policy(config: Dict, obs_space: MultiSpace, action_spa
     
     if normalize_inputs:
         
-        obs_normalizer = RunningMeanStdObs(obs_space.dict_shape)
+        obs_normalizer = RunningMeanStdObs(obs_space.dict_shape, is_sequence=True)
         
     return TransformerPolicy( transformer_net= network,
                              sequence_length= sequence_length,

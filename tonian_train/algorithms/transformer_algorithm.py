@@ -146,7 +146,7 @@ class TransformerPPO:
         
         
         if self.normalize_value:
-            self.value_mean_std = RunningMeanStd((1,)).to(self.device)
+            self.value_mean_std = RunningMeanStd((1,), is_sequence=True).to(self.device)
             
         
         self.critic_coef = config['critic_coef']
@@ -356,9 +356,10 @@ class TransformerPPO:
         
         
         data_to_sequence = self.sequence_buffer.get_reversed_order()
-        # todo augment the data with the advantage gathered from the res_dict of the play steps function
         
-        dataset = SequenceDataset( buffer=self.sequence_buffer ,minibatch_size= self.minibatch_size)
+        
+        dataset = SequenceDataset( buffer=self.sequence_buffer ,minibatch_size= self.minibatch_size, 
+                                  runnign_mean_value= self.value_mean_std)
     
         self.set_train()
         
@@ -471,7 +472,7 @@ class TransformerPPO:
     
             self.sequence_buffer.add(obs=last_obs,
                             action= actions,
-                            rewards=rewards,
+                            rewards=shaped_rewards,
                             action_mu=action_mus,
                             action_std=action_sigmas,
                             values = values,
@@ -547,6 +548,9 @@ class TransformerPPO:
         
         
         step_reward = torch.sum(rewards) / (self.num_envs * self.horizon_length)
+        
+        self.logger.log("run/step_reward", step_reward, self.num_timesteps)
+        
         
         # --- log the results before exiting
         
