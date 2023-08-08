@@ -107,7 +107,7 @@ def train(config_path: str,
     csv_logger = CsvFileLogger(run_folder_name, run_id)
     max_csv_logger = CsvMaxFileLogger(run_folder_name, run_id)
     
-    wandb_logger = WandbLogger(str(run_id), "training_alg")
+    wandb_logger = WandbLogger(config['name']+ '_' +str(run_id), "training_alg" )
     wandb_logger.log_config('algo',config['algo'])
 
     

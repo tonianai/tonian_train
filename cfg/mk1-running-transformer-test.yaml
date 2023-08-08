@@ -3,6 +3,8 @@ seed: 42
 
 #start_model: 'start_models/02_mk1_walking.pth'
 
+name: "transformer-mk1"
+
 task:
   name: "02_mk1_running"
 

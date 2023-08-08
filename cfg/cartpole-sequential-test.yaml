@@ -1,7 +1,7 @@
 
 seed: 42
+name: "sequential_cartpole"
 
-name: "cartpole"
 task:
   name: "00_cartpole"
 
@@ -66,7 +66,6 @@ policy:
             - 128
           activation: relu
           initializer: default
-
 
 
 algo:

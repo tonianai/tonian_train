@@ -1,6 +1,7 @@
 
 seed: 42
 
+name: "sequential-mk1"
 #start_model: 'start_models/02_mk1_walking.pth'
 
 task:
@@ -102,7 +103,7 @@ task:
  
 
 policy:
-    sequence_length: 20 # the amount of steps the agent can look back 
+    sequence_length: 1 # the amount of steps the agent can look back 
     normalize_input: True
  
     network:

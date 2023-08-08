@@ -98,8 +98,8 @@ class SequenceBuffer():
           
         
         # the advantage pointer always refer to the second (1) dimesnion, that correspons to the buffer length
-        self.left_advantage_pointer = self.buffer_length -1 # the pointer at which the first correct advantages are
-        self.right_advantage_pointer = self.buffer_length -1 # the pointer at which the last correct advantages are
+        self.left_advantage_pointer = self.buffer_length # the pointer at which the first correct advantages are
+        self.right_advantage_pointer = self.buffer_length # the pointer at which the last correct advantages are
   
     def add(
         self, 
@@ -273,11 +273,11 @@ class SequenceBuffer():
             gamma (float): discount factor
             gae_lambda (float): bootstrapping tradeoff
         """
-        assert (self.buffer_length -1) - self.right_advantage_pointer == self.horizon_length, "The complete horizon length must be played before the advantage will be calculated"
+        assert self.buffer_length - self.right_advantage_pointer == self.horizon_length, "The complete horizon length must be played before the advantage will be calculated"
         
         last_gae_lam = 0
         
-        for i in range(self.horizon_length + 1):
+        for i in range(self.horizon_length):
             t = self.right_advantage_pointer + i # index in the uncalculated territory
             if i == 0:
                 next_non_terminal = 1.0 - final_dones
@@ -295,7 +295,7 @@ class SequenceBuffer():
         # calculate returns 
         self.returns[:, self.right_advantage_pointer::] = self.advantages[:, self.right_advantage_pointer::] + self.values[:, self.right_advantage_pointer::]
         
-        self.right_advantage_pointer = self.buffer_length -1
+        self.right_advantage_pointer = self.buffer_length 
         
          
     def block_write(self):
@@ -347,10 +347,14 @@ class SequenceDataset(Dataset):
     def normalize_values(self, running_mean_value: Optional[RunningMeanStd]):
         # TODO add this 
         
+        
+        if running_mean_value is not None:
+            self.data_buffer['values']  = running_mean_value(self.data_buffer['values'])
+            self.data_buffer['returns']= running_mean_value(self.data_buffer['returns'])
+        
         advantages = torch.sum(self.data_buffer['advantages'], axis = 1)
         
-        if self.normalize_values:
-            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        self.data_buffer['advantages'] = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         
         pass
         

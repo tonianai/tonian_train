@@ -131,7 +131,7 @@ if __name__ == '__main__':
     
     ap = argparse.ArgumentParser()
     ap.add_argument("-seed", required=False, default = 0, help="Seed for running the env")
-    ap.add_argument("-cfg", required= False, default= 'cfg/mk1-running-transformer-test.yaml', help="path to the config")
+    ap.add_argument("-cfg", required= False, default= 'cfg/cartpole-sequential-test.yaml', help="path to the config")
     ap.add_argument("-batch_id", required= False, default= None,  help="name of the running batch")
     ap.add_argument("-model_out", required=False,default= None, help="The name under wich the model will be registered in the models folder" )
     ap.add_argument('--headless', action='store_true')
