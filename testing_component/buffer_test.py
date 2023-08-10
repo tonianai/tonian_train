@@ -94,6 +94,8 @@ dataset = SequenceDataset(buffer, 2)
 
 obs =  dataset[i]['obs']['linear']
 
+obs =  dataset[i]['dones']
+
 # what would i expect?
 # batch_size, seq_len, obs_len
 print(obs.shape)

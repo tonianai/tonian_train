@@ -14,58 +14,30 @@ task:
     maxEffort: 400.0
 
 
-policy:
-    sequence_length: 1 # the amount of steps the agent can look back 
-    normalize_input: True
- 
-    network:
-        network_type: "simple_sequential"
-        d_model: 64
-        n_heads: 8
-        num_encoder_layers: 3
-        num_decoder_layers: 5
-        is_std_fixed: false
-        policy_type: a2c_transformer
-        normalize_input: true
-        input_embedding:
-            encoder:
-                network:
-                    - name: general_linear
-                      input:
-                          - obs: linear 
-                      mlp:
-                          units:
-                              - 256
-                              - 128
-                          activation: RELU
-                          initializer: default
-        output_embedding:
-            encoder:
-                mlp:
-                    units:
-                        - 256
-                        - 128
-                    activation: relu
-                    initializer: default
-        action_head:
-            units:
-                - 128
-                - 64
-            activation: relu
-            initializer: default
-        critic_head:
-            units:
-                - 128
-                - 64
-            activation: relu
-            initializer: default
 
-        main_body:
-          units: 
-            - 128
-            - 128
-          activation: relu
+policy: 
+
+  normalize_input: True
+ 
+
+  actor_net:
+    - name: actor_linear_obs_net
+      input: 
+          - obs: linear 
+      mlp:
+          units: [512, 512,  256, 128]
+          activation: elu
           initializer: default
+
+  critic_net:
+    - name: critic_linear_obs_net
+      input: 
+          - obs: linear 
+      mlp:
+          units: [512, 128, 128]
+          activation: elu
+          initializer: default
+
 
 
 
