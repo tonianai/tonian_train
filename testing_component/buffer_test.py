@@ -38,7 +38,11 @@ for i in range(horizon_length):
     
     actions_std = torch.zeros((num_envs, 2), device='cuda:0')
     
-    values = torch.zeros((num_envs,1 ), device='cuda:0')
+    # EVERY ENV GETS ITS OWN INDEX
+    values = torch.arange(num_envs).view((num_envs, 1)).to(device='cuda:0').to(torch.float32)
+    # WITHIN THAT INDEX, THE FRACTIONAL VALUES INCREASE
+    values += torch.ones_like(values) * i/horizon_length
+    
     
     dones = torch.zeros((num_envs,), device= 'cuda:0' )
     
@@ -53,7 +57,6 @@ for i in range(horizon_length):
         actions_mu[o] = torch.from_numpy(action_space.sample()* 0 + o).to('cuda:0')
         actions_std[o] = torch.from_numpy(action_space.sample()* 0 + 1).to('cuda:0')
         
-        values[o] = o + horizon_length
         
         if i == 10:
             dones[0] = 1
@@ -70,27 +73,13 @@ obs = {
         'linear': torch.zeros((num_envs, 5) , device='cuda:0' )
         
 }
-    
-res = buffer.get_and_merge_last_obs(obs )
-
-res_linear = res['linear']
-
-
-
-
-
-
-
-
-
-print(res_linear.shape) 
 
 #  num_envs, seq_pos,  obs_len 
 pass
 
-batch_size = 2
+mini_batch_size = 10
 
-dataset = SequenceDataset(buffer, 2)
+dataset = SequenceDataset(buffer, mini_batch_size)
 
 obs =  dataset[i]['obs']['linear']
 

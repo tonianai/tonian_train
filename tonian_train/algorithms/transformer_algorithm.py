@@ -229,8 +229,7 @@ class TransformerPPO:
          
         reward_shape = (self.num_envs, self.value_size)
         self.current_rewards = torch.zeros(reward_shape, dtype=torch.float32, device= self.device)
-        self.current_lengths = torch.zeros(self.num_envs, dtype= torch.float32, device= self.device)
-        self.current_dones = torch.ones((self.num_envs, ), dtype=torch.uint8, device=self.device)
+        self.current_lengths = torch.zeros(self.num_envs, dtype= torch.float32, device= self.device) 
         
         self.dones = torch.ones((self.num_envs, ), dtype=torch.uint8, device=self.device)
          
@@ -357,11 +356,11 @@ class TransformerPPO:
         
         data_to_sequence = self.sequence_buffer.get_reversed_order()
         
+        self.set_train()
         
         dataset = SequenceDataset( buffer=self.sequence_buffer ,minibatch_size= self.minibatch_size, 
                                   runnign_mean_value= self.value_mean_std)
     
-        self.set_train()
         
         a_losses = [] # actor losses
         c_losses = [] # critic losses

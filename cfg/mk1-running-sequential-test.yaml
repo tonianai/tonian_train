@@ -103,7 +103,7 @@ task:
  
 
 policy:
-    sequence_length: 1 # the amount of steps the agent can look back 
+    sequence_length: 3 # the amount of steps the agent can look back 
     normalize_input: True
  
     network:

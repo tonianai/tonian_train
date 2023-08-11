@@ -250,9 +250,9 @@ class SequenceBuffer():
             curr_tensor = getattr(self, tensor_name) # could be the obs dict
             
             if isinstance(curr_tensor, Dict):
-                res_dict[tensor_name] = {obs_name: curr_tensor[obs_name][:, -self.horizon_length::] for obs_name in curr_tensor.keys()}
+                res_dict[tensor_name] = {obs_name: torch.flip(curr_tensor[obs_name], (1,)) for obs_name in curr_tensor.keys()}
             else:
-                res_dict[tensor_name] = torch.flip( curr_tensor[:, -self.horizon_length::], (1,))
+                res_dict[tensor_name] = torch.flip( curr_tensor, (1,))
             
         if len(tensor_names) == 1:
             return res_dict[tensor_name]
@@ -353,6 +353,8 @@ class SequenceDataset(Dataset):
             self.data_buffer['values']  = running_mean_value(self.data_buffer['values'])
             self.data_buffer['returns']= running_mean_value(self.data_buffer['returns'])
         
+        
+        # TODO does this make sence??
         advantages = torch.sum(self.data_buffer['advantages'], axis = 1)
         
         self.data_buffer['advantages'] = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
@@ -394,11 +396,13 @@ class SequenceDataset(Dataset):
         """
         
         
-        roll_amount_tensor = - torch.arange(tensor.shape[0]).tile(self.horizon_length)
+        roll_amount_tensor = - torch.arange(self.horizon_length).tile(tensor.shape[0])
         
+        orig_tensor = tensor
         tensor = torch.repeat_interleave(tensor, self.horizon_length, dim = 0)
         # -> tensor shape (self.horizon_length * num_env, buffer_length,  ) + extra shape
         
+        prev_tensor = tensor
         tensor = indexed_tensor_roll(tensor, roll_amount_tensor, 0)
         
         tensor = tensor[:,  0:sequence_length ] # shape(self.horizon_length * num_env, sequence_length, ) + extra_shape
