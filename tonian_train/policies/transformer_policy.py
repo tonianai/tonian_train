@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod
 from typing import Dict, Union, Tuple, Any, Optional, List
 
 from tonian_train.common.spaces import MultiSpace
-from tonian_train.networks import build_transformer_a2c_from_config, build_simple_sequential_nn_from_config
+from tonian_train.networks import build_transformer_a2c_from_config, build_simple_sequential_nn_from_config, SequentialNetWrapper,build_simple_a2c_from_config
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy
-from tonian_train.networks import TransformerNetLogStd
+from tonian_train.networks import TransformerNetLogStd, A2CSimpleNet
 
 
 import torch, gym, os
@@ -153,6 +153,12 @@ def build_a2c_transformer_policy(config: Dict, obs_space: MultiSpace, action_spa
                                                     value_size= 1, 
                                                     obs_space = obs_space,
                                                     action_space= action_space)
+        
+    elif network_type == 'sequential_wrapper':
+        simple_a2c = build_simple_a2c_from_config(config['network'],
+                                                  obs_space=obs_space,
+                                                  action_space=action_space)
+        network = SequentialNetWrapper(simple_a2c)
     else:
         raise 'network_type not supported'
 

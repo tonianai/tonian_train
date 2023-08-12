@@ -190,30 +190,29 @@ def build_simple_a2c_from_config(config: Dict,
     Returns:
         A2CSharedNetLogStd
     """
-    
-    if config.get('network_type', 'simple') == 'simple':
-        
-    
-        actor_net = None
-        critic_net = None
-        shared_net = None
-        
-        if "shared_net" in config:
-            shared_net = MultiSpaceNetworkConfiguration(config['shared_net']).build(obs_space)
-        
-        if "actor_net" in config:
-            actor_net = MultiSpaceNetworkConfiguration(config['actor_net']).build(obs_space)
-        
-        if "critic_net" in config:
-            critic_net = MultiSpaceNetworkConfiguration(config['critic_net']).build(obs_space)
-        
-        action_activation = ActivationConfiguration(config.get('action_activation', 'None')).build()
-        std_activation = ActivationConfiguration(config.get('std_activation', 'None')).build()
-
-        value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
-        
-        value_size = config.get('value_size', 1)
-    
-        return A2CSimpleNet(action_space, shared_net, actor_net, critic_net, action_activation, True, std_activation, value_activation, value_size)
      
         
+    
+    actor_net = None
+    critic_net = None
+    shared_net = None
+    
+    if "shared_net" in config:
+        shared_net = MultiSpaceNetworkConfiguration(config['shared_net']).build(obs_space)
+    
+    if "actor_net" in config:
+        actor_net = MultiSpaceNetworkConfiguration(config['actor_net']).build(obs_space)
+    
+    if "critic_net" in config:
+        critic_net = MultiSpaceNetworkConfiguration(config['critic_net']).build(obs_space)
+    
+    action_activation = ActivationConfiguration(config.get('action_activation', 'None')).build()
+    std_activation = ActivationConfiguration(config.get('std_activation', 'None')).build()
+
+    value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
+    
+    value_size = config.get('value_size', 1)
+
+    return A2CSimpleNet(action_space, shared_net, actor_net, critic_net, action_activation, True, std_activation, value_activation, value_size)
+
+    
