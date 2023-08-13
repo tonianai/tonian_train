@@ -6,7 +6,7 @@ task:
   name: "00_cartpole"
 
   vec_task: 
-    num_envs: 128
+    num_envs: 1024
 
   cartpole: 
     powerscale: 1.0

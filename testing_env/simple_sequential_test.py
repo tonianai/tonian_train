@@ -5,7 +5,7 @@ from testing_env.cartpole.cartpole_task import Cartpole
 
 import yaml, argparse, os, csv
 
-from tonian_train.algorithms.transformer_algorithm import SequentialPPO
+from tonian_train.algorithms.sequential_algorithm import SequentialPPO
 from tonian_train.policies import  build_a2c_transformer_policy
 from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace

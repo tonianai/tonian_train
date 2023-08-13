@@ -678,7 +678,45 @@ class SequentialPPO:
         
         
     def save(self, best_model: bool = True):
-        pass
+        if best_model:
+            run_save_dir = os.path.join(self.logger.folder, 'saves', 'best_model')
+            print("save best policy")
+        else:
+            run_save_dir = os.path.join(self.logger.folder, 'saves', 'last_model')
+            
+            
+        os.makedirs(run_save_dir, exist_ok=True)
+        
+        self.policy.save(run_save_dir)
+        
+        torch.save(self.optimizer.state_dict(),  os.path.join(run_save_dir, 'optim.pth'))
+        
+        if self.normalize_value:
+            torch.save(self.value_mean_std.state_dict(), os.path.join(run_save_dir, 'value_mean_std.pth'))
+     
+        
+        if self.model_out_name :
+            if best_model and self.reward_to_beat_for_out and self.most_avg_reward_received < self.reward_to_beat_for_out:
+                return
+            
+            save_dir = os.path.join('models', self.model_out_name)
+ 
+            os.makedirs(save_dir, exist_ok=True)
+            
+            # register the model unter the given name 
+            self.policy.save(save_dir)
+           
+            if self.normalize_value:
+                torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))
+    
+    def load(self, path: str):
+         
+        self.policy.load(path)
+        
+        self.optimizer.load_state_dict(torch.load(os.path.join(path, 'optim.pth')))
+          
+        if self.normalize_value:
+            self.value_mean_std.load_state_dict(torch.load(os.path.join(path, 'value_mean_std.pth')))
             
     
     def preprocess_actions(self, actions: torch.Tensor):
