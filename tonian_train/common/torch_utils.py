@@ -128,8 +128,7 @@ def indexed_tensor_roll(tensor: torch.Tensor, roll_tensor: torch.Tensor, dim: in
         
     return tensor
   
- 
-
+  
 
 def tensor_dict_clone(t_dict: Dict[str, torch.Tensor]):
     res_dict = {}

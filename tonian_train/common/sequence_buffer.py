@@ -371,6 +371,8 @@ class SequenceDataset(Dataset):
     def expand_and_compacify_tensor( tensor: torch.Tensor, sequence_length: int, horizon_length: int, device: str ) -> torch.Tensor:
         """Expand the shape of a tensor of shape (num_envs, buffer_length, c, ...)
         into shape ( num_envs * horizon_length, sequence_length, c, ...)
+        
+        where buffer_length > horizon_length && buffer_length > sequence_length
 
         Args:
             tensor (torch.Tensor): Tensor of shape (num_envs, buffer_length, c, ...)

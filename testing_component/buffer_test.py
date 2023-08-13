@@ -1,4 +1,4 @@
-from tonian_train.algorithms.sequential_algorithm import SequenceBuffer, SequenceDataset
+from tonian_train.algorithms.sequential_ppo import SequenceBuffer, SequenceDataset
 import numpy as np
 import torch 
 from gym.spaces import Box

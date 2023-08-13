@@ -15,28 +15,33 @@ task:
 
 
 
+
 policy: 
 
+  sequence_length: 3 # the amount of steps the agent can look back 
   normalize_input: True
  
 
-  actor_net:
-    - name: actor_linear_obs_net
-      input: 
-          - obs: linear 
-      mlp:
-          units: [512, 512,  256, 128]
-          activation: elu
-          initializer: default
+  network:
 
-  critic_net:
-    - name: critic_linear_obs_net
-      input: 
-          - obs: linear 
-      mlp:
-          units: [512, 128, 128]
-          activation: elu
-          initializer: default
+    network_type: "sequential_wrapper"
+    actor_net:
+      - name: actor_linear_obs_net
+        input: 
+            - obs: linear 
+        mlp:
+            units: [512, 512,  256, 128]
+            activation: elu
+            initializer: default
+
+    critic_net:
+      - name: critic_linear_obs_net
+        input: 
+            - obs: linear 
+        mlp:
+            units: [512, 128, 128]
+            activation: elu
+            initializer: default
 
 
 

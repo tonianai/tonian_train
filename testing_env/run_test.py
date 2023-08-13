@@ -5,8 +5,8 @@ from testing_env.cartpole.cartpole_task import Cartpole
 
 import yaml, argparse, os, csv
 
-from tonian_train.algorithms.algorithms import PPOAlgorithm
-from tonian_train.policies import  build_a2c_simple_policy
+from tonian_train.algorithms import SequentialPPO
+from tonian_train.policies import  build_a2c_sequential_policy
 from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace
 
@@ -56,7 +56,7 @@ def train(config_path: str,
     task = task_from_config(config['task'], headless)
      
      
-    policy = build_a2c_simple_policy(config['policy'], 
+    policy = build_a2c_sequential_policy(config['policy'], 
                                             obs_space=task.observation_space,  
                                             action_space= task.action_space)
     
@@ -127,7 +127,7 @@ def train(config_path: str,
     
     logger = LoggerList( logger_list, run_id, run_folder_name)
 
-    algo = PPOAlgorithm(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name, reward_to_beat)
+    algo = SequentialPPO(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name, reward_to_beat)
 
     algo.train(max_steps)
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     
     ap = argparse.ArgumentParser()
     ap.add_argument("-seed", required=False, default = 0, help="Seed for running the env")
-    ap.add_argument("-cfg", required= False, default= 'cfg/cartpole-test.yaml', help="path to the config")
+    ap.add_argument("-cfg", required= False, default= 'cfg/mk1-running-test.yaml', help="path to the config")
     ap.add_argument("-batch_id", required= False, default= None,  help="name of the running batch")
     ap.add_argument("-model_out", required=False,default= None, help="The name under wich the model will be registered in the models folder" )
     ap.add_argument('--headless', action='store_true')

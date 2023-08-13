@@ -1,2 +1,2 @@
-from tonian_train.algorithms.algorithms import *
+from tonian_train.algorithms.sequential_ppo import *
 
