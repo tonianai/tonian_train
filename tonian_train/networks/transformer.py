@@ -777,7 +777,7 @@ class SequentialNetWrapper(SequentialNet):
         obs = {}
         # cut of the rest in favor of only the last obsevation
         for obs_key in src_obs.keys():
-            obs[obs_key] = src_obs[obs_key][:, -1].squeeze()
+            obs[obs_key] = src_obs[obs_key][:, -1].squeeze() 
 
         return self.simple_net(obs)
         

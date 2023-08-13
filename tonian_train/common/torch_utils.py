@@ -1,5 +1,6 @@
  # This file contains not jit version of jit helper torch tensor manipulations 
 import torch  
+from typing import Dict
     
 
  
@@ -68,3 +69,11 @@ def indexed_tensor_roll(tensor: torch.Tensor, roll_tensor: torch.Tensor, dim = 0
         tensor[row] = torch.roll(tensor[row], shifts=shift_amount, dims= 0)
         
     return tensor
+
+
+def tensor_dict_clone(t_dict: Dict[str, torch.Tensor]):
+    res_dict = {}
+    for key in t_dict.keys():
+        res_dict[key] = t_dict[key].clone().detach()
+        
+    return res_dict

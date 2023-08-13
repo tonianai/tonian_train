@@ -159,16 +159,16 @@ class SequenceBuffer():
         self.tgt_key_padding_mask = torch.roll(self.tgt_key_padding_mask, shifts = (-1), dims= (1))
         
         for key in self.obs:   
-            self.obs[key][:, -1, :] = obs[key].detach().to(self.store_device)
+            self.obs[key][:, -1, :] = obs[key].clone().detach().to(self.store_device)
              
             
-        self.action[:, -1, :] = action.detach().to(self.store_device)
-        self.action_mu[:, -1, :] = action_mu.detach().to(self.store_device)
-        self.action_std[:, -1, :] = action_std.detach().to(self.store_device)
-        self.values[:, -1,:] = values.detach().to(self.store_device)
-        self.dones[:, -1] = dones.detach().to(self.store_device)
-        self.neglogprobs[:, -1] = neglogprobs.detach().to(self.store_device)
-        self.rewards[:, -1, : ] = rewards.detach().to(self.store_device)
+        self.action[:, -1, :] = action.clone().detach().to(self.store_device)
+        self.action_mu[:, -1, :] = action_mu.clone().detach().to(self.store_device)
+        self.action_std[:, -1, :] = action_std.clone().detach().to(self.store_device)
+        self.values[:, -1,:] = values.clone().detach().to(self.store_device)
+        self.dones[:, -1] = dones.clone().detach().to(self.store_device)
+        self.neglogprobs[:, -1] = neglogprobs.clone().detach().to(self.store_device)
+        self.rewards[:, -1, : ] = rewards.clone().detach().to(self.store_device)
         
         # for every true dones at index 1 -> erase all old states to the left
         # and set the src and tgt key padding masks correctly
@@ -278,14 +278,16 @@ class SequenceBuffer():
         
         last_gae_lam = 0
         
-        for i in range(self.horizon_length):
+        # Reminder: most recent are at highest index
+        
+        for i in reversed(range(self.horizon_length)):
             t = self.right_advantage_pointer + i # index in the uncalculated territory
-            if i == 0:
+            if i == self.horizon_length -1 :
                 next_non_terminal = 1.0 - final_dones
                 next_values = final_pred_values
             else:
-                next_non_terminal = 1.0 - self.dones[:, t-1]
-                next_values = self.values[:, t-1]
+                next_non_terminal = 1.0 - self.dones[:, t+1]
+                next_values = self.values[:, t+1]
             next_non_terminal = next_non_terminal.unsqueeze(1)
                          
             # discounted differenct between last predicted values and current predicted values + reward

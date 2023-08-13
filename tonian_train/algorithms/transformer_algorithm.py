@@ -16,6 +16,7 @@ from tonian_train.common.common_losses import critic_loss, actor_loss
 from tonian_train.common.dataset import PPODataset
 from tonian_train.common.utils import join_configs
 from tonian_train.common.sequence_buffer import SequenceBuffer, SequenceDataset
+from tonian_train.common.torch_utils import tensor_dict_clone
 
 import torch.nn as nn
 import torch, gym, os, yaml, time
@@ -438,8 +439,8 @@ class TransformerPPO:
         for n in range(self.horizon_length):
             self.policy.eval()
             
-            last_obs = self.obs
-            last_dones = self.dones
+            last_obs = tensor_dict_clone(self.obs)
+            last_dones = self.dones.detach().clone()
             last_data_dict = self.sequence_buffer.get_last_sequence_step_data(obs=last_obs)
             
             with torch.no_grad():
@@ -528,10 +529,7 @@ class TransformerPPO:
         # ---- calculate the advantages 
         
         last_dones = self.dones.float()
-        buffer_result = self.sequence_buffer.get_reversed_order(['dones', 'values', 'rewards'])
-        dones = buffer_result['dones'].float()
-        values = buffer_result['values']
-        rewards = buffer_result['rewards']
+        
          
         self.sequence_buffer.calc_advantages(last_dones, last_value, self.gamma, self.gae_lambda)
          
