@@ -2,7 +2,7 @@
 from typing import Dict, Tuple, Any, Union, Optional, List
 
 from tonian_train.common.spaces import MultiSpace  
-from tonian_train.common.torch_utils import indexed_tensor_roll
+from tonian_train.common.torch_utils import indexed_tensor_roll, repeated_indexed_tensor_shift
 
 import torch.nn as nn
 import torch, gym, os, yaml, time
@@ -314,6 +314,7 @@ class SequenceBuffer():
     def get_dataset(self, minibatch_size: int):
         return SequenceDataset(self, minibatch_size)
         
+import time
             
 class SequenceDataset(Dataset):
     
@@ -328,21 +329,23 @@ class SequenceDataset(Dataset):
         self.horizon_length = buffer.horizon_length
         self.sequence_length = buffer.sequence_length
         
+        self.device = buffer.out_device
+        
         self.length = buffer.n_envs * buffer.horizon_length // self.minibatch_size 
         
         self.data_buffer = {}
         buffer_res_dict : Dict[str, Union[Dict, torch.Tensor]] = buffer.get_reversed_order()
-        
-        
+      
+
         
         for key in buffer_res_dict.keys():
             
             if isinstance(buffer_res_dict[key], Dict):
                 # obs dict
-                self.data_buffer[key] = {obs_key : self.expand_and_compacify_tensor(buffer_res_dict[key][obs_key], self.sequence_length + 1 ) for obs_key in buffer_res_dict[key].keys()}
+                self.data_buffer[key] = {obs_key : SequenceDataset.expand_and_compacify_tensor(buffer_res_dict[key][obs_key], self.sequence_length + 1, self.horizon_length, self.device ) for obs_key in buffer_res_dict[key].keys()}
             else:
                 # just tensor
-                self.data_buffer[key] = self.expand_and_compacify_tensor(buffer_res_dict[key], self.sequence_length)
+                self.data_buffer[key] = SequenceDataset.expand_and_compacify_tensor(buffer_res_dict[key], self.sequence_length, self.horizon_length, self.device)
         
         
         self.normalize_values(runnign_mean_value)
@@ -364,8 +367,8 @@ class SequenceDataset(Dataset):
         pass
         
                 
-                
-    def expand_and_compacify_tensor(self, tensor: torch.Tensor, sequence_length: int ) -> torch.Tensor:
+        
+    def expand_and_compacify_tensor( tensor: torch.Tensor, sequence_length: int, horizon_length: int, device: str ) -> torch.Tensor:
         """Expand the shape of a tensor of shape (num_envs, buffer_length, c, ...)
         into shape ( num_envs * horizon_length, sequence_length, c, ...)
 
@@ -383,14 +386,12 @@ class SequenceDataset(Dataset):
         """
         
         
-        roll_amount_tensor = - torch.arange(self.horizon_length).tile(tensor.shape[0])
+        roll_amount_tensor = torch.arange(horizon_length).to(device).to(torch.int)
         
-        orig_tensor = tensor
-        tensor = torch.repeat_interleave(tensor, self.horizon_length, dim = 0)
+        tensor = torch.repeat_interleave(tensor, horizon_length, dim = 0)
         # -> tensor shape (self.horizon_length * num_env, buffer_length,  ) + extra shape
         
-        prev_tensor = tensor
-        tensor = indexed_tensor_roll(tensor, roll_amount_tensor, 0)
+        tensor = repeated_indexed_tensor_shift(tensor, roll_amount_tensor)
         
         tensor = tensor[:,  0:sequence_length ] # shape(self.horizon_length * num_env, sequence_length, ) + extra_shape
         

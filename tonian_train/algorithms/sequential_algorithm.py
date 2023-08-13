@@ -317,18 +317,20 @@ class SequentialPPO:
         
         while True:
             
-            step_time, play_time, update_time, sum_time, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
+            time_dict, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
             
-            total_time += sum_time
+            total_time += time_dict['total_time']
             epoch_num += 1
-            steps_per_second = self.batch_size / (play_time + update_time)
+            steps_per_second = self.batch_size / (time_dict['play_time'] + time_dict['model_update_time'])
                                
             self.logger.log("z_speed/steps_per_second", steps_per_second , self.num_timesteps)
-            self.logger.log("z_speed/time_on_rollout", play_time, self.num_timesteps)
-            self.logger.log("z_speed/time_on_train", update_time, self.num_timesteps)
-            self.logger.log("z_speed/step_time", step_time, self.num_timesteps)
-            self.logger.log("z_speed/time_fraq_on_rollout", play_time / ( update_time + play_time), self.num_timesteps)
-            self.logger.log("z_speed/time_fraq_on_train", update_time / (update_time + play_time), self.num_timesteps)
+            self.logger.log("z_speed/time_on_rollout", time_dict['play_time'], self.num_timesteps)
+            self.logger.log("z_speed/time_on_train", time_dict['model_update_time'], self.num_timesteps)
+            self.logger.log("z_speed/step_time", time_dict['step_time'], self.num_timesteps)
+            self.logger.log("z_speed/time_on_dataset_creation", time_dict['dataset_creation_time'], self.num_timesteps)
+            self.logger.log("z_speed/time_fraq_on_rollout", time_dict['play_time'] / ( time_dict['total_time']), self.num_timesteps)
+            self.logger.log("z_speed/time_fraq_on_train", time_dict['model_update_time'] / (time_dict['total_time']), self.num_timesteps)
+            self.logger.log("z_speed/time_frac_on_dataset", time_dict['dataset_creation_time'] / (time_dict['total_time']), self.num_timesteps)
 
             self.logger.log('losses/a_loss', torch.mean(torch.stack(a_losses)).item(), self.num_timesteps)
             self.logger.log('losses/c_loss', torch.mean(torch.stack(c_losses)).item(), self.num_timesteps)
@@ -344,7 +346,7 @@ class SequentialPPO:
             self.logger.update_saved()
             
             if self.verbose: 
-                print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,epoch_num, self.num_timesteps, steps_per_second, play_time / (update_time + play_time)))
+                print(" Run: {}    |     Iteration: {}     |    Steps Trained: {:.3e}     |     Steps per Second: {:.0f}     |     Time Spend on Rollout: {:.2%}".format(self.logger.identifier ,epoch_num, self.num_timesteps, steps_per_second, time_dict['play_time'] / ( time_dict['total_time'])))
             
             if max_steps is not None and max_steps < self.num_timesteps:
                 break;
@@ -366,16 +368,14 @@ class SequentialPPO:
             res_dict = self.play_steps()
         
         play_time_end = time.time()
-        update_time_start = play_time_end
         
-        
-        data_to_sequence = self.sequence_buffer.get_reversed_order()
         
         self.set_train()
         
         dataset = SequenceDataset( buffer=self.sequence_buffer ,minibatch_size= self.minibatch_size, 
                                   runnign_mean_value= self.value_mean_std)
     
+        data_creation_time_end = time.time()
         
         a_losses = [] # actor losses
         c_losses = [] # critic losses
@@ -416,15 +416,20 @@ class SequentialPPO:
             self.update_lr(self.last_lr)
             
         
-        update_time_end = time.time()
-        play_time = play_time_end - play_time_start
+        update_time_end = time.time() 
+         
         
-        # print(f" Play TIme is {play_time}")
-        update_time = update_time_end - update_time_start
-        # print(f" Update TIme is {update_time} N_Epochs {self.mini_epochs_num}")
-        total_time = update_time_end - play_time_start
+        time_dict = {
+            'step_time': res_dict['step_time'],
+            'play_time': play_time_end - play_time_start,
+            'dataset_creation_time': data_creation_time_end - play_time_end,
+            'model_update_time': update_time_end  - data_creation_time_end,
+            'total_time': update_time_end - play_time_start
+            
+            
+        }
         
-        return res_dict['step_time'], play_time, update_time, total_time, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
+        return  time_dict, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
     
                                                      
     def play_steps(self):
@@ -450,7 +455,7 @@ class SequentialPPO:
         
         step_reward = 0
         
-        for n in range(self.horizon_length):
+        for _ in range(self.horizon_length):
             self.policy.eval()
             
             last_obs = tensor_dict_clone(self.obs)
@@ -678,6 +683,11 @@ class SequentialPPO:
         
         
     def save(self, best_model: bool = True):
+        """Save the model to the file system
+
+        Args:
+            best_model (bool, optional): _description_. Defaults to True.
+        """
         if best_model:
             run_save_dir = os.path.join(self.logger.folder, 'saves', 'best_model')
             print("save best policy")
@@ -710,6 +720,11 @@ class SequentialPPO:
                 torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))
     
     def load(self, path: str):
+        """Load the model from the file system
+
+        Args:
+            path (str): _description_
+        """
          
         self.policy.load(path)
         
@@ -739,6 +754,14 @@ class SequentialPPO:
             
             
     def env_step(self, actions: torch.Tensor):
+        """Take a step in the environment
+
+        Args:
+            actions (torch.Tensor): _description_
+
+        Returns:
+            _type_: _description_
+        """
         actions = self.preprocess_actions(actions)
         obs, rewards, dones, infos, reward_constituents = self.env.step(actions)
  
