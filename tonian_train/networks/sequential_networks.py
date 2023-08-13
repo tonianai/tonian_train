@@ -1,8 +1,7 @@
 
 
-from typing import Callable, Dict, Union, List, Any, Tuple, Optional
-from abc import ABC, abstractmethod
-from collections import OrderedDict
+from typing import Dict,  Optional
+from abc import ABC
 
 import torch, gym, os, math
 import torch.nn as nn
@@ -13,7 +12,7 @@ from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.spaces import MultiSpace
 
 from tonian_train.networks.network_elements import *
-from tonian_train.networks.networks import A2CSimpleNet
+from tonian_train.networks.simple_networks import A2CSimpleNet
 
 
 
@@ -190,8 +189,7 @@ class DecoderBlock(nn.Module):
     
     def __init__(self) -> None:
         super().__init__()
-        
-        
+             
 class Decoder(nn.Module):
     
     def __init__(self) -> None:

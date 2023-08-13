@@ -8,12 +8,10 @@ from tonian_train.tasks import VecTask
 from tonian_train.common.logger import BaseLogger, TensorboardLogger
 from tonian_train.common.spaces import MultiSpace
 from tonian_train.common.schedulers import AdaptiveScheduler, LinearScheduler, IdentityScheduler
-from tonian_train.policies import TransformerPolicy
+from tonian_train.policies import SequentialPolicy
 from tonian_train.common.helpers import DefaultRewardsShaper
-from tonian_train.common.running_mean_std import RunningMeanStd, RunningMeanStdObs
-from tonian_train.common.buffers import DictExperienceBuffer
-from tonian_train.common.common_losses import critic_loss, actor_loss
-from tonian_train.common.dataset import PPODataset
+from tonian_train.common.running_mean_std import RunningMeanStd, RunningMeanStdObs 
+from tonian_train.common.common_losses import critic_loss, actor_loss 
 from tonian_train.common.utils import join_configs
 from tonian_train.common.sequence_buffer import SequenceBuffer, SequenceDataset
 from tonian_train.common.torch_utils import tensor_dict_clone
@@ -49,7 +47,7 @@ class SequentialPPO:
                  config: Dict,
                  device: Union[str, torch.device],
                  logger: BaseLogger,
-                 policy: TransformerPolicy,
+                 policy: SequentialPolicy,
                  verbose: bool = True,
                  model_out_name: Optional[str] = None,
                  reward_to_beat_for_out: Optional[int] = None,
@@ -83,7 +81,7 @@ class SequentialPPO:
         self.device = device
         self.env.set_simulation_log_callback(self.log_sim_parameters)  
         
-        self.policy: TransformerPolicy = policy
+        self.policy: SequentialPolicy = policy
         self.policy.to(self.device)
         
         self.num_envs = env.num_envs  

@@ -14,12 +14,8 @@ from tonian_train.networks import TransformerNetLogStd, A2CSimpleNet
 import torch, gym, os
 import torch.nn as nn
 import numpy as np
- 
- 
-        
-        
- 
-class TransformerPolicy(A2CBasePolicy):
+  
+class SequentialPolicy(A2CBasePolicy):
     
     def __init__(self, transformer_net: TransformerNetLogStd, 
                        sequence_length: int,
@@ -134,7 +130,7 @@ class TransformerPolicy(A2CBasePolicy):
             
 
 
-def build_a2c_transformer_policy(config: Dict, obs_space: MultiSpace, action_space:gym.spaces.Space):
+def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_space:gym.spaces.Space):
     
     
     
@@ -169,7 +165,7 @@ def build_a2c_transformer_policy(config: Dict, obs_space: MultiSpace, action_spa
         
         obs_normalizer = RunningMeanStdObs(obs_space.dict_shape, is_sequence=True)
         
-    return TransformerPolicy( transformer_net= network,
+    return SequentialPolicy( transformer_net= network,
                              sequence_length= sequence_length,
                              obs_normalizer= obs_normalizer
                              )

@@ -5,8 +5,8 @@ from testing_env.cartpole.cartpole_task import Cartpole
 
 import yaml, argparse, os, csv
 
-from tonian_train.algorithms.sequential_algorithm import SequentialPPO
-from tonian_train.policies import  build_a2c_transformer_policy
+from tonian_train.algorithms.sequential_ppo import SequentialPPO
+from tonian_train.policies import  build_a2c_sequential_policy
 from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace
  
@@ -51,7 +51,7 @@ def train(config_path: str,
     task = task_from_config(config['task'], headless)
      
      
-    policy = build_a2c_transformer_policy(config['policy'], 
+    policy = build_a2c_sequential_policy(config['policy'], 
                                             obs_space=task.observation_space,  
                                             action_space= task.action_space)
     

@@ -1,3 +1,2 @@
-from tonian_train.policies.base_policy import A2CBasePolicy
-from tonian_train.policies.simple_policy import A2CSimplePolicy, build_a2c_simple_policy
-from tonian_train.policies.transformer_policy import TransformerPolicy, build_a2c_transformer_policy
+from tonian_train.policies.base_policy import A2CBasePolicy 
+from tonian_train.policies.sequential_policy import SequentialPolicy, build_a2c_sequential_policy
