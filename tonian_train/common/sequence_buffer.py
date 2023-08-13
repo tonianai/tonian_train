@@ -367,9 +367,7 @@ class SequenceDataset(Dataset):
                 
     def expand_and_compacify_tensor(self, tensor: torch.Tensor, sequence_length: int ) -> torch.Tensor:
         """Expand the shape of a tensor of shape (num_envs, buffer_length, c, ...)
-        to the shape (num_envs, buffer_length, buffer_length, c, ...)
-        cropped to (num_envs, horizon_length, sequence_length, c, ...)
-        and than compactify it into shape ( num_envs * horizon_length, sequence_length, c, ...)
+        into shape ( num_envs * horizon_length, sequence_length, c, ...)
 
         Args:
             tensor (torch.Tensor): Tensor of shape (num_envs, buffer_length, c, ...)
@@ -379,20 +377,7 @@ class SequenceDataset(Dataset):
         """
         
         """
-        # create the new tensor shape (-1, -1, b, -1 ***)
-        expanded_shape = (-1,-1,)+ (tensor.shape[1],) + ((-1,) * (len(tensor.shape) - 2))  
-        expanded_tensor = tensor.unsqueeze(2).expand(expanded_shape)
-        # shape (num_envs, buffer_length, buffer_length. obs_size)
-        
-        # crop the buffer_length to only be horizon_length and sequence_length
-        expanded_tensor = expanded_tensor[:, 0:self.horizon_length + 1, 0:sequence_length, ]
-        
-        # contract the first two dimensions
-        compacted_shape = (expanded_tensor.shape[0] * expanded_tensor.shape[1], expanded_tensor.shape[2] ,) + tensor.shape[2:]
-        
         # reflip the sequence dimension
-        expanded_tensor =  expanded_tensor.contiguous().view(compacted_shape) 
-        
         # in the sequence, the oldest timestamp is at index 0 and the most recent at index sequence_length
         return torch.flip(expanded_tensor, [1]).contiguous() 
         """

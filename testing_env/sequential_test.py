@@ -5,7 +5,7 @@ from testing_env.cartpole.cartpole_task import Cartpole
 
 import yaml, argparse, os, csv
 
-from tonian_train.algorithms.transformer_algorithm import TransformerPPO
+from tonian_train.algorithms.transformer_algorithm import SequentialPPO
 from tonian_train.policies import  build_a2c_transformer_policy
 from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace
@@ -122,7 +122,7 @@ def train(config_path: str,
     
     logger = LoggerList( logger_list, run_id, run_folder_name)
 
-    algo = TransformerPPO(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name, reward_to_beat)
+    algo = SequentialPPO(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name, reward_to_beat)
 
     algo.train(max_steps)
 

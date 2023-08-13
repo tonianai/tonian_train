@@ -42,7 +42,7 @@ def policy_kl(p0_mu, p0_sigma, p1_mu, p1_sigma, reduce=True):
     
   
 
-class TransformerPPO:
+class SequentialPPO:
     
     def __init__(self,
                  env: VecTask,
@@ -56,6 +56,20 @@ class TransformerPPO:
                  start_num_timesteps: int = 0,
                  start_epoch_num: int = 0
                  ) -> None:
+        """ PPO Algorithm with sequential input as well as masks to the network
+
+        Args:
+            env (VecTask): _description_
+            config (Dict): _description_
+            device (Union[str, torch.device]): _description_
+            logger (BaseLogger): _description_
+            policy (TransformerPolicy): _description_
+            verbose (bool, optional): _description_. Defaults to True.
+            model_out_name (Optional[str], optional): _description_. Defaults to None.
+            reward_to_beat_for_out (Optional[int], optional): _description_. Defaults to None.
+            start_num_timesteps (int, optional): _description_. Defaults to 0.
+            start_epoch_num (int, optional): _description_. Defaults to 0.
+        """
          
         self.name = config['name']
         self.verbose = verbose
