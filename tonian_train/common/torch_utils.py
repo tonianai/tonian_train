@@ -53,6 +53,15 @@ def tensor_clamp(t, min_t, max_t):
 
 @torch.jit.script
 def shift_tensor(tensor: torch.Tensor, shift_amount: int ):
+    """Shift the tensor at dim 1 
+
+    Args:
+        tensor (torch.Tensor): _description_
+        shift_amount (int): _description_
+
+    Returns:
+        _type_: _description_
+    """
     if shift_amount == 0:
         return tensor
     

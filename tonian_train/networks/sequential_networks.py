@@ -402,10 +402,7 @@ class TransformerNetLogStd(SequentialNet):
         
         
         return mu, mu*0 + std, value 
-        
-     
-    
-    
+          
 
     
 def build_transformer_a2c_from_config(config: Dict,
@@ -761,8 +758,8 @@ class SequentialNetWrapper(SequentialNet):
         """_summary_
 
         Args:
-            src_obs (Dict[str, torch.Tensor]): tensor shape (batch_size, src_seq_length, ) + obs_shape
-            tgt_action_mu (torch.Tensor): shape (batch_size, tgt_seq_length, action_length)
+            src_obs (Dict[str, torch.Tensor]): tensor shape (batch_size, src_seq_length, ) + obs_shape  The current observations
+            tgt_action_mu (torch.Tensor): shape (batch_size, tgt_seq_length, action_length) The actions made from the last observations
             tgt_action_std (torch.Tensor):  (batch_size, tgt_seq_length, action_length)
             tgt_value (torch.Tensor): (batch_size, sr)
             tgt_mask (_type_, optional): _description_. Defaults to None.

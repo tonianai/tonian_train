@@ -623,7 +623,7 @@ class SequentialPPO:
                                                tgt_value= input_dict['values'],
                                                prev_actions= input_dict['action'],
                                                src_padding_mask= input_dict['src_key_padding_mask'],
-                                               tgt_padding_mask= input_dict['src_key_padding_mask'])
+                                               tgt_padding_mask= input_dict['tgt_key_padding_mask'])
             
             
             action_log_probs = res_dict['prev_neglogprob']

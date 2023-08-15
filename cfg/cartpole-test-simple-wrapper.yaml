@@ -18,7 +18,7 @@ task:
 policy: 
 
   normalize_input: True
-  sequence_length: 3 # the amount of steps the agent can look back 
+  sequence_length: 30 # the amount of steps the agent can look back 
   
   network:
     network_type: "sequential_wrapper"

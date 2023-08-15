@@ -2,7 +2,7 @@
 from typing import Dict, Tuple, Any, Union, Optional, List
 
 from tonian_train.common.spaces import MultiSpace  
-from tonian_train.common.torch_utils import indexed_tensor_roll, repeated_indexed_tensor_shift
+from tonian_train.common.torch_utils import shift_tensor, repeated_indexed_tensor_shift
 
 import torch.nn as nn
 import torch, gym, os, yaml, time
@@ -205,6 +205,8 @@ class SequenceBuffer():
     
     def get_last_sequence_step_data(self, obs: Dict[str, torch.Tensor]) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]:
         """returns the relevant data for the next step 
+        The observations of the current step have to be appended to the already stored information
+         and the src key padding mask has to be shifted to the left, because the new obs are not to be masked
 
         Returns:
             Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]: Dict containing relevant info 
@@ -339,20 +341,50 @@ class SequenceDataset(Dataset):
 
         
         for key in buffer_res_dict.keys():
-            
+            if key in ('src_key_padding_mask', 'tgt_key_padding_mask'):
+                continue
             if isinstance(buffer_res_dict[key], Dict):
-                # obs dict
+                # obs dict -> also add an additional obs -> obs seq len = tgt seq len +1 
                 self.data_buffer[key] = {obs_key : SequenceDataset.expand_and_compacify_tensor(buffer_res_dict[key][obs_key], self.sequence_length + 1, self.horizon_length, self.device ) for obs_key in buffer_res_dict[key].keys()}
             else:
                 # just tensor
                 self.data_buffer[key] = SequenceDataset.expand_and_compacify_tensor(buffer_res_dict[key], self.sequence_length, self.horizon_length, self.device)
-        
-        
+        #NOTE: DONES buffer may have to be expanded
+        self.data_buffer['src_key_padding_mask'], self.data_buffer['tgt_key_padding_mask'] = self.recalc_padding_masks(self.data_buffer['dones'])
         self.normalize_values(runnign_mean_value)
+        
+    def recalc_padding_masks(self, dones:torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        The padding masks need to be recalculated, because simply shifting forward a tensor, that only has falses to the right will 
+        result in tensors with only falses, which would be wrong for prior episodes
+
+        Args:
+            dones (torch.Tensor): expected shape (total_batch_size, seq_len, )
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: _description_
+        """
+        dones_indices = dones.nonzero().to(torch.int64) # [batch_size, sequence_length] the indices where the dones are true
+        
+        padding_mask = dones.detach().clone().to(torch.int8)
+        
+        for seq_i in range(dones.shape[1] +1 ):
+            # for every step the sequence
+            
+            seq_i -=1
+            if seq_i < 0 :
+                continue
+            specific_indices = dones_indices[torch.squeeze((dones_indices[:,1] - seq_i == 0).nonzero())][:,0]
+            # at these indices of the dones array (batch_size dimension) is a done true at this sequence length
+            # -> tile a ones tensor to the left of the padding mask 
+            padding_mask[specific_indices, :seq_i ] = torch.ones((specific_indices.shape[0], seq_i), device=dones.device, dtype=torch.int8)
+        
+        src_padding_mask =  torch.cat((padding_mask, torch.unsqueeze(torch.zeros_like(padding_mask[:,0]),dim=1)), dim = 1) 
+        tgt_padding_mask = padding_mask
+        return (src_padding_mask, tgt_padding_mask)
+        
                 
     def normalize_values(self, running_mean_value: Optional[RunningMeanStd]):
-        # TODO add this 
-        
         
         if running_mean_value is not None:
             self.data_buffer['values']  = running_mean_value(self.data_buffer['values'])
