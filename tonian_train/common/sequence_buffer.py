@@ -172,7 +172,7 @@ class SequenceBuffer():
         
         # for every true dones at index 1 -> erase all old states to the left
         # and set the src and tgt key padding masks correctly
-        last_dones = self.dones[:, -2].to(torch.bool)
+        last_dones = self.dones[:, -1].to(torch.bool)
         self.src_key_padding_mask[:,-1] = torch.zeros_like(last_dones).to(torch.bool)
         self.tgt_key_padding_mask[:,-1] = torch.zeros_like(last_dones).to(torch.bool)
         
@@ -190,7 +190,7 @@ class SequenceBuffer():
         This function does not change the obs buffer and is meant as a direct output for the trnsformer, hence the output in the shape of the sequence length
         Args:
             obs_dict (Dict[str, torch.Tensor]): observations of the last world iteration shape(num_envs, ) + obs _shape
-    
+      
         Returns:
             Dict[str, torch.Tensor]: dim of output tensors => (n_envs,sequence_length, ) + obs_shape
 

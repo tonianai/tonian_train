@@ -137,7 +137,24 @@ def indexed_tensor_roll(tensor: torch.Tensor, roll_tensor: torch.Tensor, dim: in
         
     return tensor
   
-  
+   
+def tensor_mul_along_dim(big_t: torch.Tensor, small_t: torch.Tensor) -> torch.Tensor:
+    """Mutiply two tensors together of not mathcing shapes
+    Example: big_t(shape(a,b,c,d)) small_t(shape(a,b))
+
+    Args:
+        big_t (torch.Tensor): _description_
+        small_t (torch.Tensor): _description_
+
+    Returns:
+        torch.Tensor: tensor of shape big_t
+    """
+    
+    shape_mismatch:int = len(big_t.shape) - len(small_t.shape)
+    for _ in range(shape_mismatch):
+        small_t = small_t.unsqueeze(-1)
+        
+    return big_t * small_t
 
 def tensor_dict_clone(t_dict: Dict[str, torch.Tensor]):
     res_dict = {}

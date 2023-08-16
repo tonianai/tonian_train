@@ -8,7 +8,7 @@ from tonian_train.networks import build_transformer_a2c_from_config, build_simpl
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy
-from tonian_train.networks import TransformerNetLogStd, A2CSimpleNet
+from tonian_train.networks import  A2CSimpleNet, SequentialNet
 
 
 import torch, gym, os
@@ -17,11 +17,11 @@ import numpy as np
   
 class SequentialPolicy(A2CBasePolicy):
     
-    def __init__(self, transformer_net: TransformerNetLogStd, 
+    def __init__(self, sequential_net: SequentialNet, 
                        sequence_length: int,
                        obs_normalizer: Optional[RunningMeanStdObs] = None) -> None:
-        super().__init__(transformer_net)
-        self.transformer_net = transformer_net
+        super().__init__(sequential_net)
+        self.sequential_net = sequential_net
         self.obs_normalizer = obs_normalizer
         self.sequence_length = sequence_length
          
@@ -54,7 +54,7 @@ class SequentialPolicy(A2CBasePolicy):
         with torch.no_grad():
             src_obs = self._normalize_obs(src_obs)
             
-        mu, logstd, value = self.transformer_net.forward(src_obs, 
+        mu, logstd, value = self.sequential_net.forward(src_obs, 
                                                          tgt_action_mu,
                                                          tgt_action_std, 
                                                          tgt_value,
@@ -97,7 +97,7 @@ class SequentialPolicy(A2CBasePolicy):
                 + logstd.sum(dim=-1)
             
     def get_tgt_mask(self, size) -> torch.tensor:
-        return self.transformer_net.get_tgt_mask(size=size)
+        return self.sequential_net.get_tgt_mask(size=size)
 
     def _normalize_obs(self, 
                        obs: Dict[str, torch.Tensor]) -> Tuple[Dict[str, torch.Tensor], Optional[Dict[str, torch.Tensor]]]:
@@ -165,7 +165,7 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
         
         obs_normalizer = RunningMeanStdObs(obs_space.dict_shape, is_sequence=True)
         
-    return SequentialPolicy( transformer_net= network,
+    return SequentialPolicy( sequential_net= network,
                              sequence_length= sequence_length,
                              obs_normalizer= obs_normalizer
                              )

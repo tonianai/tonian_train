@@ -9,10 +9,11 @@ import numpy as np
 
 from tonian_train.common.spaces import MultiSpace
 from tonian_train.common.aliases import ActivationFn, InitializerFn
-from tonian_train.common.spaces import MultiSpace
+from tonian_train.common.torch_utils import tensor_mul_along_dim
 
 from tonian_train.networks.network_elements import *
 from tonian_train.networks.simple_networks import A2CSimpleNet
+
 
 
 
@@ -609,7 +610,19 @@ class SimpleSequentialNet(SequentialNet):
             _type_: _description_
         """
          
-     
+        
+        multiplicative_tgt_mask = -1* (tgt_pad_mask.to(torch.uint8) -1)
+        multiplicative_src_mask = -1* (src_pad_mask.to(torch.uint8) -1) 
+        
+        # mask the src and the tgt
+        for key in src_obs.keys():
+            src_obs[key] = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask)
+
+        tgt_action_mu = tensor_mul_along_dim(tgt_action_mu, multiplicative_tgt_mask)
+        tgt_action_std = tensor_mul_along_dim(tgt_action_std,multiplicative_tgt_mask)
+        tgt_value = tensor_mul_along_dim(tgt_value, multiplicative_tgt_mask)
+                    
+        
         src = self.input_embedding(src_obs) * math.sqrt(self.d_model)
         tgt = self.output_embedding(tgt_action_mu, tgt_action_std, tgt_value) * math.sqrt(self.d_model)
            
