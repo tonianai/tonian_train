@@ -21,12 +21,12 @@ mk1_walking:
 
       forward_speed_factor: 10
 
-      arm_use_cost: 1
-      arm_position_cost: 2
+      arm_use_cost: 0.2
+      arm_position_cost: 0.2
 
 
       die_on_contact: False # die when anything other than the foot touches the ground
-      contact_punishment: 3 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
+      contact_punishment: 2 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
 
 
  

@@ -24,6 +24,7 @@ class SimpleSequentialNet(SequentialNet):
                  main_body: nn.Sequential, 
                  target_seq_len: int,  
                  action_space: gym.spaces.Space, 
+                 main_out_size: int, 
                  action_head: Optional[nn.Sequential] = None,
                  action_head_size: Optional[int] = None,
                  critic_head: Optional[nn.Sequential] = None,
@@ -101,7 +102,7 @@ class SimpleSequentialNet(SequentialNet):
         if self.is_std_fixed:
             self.action_std = nn.Parameter(torch.zeros(self.num_actions, requires_grad=True))
         else:
-            self.action_std = torch.nn.Linear(action_head_size, self.num_actions)
+            self.action_std = torch.nn.Linear(main_out_size, self.num_actions)
         
         
         self.action_activation = action_activation
@@ -149,7 +150,7 @@ class SimpleSequentialNet(SequentialNet):
         if self.is_std_fixed:
             std = self.std_activation(self.action_std)
         else:
-            std = self.std_activation(self.action_std(self.action_head(main_out)))
+            std = self.std_activation(self.action_std(main_out))
         
         
         return mu, mu*0 + std, value      
@@ -209,6 +210,7 @@ def build_simple_sequential_nn_from_config(config: Dict,
             action_head_size = action_head_factory.get_out_size(),
             critic_head=critic_head,
             critic_head_size = critic_head_factory.get_out_size(),
+            main_out_size = network.out_size(),
             action_activation=action_activation,
             is_std_fixed= is_std_fixed,
             std_activation=std_activation,

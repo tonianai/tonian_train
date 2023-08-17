@@ -59,7 +59,7 @@ mk1:
         std: 5
 
     # mass stamdard deviation  
-    default_mass_std: 0.3 # nothing above 0.17 is advised 
+    default_mass_std: 0.2 # nothing above 0.17 is advised 
 
 
 

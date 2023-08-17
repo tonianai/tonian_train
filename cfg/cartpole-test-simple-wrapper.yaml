@@ -1,7 +1,7 @@
 
 seed: 42
 
-name: "cartpole-simple-wrapper"
+name: "non_seq_cartpole"
 task:
   name: "00_cartpole"
 
