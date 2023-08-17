@@ -28,7 +28,7 @@ policy:
            input: 
               - obs: linear 
            mlp:
-              units: [ 256, 128]
+              units: [ 512, 512, 128]
               activation: elu
               initializer: default
         

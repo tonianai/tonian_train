@@ -1,9 +1,8 @@
 
 seed: 42
 
+name: "sequential-mk1"
 #start_model: 'start_models/02_mk1_walking.pth'
-
-name: "mk1"
 
 task:
   name: "02_mk1_running"
@@ -98,35 +97,40 @@ task:
 
       die_on_contact: False # die when anything other than the foot touches the ground
       contact_punishment: 0 # punsihment if anyhing other than feet touvh the ground only usefull if die_on_contact is of
-
-
-
-policy: 
-
-  sequence_length: 3 # the amount of steps the agent can look back 
-  normalize_input: True
+ 
  
 
-  network:
-    network_type: "sequential_wrapper"
-    actor_net:
-      - name: actor_linear_obs_net
-        input: 
-            - obs: linear 
-        mlp:
-            activation: elu
+policy:
+    sequence_length: 3 # the amount of steps the agent can look back 
+    normalize_input: True
+ 
+    network:
+        network_type: "simple_sequential"   
+        is_std_fixed: false
+        policy_type: a2c_transformer
+        normalize_input: true
+        main_body:  
+         - name: 'main_body'
+           input: 
+              - obs: linear 
+           mlp:
+              units: [512, 512,  256, 128]
+              activation: elu
+              initializer: default
+        
+         
+        action_head:
+            units:
+                - 128
+                - 64
+            activation: relu
             initializer: default
-
-    critic_net:
-      - name: critic_linear_obs_net
-        input: 
-            - obs: linear 
-        mlp:
-            units: [512, 128, 128]
-            activation: elu
+        critic_head:
+            units:
+                - 128
+                - 64
+            activation: relu
             initializer: default
-
-
 
 
 algo:
@@ -145,9 +149,9 @@ algo:
   kl_threshold: 0.008
   e_clip: 0.2
   clip_value: True
-  horizon_length: 32
+  horizon_length: 32 # the amount of steps per epoch
   minibatch_size: max
-  mini_epochs: 5
+  mini_epochs: 2
   reward_shaper:
     scale_value: 0.01
     shift_value: 0

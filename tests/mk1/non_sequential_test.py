@@ -5,19 +5,14 @@ from testing_env.cartpole.cartpole_task import Cartpole
 
 import yaml, argparse, os, csv
 
-from tonian_train.algorithms import SequentialPPO
+from tonian_train.algorithms.sequential_ppo import SequentialPPO
 from tonian_train.policies import  build_a2c_sequential_policy
 from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace
-
-
-
+ 
 from testing_env.common.config_utils import create_new_run_directory, task_from_config
 from testing_env.common.utils import set_random_seed, join_configs
-
-
-
-
+ 
 
 def train(config_path: str, 
           seed: int = 0,  
@@ -107,7 +102,7 @@ def train(config_path: str,
     csv_logger = CsvFileLogger(run_folder_name, run_id)
     max_csv_logger = CsvMaxFileLogger(run_folder_name, run_id)
     
-    wandb_logger = WandbLogger(config['name']+ '_' +str(run_id), "training_alg" )
+    wandb_logger = WandbLogger(config['name']+ '_' +str(run_id), "training_alg")
     wandb_logger.log_config('algo',config['algo'])
 
     
