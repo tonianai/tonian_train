@@ -13,18 +13,16 @@ from tonian_train.common.torch_utils import tensor_mul_along_dim
 from tonian_train.networks.network_elements import *
 from tonian_train.networks.simple_networks import A2CSimpleNet
 
-from tonian_train.networks.sequential.base_seq_nn import SequentialNet, InputEmbedding, OutputEmbedding
-
+from tonian_train.networks.sequential.base_seq_nn import SequentialNet, InputEmbedding, OutputEmbedding 
 
  
     
     
-class EmbeddingSequentialNet(SequentialNet):
+class SimpleSequentialNet(SequentialNet):
     
     def __init__(self, 
                  main_body: nn.Sequential, 
-                 target_seq_len: int, 
-                 d_model: int,
+                 target_seq_len: int,  
                  action_space: gym.spaces.Space, 
                  action_head: Optional[nn.Sequential] = None,
                  action_head_size: Optional[int] = None,
@@ -52,7 +50,7 @@ class EmbeddingSequentialNet(SequentialNet):
                               \|/                                     \|/      
              
                                     |------------------------------|
-                                    |     Simpe forward            |
+                                    |     Simpe forward Multispace |
                                     |------------------------------|
 
     
@@ -85,32 +83,25 @@ class EmbeddingSequentialNet(SequentialNet):
         super().__init__()
     
      
-        self.main_body = main_body
-        self.d_model = d_model
+        self.main_body = main_body 
         
 
         self.action_head = action_head
         self.critic_head = critic_head
         self.num_actions = action_space.shape[0]
-        
-        if self.action_head is not None:    
-            self.a_out = nn.Linear(action_head_size, self.num_actions)
-        else:
-            self.action_head = nn.Identity()
-            self.a_out = nn.Linear(self.d_model, self.num_actions)
+         
+        self.a_out = nn.Linear(action_head_size, self.num_actions)
+      
             
-        if self.critic_head is not None:
-            self.c_out = nn.Linear(critic_head_size, value_size)
-        else:
-            self.critic_head = nn.Identity()
-            self.c_out = nn.Linear(self.d_model, critic_head_size)
+        self.c_out = nn.Linear(critic_head_size, value_size)
         
         
         self.is_std_fixed = is_std_fixed
+        
         if self.is_std_fixed:
             self.action_std = nn.Parameter(torch.zeros(self.num_actions, requires_grad=True))
         else:
-            self.action_std = torch.nn.Linear(self.d_model, self.num_actions)
+            self.action_std = torch.nn.Linear(action_head_size, self.num_actions)
         
         
         self.action_activation = action_activation
@@ -140,35 +131,25 @@ class EmbeddingSequentialNet(SequentialNet):
             _type_: _description_
         """
          
-        
-        multiplicative_tgt_mask = -1* (tgt_pad_mask.to(torch.uint8) -1)
+         
         multiplicative_src_mask = -1* (src_pad_mask.to(torch.uint8) -1) 
         
         # mask the src and the tgt
         for key in src_obs.keys():
-            src_obs[key] = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask)
+            src_obs[key] = torch.flatten(tensor_mul_along_dim(src_obs[key], multiplicative_src_mask), 1)
  
-        
-        src = self.input_embedding(src_obs) * math.sqrt(self.d_model)
-        tgt = self.output_embedding(tgt_action_mu, tgt_action_std, tgt_value) * math.sqrt(self.d_model)
-           
-        main_input = torch.cat((src, tgt), dim=1)
-        
-        out_seq_length = main_input.shape[1]
-        out_model_size = main_input.shape[2]
-        result =  main_input.reshape(-1 , out_seq_length * out_model_size)
-           
-        result = self.main_body(result)
 
+        main_out = self.main_body(src_obs) 
         
-        value = self.value_activation(self.c_out(self.critic_head(result)))
         
-        mu = self.action_activation(self.a_out(self.action_head(result)))
+        value = self.value_activation(self.c_out(self.critic_head(main_out)))
+        
+        mu = self.action_activation(self.a_out(self.action_head(main_out)))
         
         if self.is_std_fixed:
             std = self.std_activation(self.action_std)
         else:
-            std = self.std_activation(self.action_std(result))
+            std = self.std_activation(self.action_std(self.action_head(main_out)))
         
         
         return mu, mu*0 + std, value      
@@ -176,11 +157,11 @@ class EmbeddingSequentialNet(SequentialNet):
          
     
 
-def build_embedding_sequential_nn_from_config(config: Dict,
+def build_simple_sequential_nn_from_config(config: Dict,
                                       seq_len: int, 
                                       value_size: int, 
                                       obs_space: MultiSpace,
-                                      action_space: gym.spaces.Space) -> EmbeddingSequentialNet:
+                                      action_space: gym.spaces.Space) -> SimpleSequentialNet:
     """Build a transformer model for Advantage Actor Crititc Policy
 
     Args:
@@ -191,45 +172,38 @@ def build_embedding_sequential_nn_from_config(config: Dict,
     Returns:
         EmbeddingSequentialNet: _description_
     """
+     
+     
     
-    d_model = config['d_model']
+    space_dict = {}
+    for key, space in obs_space:
+        shape = list(space.shape)
+        shape[0] = shape[0] * (seq_len +1)
+        shape = tuple(shape)  
+        space_dict[key] = gym.spaces.Box(low= -1, high= 1, shape = shape)
+        
+    expanded_sequnced_obs_space = MultiSpace(space_dict)
 
-    
-    input_embedding = InputEmbedding(config['input_embedding'], 
-                                     sequence_length= seq_len,
-                                     d_model= d_model,
-                                     obs_space= obs_space)
-    
-    output_embedding = OutputEmbedding(config=config['output_embedding'],
-                                       sequence_length= seq_len,
-                                       d_model= d_model,
-                                       action_space= action_space,
-                                       value_size= value_size )
-    
+    network: MultispaceNet = MultiSpaceNetworkConfiguration(config['main_body']).build(expanded_sequnced_obs_space)
+      
     
     action_activation = ActivationConfiguration(config.get('action_activation', 'None')).build()
     std_activation = ActivationConfiguration(config.get('std_activation', 'None')).build()
     value_activation = ActivationConfiguration(config.get('value_activation', 'None')).build()
     
     action_head_factory = MlpConfiguration(config['action_head'])
-    action_head = action_head_factory.build(d_model)
+    action_head = action_head_factory.build(network.out_size())
     
     critic_head_factory =  MlpConfiguration(config['critic_head'])
-    critic_head = critic_head_factory.build(d_model)
-    
-    main_body_factory = MlpConfiguration(config['main_body'])
-    main_body_factory.units.append(d_model)
-    main_body = main_body_factory.build(d_model * (seq_len + seq_len + 1))
+    critic_head = critic_head_factory.build(network.out_size())
+     
     
     is_std_fixed = config['is_std_fixed']
     
     
-    sequental_nn = EmbeddingSequentialNet( 
-            main_body= main_body,
-            input_embedding=input_embedding,
-            output_embedding=output_embedding,
-            target_seq_len= seq_len,
-            d_model=d_model, 
+    sequental_nn = SimpleSequentialNet( 
+            main_body= network, 
+            target_seq_len= seq_len, 
             action_space=action_space,
             action_head=action_head,
             action_head_size = action_head_factory.get_out_size(),
