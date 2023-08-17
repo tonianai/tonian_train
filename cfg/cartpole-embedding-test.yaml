@@ -1,6 +1,6 @@
 
 seed: 42
-name: "sequential_cartpole"
+name: "embedding_cartpole"
 
 task:
   name: "00_cartpole"

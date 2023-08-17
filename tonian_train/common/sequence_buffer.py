@@ -366,19 +366,25 @@ class SequenceDataset(Dataset):
         """
         dones_indices = dones.nonzero().to(torch.int64) # [batch_size, sequence_length] the indices where the dones are true
         
-        padding_mask = dones.detach().clone().to(torch.int8)
-        
+        padding_mask = torch.zeros_like( dones).to(torch.int8)
+         
         for seq_i in range(dones.shape[1] +1 ):
             # for every step the sequence
             
             seq_i -=1
             if seq_i < 0 :
                 continue
-            specific_indices = dones_indices[torch.squeeze((dones_indices[:,1] - seq_i == 0).nonzero())][:,0]
+            
+            dones_whole_indices = dones_indices[torch.squeeze((dones_indices[:,1] - seq_i == 0).nonzero())]
+            
+            if len(dones_whole_indices.shape) == 1:
+                dones_whole_indices = torch.unsqueeze(dones_whole_indices,dim = 0)
+            
+            specific_indices = dones_whole_indices[:,0]
             # at these indices of the dones array (batch_size dimension) is a done true at this sequence length
             # -> tile a ones tensor to the left of the padding mask 
             padding_mask[specific_indices, :seq_i ] = torch.ones((specific_indices.shape[0], seq_i), device=dones.device, dtype=torch.int8)
-        
+         
         src_padding_mask =  torch.cat((padding_mask, torch.unsqueeze(torch.zeros_like(padding_mask[:,0]),dim=1)), dim = 1) 
         tgt_padding_mask = padding_mask
         return (src_padding_mask, tgt_padding_mask)
