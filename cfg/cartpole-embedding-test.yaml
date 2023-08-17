@@ -19,7 +19,7 @@ policy:
     normalize_input: True
  
     network:
-        network_type: "simple_sequential"
+        network_type: "simple_embedding"
         d_model: 64
         n_heads: 8
         num_encoder_layers: 3

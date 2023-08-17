@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Union, Tuple, Any, Optional, List
 
 from tonian_train.common.spaces import MultiSpace
-from tonian_train.networks import build_transformer_a2c_from_config, build_simple_sequential_nn_from_config, SequentialNetWrapper,build_simple_a2c_from_config
+from tonian_train.networks import build_transformer_a2c_from_config, build_embedding_sequential_nn_from_config, SequentialNetWrapper,build_simple_a2c_from_config
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy
@@ -143,8 +143,8 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
                                                     value_size= 1, 
                                                     obs_space = obs_space,
                                                     action_space= action_space)
-    elif network_type == 'simple_sequential':
-        network = build_simple_sequential_nn_from_config(config['network'],
+    elif network_type == 'simple_embedding':
+        network = build_embedding_sequential_nn_from_config(config['network'],
                                                     seq_len= sequence_length, 
                                                     value_size= 1, 
                                                     obs_space = obs_space,

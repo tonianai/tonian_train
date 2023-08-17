@@ -107,7 +107,7 @@ policy:
     normalize_input: True
  
     network:
-        network_type: "simple_sequential"
+        network_type: "simple_embedding"
         d_model: 64
         n_heads: 8
         num_encoder_layers: 3
@@ -149,8 +149,7 @@ policy:
             initializer: default
 
         main_body:
-          units: 
-            - 128
+          units:  
             - 128
           activation: relu
           initializer: default
