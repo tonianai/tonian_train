@@ -309,6 +309,7 @@ class MlpConfiguration(DictConfigurationType):
         self.units : List[int] =  config['units']
         self.activation = ActivationConfiguration(config.get('activation', 'relu'))
         self.initializer = InitializerConfiguration(config.get('intitializer', 'None'))
+        self.dropout_prob = config.get('dropout', [])
         
     def build(self, input_size: int) -> nn.Sequential:
         """Buld the Sequential linear mlp neural network
@@ -325,6 +326,12 @@ class MlpConfiguration(DictConfigurationType):
             layers.append(nn.Linear(input_size, unit))
             layers.append(self.activation.build())
             input_size = unit
+            
+        for i in reversed(range(len(self.dropout_prob))):
+            prob_net = nn.Dropout(p = self.dropout_prob[i]['prob'])
+            
+            layers.insert(self.dropout_prob[i]['after_layer_index'] +1 , prob_net)
+                
             
         return nn.Sequential(*layers)
 
