@@ -40,4 +40,16 @@ outputs/
 ./wandb/
 ./wandb/*
 wandb/
+
+
+./dist
+./dist/
+./dist/*
+dist/
+
+./build
+./build/
+./build/*
+build/
+
 ./tonian_train/wandb
