@@ -23,7 +23,8 @@ def train(config_path: str,
           model_out_name: Optional[str] = None, 
           model_out_if_better: Optional[bool] = None,
           verbose: bool = True,
-          max_steps: Optional[int] = None):
+          max_steps: Optional[int] = None,
+          project_name: str = "training_alg"):
     """Train the given config
 
     Args:
@@ -102,13 +103,17 @@ def train(config_path: str,
 
     csv_logger = CsvFileLogger(run_folder_name, run_id)
     max_csv_logger = CsvMaxFileLogger(run_folder_name, run_id)
-    
+     
     if batch_id is None:
         wand_name = config['name']+ '_' +str(run_id)
     else: wand_name = batch_id + ' '+ str(run_id)
     
-    wandb_logger = WandbLogger(wand_name, "training_alg")
-    wandb_logger.log_config('algo',config['algo'])
+    
+    task_config =  task.config
+    full_config = {'algo': config['algo'], 'task': task_config}
+    
+    wandb_logger = WandbLogger(wand_name, project_name)
+    wandb_logger.log_config('algo',full_config)
 
     
     logger_list = [ csv_logger, max_csv_logger, wandb_logger]

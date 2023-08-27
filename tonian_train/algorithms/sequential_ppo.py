@@ -315,7 +315,7 @@ class SequentialPPO:
         
         while True:
             
-            time_dict, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul = self.train_epoch()
+            time_dict, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul, actor_sigma = self.train_epoch()
             
             total_time += time_dict['total_time']
             epoch_num += 1
@@ -335,6 +335,7 @@ class SequentialPPO:
             self.logger.log('losses/entropy', torch.mean(torch.stack(entropies)).item(), self.num_timesteps)
             self.logger.log('info/last_lr', last_lr * lr_mul, self.num_timesteps)
             self.logger.log('info/lr_mul', lr_mul, self.num_timesteps)
+            self.logger.log('info/actor_sigma',  torch.mean(torch.stack(actor_sigma)).item(), self.num_timesteps)
             self.logger.log('info/e_clip', self.e_clip * lr_mul, self.num_timesteps)
             self.logger.log('info/kl', torch.mean(torch.stack(kls)).item(), self.num_timesteps)
             self.logger.log('info/epochs', epoch_num, self.num_timesteps)
@@ -379,6 +380,9 @@ class SequentialPPO:
         c_losses = [] # critic losses
         b_losses = [] # boudning losses
         entropies = [] # entropy losses
+        
+        actor_sigmas = []
+        
         kls = [] # kl divergences 
         
         for _ in range(0,self.mini_epochs_num):
@@ -387,11 +391,12 @@ class SequentialPPO:
             for i in range(len(dataset)):
                 data = dataset[i]
                 
-                a_loss, c_loss, entropy, kl, last_lr, lr_mul, cmu, csigma, b_loss = self.calc_gradients(data)    
+                a_loss, c_loss, entropy, kl, last_lr, lr_mul, cmu, actor_sigma, b_loss = self.calc_gradients(data)    
                 a_losses.append(a_loss)
                 c_losses.append(c_loss)
                 ep_kls.append(kl)
                 entropies.append(entropy)
+                actor_sigmas.append(actor_sigma)
                 
                 if self.bounds_loss_coef is not None:
                     b_losses.append(b_loss) 
@@ -427,7 +432,7 @@ class SequentialPPO:
             
         }
         
-        return  time_dict, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul
+        return  time_dict, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul, actor_sigmas
     
                                                      
     def play_steps(self):
