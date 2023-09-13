@@ -590,12 +590,13 @@ class SequentialPPO:
                 self.current_avg_reward = sum_ep_objective_reward / n_completed_episodes
                 
             steps_per_episode_tensor = torch.FloatTensor(list_steps_per_episode)
-            self.logger.log("run/steps_per_episode_std",steps_per_episode_tensor.std() , self.num_timesteps)
-            self.logger.log("run/steps_per_episode_01_quantile", torch.quantile(steps_per_episode_tensor,0.01) , self.num_timesteps)
-            self.logger.log("run/steps_per_episode_10_quantile", torch.quantile(steps_per_episode_tensor,0.1) , self.num_timesteps)
-            self.logger.log("run/steps_per_episode_50_quantile", torch.quantile(steps_per_episode_tensor,0.5) , self.num_timesteps)
-            self.logger.log("run/steps_per_episode_90_quantile", torch.quantile(steps_per_episode_tensor,0.9) , self.num_timesteps)
-            self.logger.log("run/steps_per_episode_99_quantile", torch.quantile(steps_per_episode_tensor,0.99) , self.num_timesteps)
+            self.logger.log("step_per_ep/std",steps_per_episode_tensor.std() , self.num_timesteps)
+            self.logger.log("step_per_ep/mean",steps_per_episode_tensor.mean() , self.num_timesteps) 
+            self.logger.log("step_per_ep/01_quantile", torch.quantile(steps_per_episode_tensor,0.01) , self.num_timesteps)
+            self.logger.log("step_per_ep/10_quantile", torch.quantile(steps_per_episode_tensor,0.1) , self.num_timesteps)
+            self.logger.log("step_per_ep/50_quantile", torch.quantile(steps_per_episode_tensor,0.5) , self.num_timesteps)
+            self.logger.log("step_per_ep/90_quantile", torch.quantile(steps_per_episode_tensor,0.9) , self.num_timesteps)
+            self.logger.log("step_per_ep/99_quantile", torch.quantile(steps_per_episode_tensor,0.99) , self.num_timesteps)
                 
                 
             if self.current_avg_reward > self.most_avg_reward_received:

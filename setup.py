@@ -4,7 +4,7 @@ setup(
 
     name='tonian_train',
     packages=find_packages(),
-    version='0.2.0',
+    version='0.2.1',
     description='The training library used to train the simulated tonian robots',
     author='Jonas Schmidt',
     install_requires=['torch', 'numpy', 'gym', 'tensorboard', 'pyyaml'],

@@ -103,4 +103,6 @@ class VecTask(gym.Env, ABC):
 
         Args:
             callback (Callable): 
-        """
+        """ 
+         
+TaskBuilder = Callable[[str, bool], VecTask] # (task_name, headless) 

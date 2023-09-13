@@ -3,6 +3,7 @@ import argparse
 
 from tonian_train.train import train
  
+from testing_env.common.config_utils import task_from_config
 if __name__ == '__main__':
     
     ap = argparse.ArgumentParser()
@@ -17,6 +18,6 @@ if __name__ == '__main__':
     
     args = vars(ap.parse_args())
     
-    train(args['cfg'], args.get('seed', 0), {}, args['headless'], args.get('batch_id', None), args.get('model_out', None),  True)
+    train(args['cfg'],task_from_config,  args.get('seed', 0), {}, args['headless'], args.get('batch_id', None), args.get('model_out', None),  True)
 
 

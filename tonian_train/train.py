@@ -10,12 +10,13 @@ from tonian_train.policies import  build_a2c_sequential_policy
 from tonian_train.common.logger import DummyLogger, TensorboardLogger, CsvFileLogger, LoggerList, CsvMaxFileLogger, WandbLogger
 from tonian_train.common.spaces import MultiSpace
  
-from testing_env.common.config_utils import create_new_run_directory, task_from_config
-from testing_env.common.utils import set_random_seed, join_configs
- 
+from tonian_train.common.config_utils import create_new_run_directory
+from tonian_train.common.utils import set_random_seed, join_configs
+from tonian_train.tasks import TaskBuilder
 
 
 def train(config_path: str, 
+          task_factory: TaskBuilder,
           seed: int = 0,  
           config_overrides: Dict = {}, 
           headless: bool = False, 
@@ -50,7 +51,7 @@ def train(config_path: str,
     config = join_configs(config, config_overrides)
     
     
-    task = task_from_config(config['task'], headless)
+    task = task_factory(config['task'], headless)
      
      
     policy = build_a2c_sequential_policy(config['policy'], 
