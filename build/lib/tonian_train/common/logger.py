@@ -213,10 +213,12 @@ class CsvMaxFileLogger(BaseLogger):
             
 class WandbLogger(BaseLogger):
     
-    def __init__(self, identifier: Union[int, str]) -> None:
+    def __init__(self, identifier: Union[int, str],
+                 project_name: str = "tonian") -> None:
         super().__init__()
         self.identifier = identifier
-
+        self.project_name = project_name
+        print("Wandb Logger initialized")
     
     def log(self, key: str, value: Union[int, float], step: int):
         assert self.run is not None, "the log_config must be called before the log function on the WandbLogger"
@@ -225,12 +227,11 @@ class WandbLogger(BaseLogger):
     def log_config(self, tag:str, config: Dict):
         self.run = wandb.init(
             # Set the project where this run will be logged
-            project="tonian_train",
+            project=self.project_name,
             # Track hyperparameters and run metadata
             config= config,
             id= self.identifier
             )
-    
     
     def update_saved(self):
         pass
