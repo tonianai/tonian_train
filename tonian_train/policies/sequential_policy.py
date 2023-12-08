@@ -4,11 +4,10 @@ from abc import ABC, abstractmethod
 from typing import Dict, Union, Tuple, Any, Optional, List
 
 from tonian_train.common.spaces import MultiSpace
-from tonian_train.networks import build_transformer_a2c_from_config, build_embedding_sequential_nn_from_config, SequentialNetWrapper,build_simple_a2c_from_config, SimpleSequentialNet
+from tonian_train.networks import build_simple_a2c_from_config, SimpleSequentialNet
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
-from tonian_train.policies.base_policy import A2CBasePolicy
-from tonian_train.networks import  A2CSimpleNet, SequentialNet
+from tonian_train.policies.base_policy import A2CBasePolicy 
 
 
 import torch, gym, os
@@ -17,7 +16,7 @@ import numpy as np
   
 class SequentialPolicy(A2CBasePolicy):
     
-    def __init__(self, sequential_net: SequentialNet, 
+    def __init__(self, sequential_net: SimpleSequentialNet, 
                        sequence_length: int,
                        obs_normalizer: Optional[RunningMeanStdObs] = None) -> None:
         super().__init__(sequential_net)
@@ -54,7 +53,7 @@ class SequentialPolicy(A2CBasePolicy):
         with torch.no_grad():
             src_obs = self._normalize_obs(src_obs)
             
-        mu, logstd, value = self.sequential_net.forward(src_obs, 
+        mu, logstd, value, next_state_pred = self.sequential_net.forward(src_obs, 
                                                          tgt_action_mu,
                                                          tgt_action_std, 
                                                          tgt_value,
@@ -75,7 +74,8 @@ class SequentialPolicy(A2CBasePolicy):
                     'values' : value,
                     'entropy' : entropy, 
                     'mus' : mu,
-                    'sigmas' : sigma
+                    'sigmas' : sigma,
+                    'next_state_pred' : next_state_pred
                 }                
             return result
         else:
@@ -87,7 +87,8 @@ class SequentialPolicy(A2CBasePolicy):
                     'values' : value,
                     'actions' : selected_action,
                     'mus' : mu,
-                    'sigmas' : sigma
+                    'sigmas' : sigma,
+                    'next_state_pred' : next_state_pred
                 }
             return result
                 
@@ -137,25 +138,8 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
     sequence_length = config['sequence_length']
     network_type = config['network']['network_type']
     
-    if network_type == 'transformer':
-        network = build_transformer_a2c_from_config(config['network'],
-                                                    seq_len= sequence_length, 
-                                                    value_size= 1, 
-                                                    obs_space = obs_space,
-                                                    action_space= action_space)
-    elif network_type == 'simple_embedding':
-        network = build_embedding_sequential_nn_from_config(config['network'],
-                                                    seq_len= sequence_length, 
-                                                    value_size= 1, 
-                                                    obs_space = obs_space,
-                                                    action_space= action_space)
-        
-    elif network_type == 'sequential_wrapper':
-        simple_a2c = build_simple_a2c_from_config(config['network'],
-                                                  obs_space=obs_space,
-                                                  action_space=action_space)
-        network = SequentialNetWrapper(simple_a2c)
-    elif network_type == 'simple_sequential':
+    
+    if network_type == 'simple_sequential':
         
         space_dict = {}
         for key, space in obs_space:

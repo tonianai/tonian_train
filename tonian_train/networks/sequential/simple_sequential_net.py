@@ -13,12 +13,12 @@ from tonian_train.common.torch_utils import tensor_mul_along_dim
 from tonian_train.networks.network_elements import *
 from tonian_train.networks.simple_networks import A2CSimpleNet
 
-from tonian_train.networks.sequential.base_seq_nn import SequentialNet, InputEmbedding, OutputEmbedding 
+from tonian_train.networks.sequential.base_seq_nn import BaseSequentialNet
 
  
     
     
-class SimpleSequentialNet(SequentialNet):
+class SimpleSequentialNet(BaseSequentialNet):
     
     def __init__(self, 
                  simple_net: A2CSimpleNet  ) -> None:

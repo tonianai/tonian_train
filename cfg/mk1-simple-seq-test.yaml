@@ -20,6 +20,7 @@ policy:
 
     network:
       network_type: "simple_sequential"
+      has_dynamics: True
       actor_net:
         - name: actor_linear_obs_net
           input: 
@@ -45,6 +46,8 @@ policy:
               dropout: 
                   - after_layer_index: 1
                     prob: 0.3 
+      
+      
   
 
 

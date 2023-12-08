@@ -478,6 +478,7 @@ class SequentialPPO:
             action_mus = res['mus']
             action_sigmas = res['sigmas']
             neglogprobs = res['neglogprobs']
+            next_state_pred = res['next_state_pred']
             
              
             step_time_start = time.time()
