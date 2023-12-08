@@ -22,7 +22,7 @@ policy:
 
     network:
       network_type: "simple_sequential"
-      has_dynamics: True
+      has_dynamics: False
       actor_net:
         - name: actor_linear_obs_net
           input: 
@@ -75,7 +75,7 @@ algo:
   value_bootstrap: True
   critic_coef: 4
   dynamics_coef: 0.5
-  has_dynamics_loss: True
+  has_dynamics_loss: False
   entropy_coef: 0
 
   bounds_loss_coef: 0.0001

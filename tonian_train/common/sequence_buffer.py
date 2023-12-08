@@ -180,8 +180,10 @@ class SequenceBuffer():
         
         for key in self.obs:   
             self.obs[key][:, -1, :] = obs[key].clone().detach().to(self.store_device)
-            self.next_obs[key][:, -1, :] = next_obs[key].clone().detach().to(self.store_device)
-            self.predicted_obs[key][:, -1, :] = predicted_obs[key].clone().detach().to(self.store_device)
+            
+            if predicted_obs is not None:    
+                self.next_obs[key][:, -1, :] = next_obs[key].clone().detach().to(self.store_device)
+                self.predicted_obs[key][:, -1, :] = predicted_obs[key].clone().detach().to(self.store_device)
              
             
         self.action[:, -1, :] = action.clone().detach().to(self.store_device)

@@ -69,6 +69,10 @@ algo:
   clip_value: True
   horizon_length: 32 # the amount of steps per epoch
   minibatch_size: max
+
+  dynamics_coef: 0.5
+  has_dynamics_loss: True
+  
   mini_epochs: 2
   reward_shaper:
     scale_value: 0.01

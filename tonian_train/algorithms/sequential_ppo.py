@@ -342,7 +342,7 @@ class SequentialPPO:
             if len(b_losses) > 0:
                 self.logger.log('losses/bounds_loss', torch.mean(torch.stack(b_losses)), self.num_timesteps)
             
-            if len(d_losses) > 0:
+            if len(d_losses) > 0 and self.has_dynamics_loss:
                 self.logger.log('losses/dynamics_loss', torch.mean(torch.stack(d_losses)), self.num_timesteps)
             
             self.logger.update_saved()

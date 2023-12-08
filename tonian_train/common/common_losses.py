@@ -41,6 +41,9 @@ def calc_dynamics_loss(obs_prediction: Dict[str, torch.Tensor], next_obs: Dict[s
     Returns:
     torch.Tensor: The mean loss across all components.
     """
+    
+    if obs_prediction is None or next_obs is None:
+        return 0 
     losses = []
     for key in obs_prediction:
         if key in next_obs:
