@@ -141,19 +141,13 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
     
     if network_type == 'simple_sequential':
         
-        space_dict = {}
-        for key, space in obs_space:
-            shape = list(space.shape)
-            shape[0] = shape[0] * (sequence_length +1)
-            shape = tuple(shape)  
-            space_dict[key] = gym.spaces.Box(low= -1, high= 1, shape = shape)
-            
-        expanded_sequnced_obs_space = MultiSpace(space_dict)
+       
         
         
         simple_a2c = build_simple_a2c_from_config(config['network'],
-                                                  obs_space=expanded_sequnced_obs_space,
-                                                  action_space=action_space)
+                                                  obs_space=obs_space,
+                                                  action_space=action_space,
+                                                  sequence_length= sequence_length)
         
         network = SimpleSequentialNet(simple_a2c)
         

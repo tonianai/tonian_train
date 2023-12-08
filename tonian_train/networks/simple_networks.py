@@ -213,7 +213,8 @@ class A2CSimpleNet(A2CBaseNet):
 
 def build_simple_a2c_from_config(config: Dict,
                                  obs_space: MultiSpace,
-                                 action_space: gym.spaces.Space) -> A2CBaseNet:
+                                 action_space: gym.spaces.Space,
+                                 sequence_length: int) -> A2CBaseNet:
     """build the A2C Shared Net Log Std
 
     Args:
@@ -228,18 +229,28 @@ def build_simple_a2c_from_config(config: Dict,
     actor_net = None
     critic_net = None
     shared_net = None
+    
+    # We have to expand the obs space, because we have a sequences of observations and this mdoule is not aware of that 
+    space_dict = {}
+    for key, space in obs_space:
+        shape = list(space.shape)
+        shape[0] = shape[0] * (sequence_length +1)
+        shape = tuple(shape)  
+        space_dict[key] = gym.spaces.Box(low= -1, high= 1, shape = shape)
+        
+    expanded_sequnced_obs_space = MultiSpace(space_dict)
 
     if "shared_net" in config:
         shared_net = MultiSpaceNetworkConfiguration(
-            config['shared_net']).build(obs_space)
+            config['shared_net']).build(expanded_sequnced_obs_space)
 
     if "actor_net" in config:
         actor_net = MultiSpaceNetworkConfiguration(
-            config['actor_net']).build(obs_space)
+            config['actor_net']).build(expanded_sequnced_obs_space)
 
     if "critic_net" in config:
         critic_net = MultiSpaceNetworkConfiguration(
-            config['critic_net']).build(obs_space)
+            config['critic_net']).build(expanded_sequnced_obs_space)
 
     action_activation = ActivationConfiguration(
         config.get('action_activation', 'None')).build()

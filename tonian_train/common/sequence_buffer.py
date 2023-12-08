@@ -60,7 +60,7 @@ class SequenceBuffer():
         
         
         # the data in these tensors comes from the outside
-        self.external_tensor_names = ['dones', 'values', 'rewards', 'action', 'action_mu', 'action_std', 'neglogprobs', 'obs']
+        self.external_tensor_names = ['dones', 'values', 'rewards', 'action', 'action_mu', 'action_std', 'neglogprobs', 'obs', 'next_obs', 'predicted_obs', 'step_counter']
         
         # the data from these tensors is derived within the buffer
         self.derived_tensor_names = ['src_key_padding_mask', 'tgt_key_padding_mask', 'returns', 'advantages']
@@ -87,16 +87,31 @@ class SequenceBuffer():
         self.advantages = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
         self.returns = torch.zeros((self.n_envs, self.buffer_length, self.n_values), dtype=torch.float32, device=self.store_device)
         
+        self.step_counter = torch.zeros((self.n_envs, self.buffer_length), dtype= torch.int32, device=self.store_device)
          
+         
+        self.current_step = 0
         
         self.obs = {}
         for key, obs_shape in self.obs_space.dict_shape.items():
             self.obs[key] = torch.zeros((self.n_envs, self.buffer_length) + obs_shape, dtype=torch.float32, device= self.store_device)
         
+        
+        self.next_obs = {}
+        for key, obs_shape in self.obs_space.dict_shape.items():
+            self.next_obs[key] = torch.zeros((self.n_envs, self.buffer_length) + obs_shape, dtype=torch.float32, device= self.store_device)
+        
+        
+        self.predicted_obs = {}
+        for key, obs_shape in self.obs_space.dict_shape.items():
+            self.predicted_obs[key] = torch.zeros((self.n_envs, self.buffer_length) + obs_shape, dtype=torch.float32, device= self.store_device)
+        
+        
         # when the padding masks are true, the values will be disgarded
         self.src_key_padding_mask = torch.ones((self.n_envs, self.buffer_length), device= self.store_device, dtype=torch.bool)
         self.tgt_key_padding_mask = torch.ones((self.n_envs, self.buffer_length), device= self.store_device, dtype=torch.bool)
           
+        
         
         # the advantage pointer always refer to the second (1) dimesnion, that correspons to the buffer length
         self.left_advantage_pointer = self.buffer_length # the pointer at which the first correct advantages are
@@ -105,6 +120,8 @@ class SequenceBuffer():
     def add(
         self, 
         obs: Dict[str, torch.Tensor],
+        next_obs: Dict[str, torch.Tensor],
+        predicted_obs: Dict[str, torch.Tensor],
         action: torch.Tensor,
         action_mu: torch.Tensor,
         action_std: torch.Tensor,
@@ -129,6 +146,8 @@ class SequenceBuffer():
         # The tensord fill upd from 
         for key in self.obs:   
             self.obs[key] =  torch.roll(self.obs[key], shifts=(-1), dims=(1)) 
+            self.predicted_obs[key] = torch.roll(self.predicted_obs[key], shifts=(-1), dims=(1))
+            self.next_obs[key] = torch.roll(self.next_obs[key], shifts=(-1), dims=(1))
         
         self.action = torch.roll(self.action, shifts=(-1), dims=(1))
         self.action_mu = torch.roll(self.action_mu, shifts=(-1), dims=(1))
@@ -137,6 +156,7 @@ class SequenceBuffer():
         self.dones = torch.roll(self.dones, shifts=(-1), dims=(1))
         self.neglogprobs = torch.roll(self.neglogprobs, shifts=(-1), dims = (1))
         self.rewards = torch.roll(self.rewards, shifts=(-1), dims=(1))
+        self.step_counter = torch.roll(self.step_counter, shifts=(-1), dims=(1))
         
         # advantage and returns will also be rolled and set to 0, so that they align with the rest of the data
         self.advantages = torch.roll(self.advantages, shifts=(-1), dims=(1))
@@ -160,6 +180,8 @@ class SequenceBuffer():
         
         for key in self.obs:   
             self.obs[key][:, -1, :] = obs[key].clone().detach().to(self.store_device)
+            self.next_obs[key][:, -1, :] = next_obs[key].clone().detach().to(self.store_device)
+            self.predicted_obs[key][:, -1, :] = predicted_obs[key].clone().detach().to(self.store_device)
              
             
         self.action[:, -1, :] = action.clone().detach().to(self.store_device)
@@ -169,6 +191,9 @@ class SequenceBuffer():
         self.dones[:, -1] = dones.clone().detach().to(self.store_device)
         self.neglogprobs[:, -1] = neglogprobs.clone().detach().to(self.store_device)
         self.rewards[:, -1, : ] = rewards.clone().detach().to(self.store_device)
+        
+        self.current_step += 1
+        self.step_counter[:, -1] =  torch.ones(( self.n_envs, ), dtype= torch.int32, device=self.store_device) * self.current_step
         
         # for every true dones at index 1 -> erase all old states to the left
         # and set the src and tgt key padding masks correctly
@@ -182,6 +207,7 @@ class SequenceBuffer():
         
         self.src_key_padding_mask = torch.logical_or(self.src_key_padding_mask, additive_padding_dones_mask)
         self.tgt_key_padding_mask = torch.logical_or(self.tgt_key_padding_mask, additive_padding_dones_mask)
+
 
         
     def get_and_merge_last_obs(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:

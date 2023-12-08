@@ -11,7 +11,7 @@ from tonian_train.common.schedulers import AdaptiveScheduler, LinearScheduler, I
 from tonian_train.policies import SequentialPolicy
 from tonian_train.common.helpers import DefaultRewardsShaper
 from tonian_train.common.running_mean_std import RunningMeanStd, RunningMeanStdObs 
-from tonian_train.common.common_losses import critic_loss, actor_loss 
+from tonian_train.common.common_losses import critic_loss, actor_loss, calc_dynamics_loss
 from tonian_train.common.utils import join_configs
 from tonian_train.common.sequence_buffer import SequenceBuffer, SequenceDataset
 from tonian_train.common.torch_utils import tensor_dict_clone
@@ -133,9 +133,6 @@ class SequentialPPO:
         else:
             self.scheduler = IdentityScheduler()
             
-            
-        self.e_clip = config['e_clip']
-        self.clip_value = config['clip_value']
         
         # sequence length refers to the length of the sequence ingested by the transformer network
         self.sequence_length = self.policy.sequence_length
@@ -163,6 +160,9 @@ class SequentialPPO:
             
         
         self.critic_coef = config['critic_coef']
+        self.dynamics_coef = config.get('dynamics_coef', 1.0)
+        self.has_dynamics_loss = config.get('has_dynamics_loss', False)
+        
         self.grad_norm = config['grad_norm']
         self.gamma = self.config['gamma']
         self.gae_lambda = self.config['gae_lambda']
@@ -315,7 +315,7 @@ class SequentialPPO:
         
         while True:
             
-            time_dict, a_losses, c_losses, b_losses,  entropies, kls, last_lr, lr_mul, actor_sigma = self.train_epoch()
+            time_dict, a_losses, c_losses, b_losses, d_losses,  entropies, kls, last_lr, lr_mul, actor_sigma = self.train_epoch()
             
             total_time += time_dict['total_time']
             epoch_num += 1
@@ -341,6 +341,9 @@ class SequentialPPO:
             self.logger.log('info/epochs', epoch_num, self.num_timesteps)
             if len(b_losses) > 0:
                 self.logger.log('losses/bounds_loss', torch.mean(torch.stack(b_losses)), self.num_timesteps)
+            
+            if len(d_losses) > 0:
+                self.logger.log('losses/dynamics_loss', torch.mean(torch.stack(d_losses)), self.num_timesteps)
             
             self.logger.update_saved()
             
@@ -379,6 +382,7 @@ class SequentialPPO:
         a_losses = [] # actor losses
         c_losses = [] # critic losses
         b_losses = [] # boudning losses
+        d_lossed = [] # dynamics losses
         entropies = [] # entropy losses
         
         actor_sigmas = []
@@ -391,9 +395,10 @@ class SequentialPPO:
             for i in range(len(dataset)):
                 data = dataset[i]
                 
-                a_loss, c_loss, entropy, kl, last_lr, lr_mul, cmu, actor_sigma, b_loss = self.calc_gradients(data)    
+                a_loss, c_loss, entropy, kl, last_lr, lr_mul, cmu, actor_sigma, b_loss, d_loss = self.calc_gradients(data)    
                 a_losses.append(a_loss)
                 c_losses.append(c_loss)
+                d_lossed.append(d_loss)
                 ep_kls.append(kl)
                 entropies.append(entropy)
                 actor_sigmas.append(actor_sigma)
@@ -432,7 +437,7 @@ class SequentialPPO:
             
         }
         
-        return  time_dict, a_losses, c_losses, b_losses, entropies, kls, last_lr, lr_mul, actor_sigmas
+        return  time_dict, a_losses, c_losses, b_losses, d_lossed,  entropies, kls, last_lr, lr_mul, actor_sigmas
     
                                                      
     def play_steps(self):
@@ -496,6 +501,8 @@ class SequentialPPO:
                 shaped_rewards += self.gamma * values * infos['time_outs'].unsqueeze(1).float()
     
             self.sequence_buffer.add(obs=last_obs,
+                                     next_obs=self.obs,
+                                     predicted_obs=next_state_pred,
                             action= actions,
                             rewards=shaped_rewards,
                             action_mu=action_mus,
@@ -658,7 +665,14 @@ class SequentialPPO:
             
             old_mu_batch = input_dict['action_mu'][: , -1]
             old_sigma_batch = input_dict['action_std'][: , -1]
-            
+             
+           
+            if self.has_dynamics_loss:   
+                next_obs = {key: value[:, -1] for key, value in input_dict['next_obs'].items()} # only the most recent observation is used for the next state prediction
+                predicted_obs = res_dict['next_state_pred']
+                dynamics_loss = calc_dynamics_loss( predicted_obs, next_obs)
+            else:
+                dynamics_loss = torch.zeros(1, device=self.device)
 
             a_loss = actor_loss(old_action_log_probs_batch, action_log_probs, advantage, True,  curr_e_clip)
             
@@ -671,12 +685,15 @@ class SequentialPPO:
             b_loss = self.bound_loss(mu).unsqueeze(1)
             entropy_loss = entropy.unsqueeze(1)
             
+            
+            
             a_loss = torch.mean(a_loss)
             b_loss = torch.mean(b_loss)
             c_loss = torch.mean(c_loss)
+            
             entropy = torch.mean(entropy_loss)
             
-            loss = a_loss + 0.5 * c_loss * self.critic_coef - entropy * self.entropy_coef + b_loss * self.bounds_loss_coef
+            loss = a_loss + 0.5 * c_loss * self.critic_coef - entropy * self.entropy_coef + b_loss * self.bounds_loss_coef + dynamics_loss * self.dynamics_coef
             
             for param in self.policy.parameters():
                 param.grad = None
@@ -695,7 +712,7 @@ class SequentialPPO:
         
         return (a_loss, c_loss, entropy, \
             kl_dist, self.last_lr, lr_mul, \
-            mu.detach(), sigma.detach(), b_loss)
+            mu.detach(), sigma.detach(), b_loss, dynamics_loss)
         
         
         
