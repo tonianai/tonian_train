@@ -8,6 +8,7 @@ from tonian_train.networks import build_simple_a2c_from_config, SimpleSequential
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy 
+from tonian_train.networks.sequential.non_seq_wrapper import SequentialNetWrapper
 
 
 import torch, gym, os
@@ -50,8 +51,6 @@ class SequentialPolicy(A2CBasePolicy):
         
         # This function must provide the correct masks and it must tile the padding for episodes, that just began
         
-        with torch.no_grad():
-            src_obs = self._normalize_obs(src_obs)
             
         mu, logstd, value, next_state_pred = self.sequential_net.forward(src_obs, 
                                                          tgt_action_mu,
@@ -100,7 +99,7 @@ class SequentialPolicy(A2CBasePolicy):
     def get_tgt_mask(self, size) -> torch.tensor:
         return self.sequential_net.get_tgt_mask(size=size)
 
-    def _normalize_obs(self, 
+    def normalize_obs(self, 
                        obs: Dict[str, torch.Tensor]) -> Tuple[Dict[str, torch.Tensor], Optional[Dict[str, torch.Tensor]]]:
         """Normalize The observations
 
@@ -141,9 +140,6 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
     
     if network_type == 'simple_sequential':
         
-       
-        
-        
         simple_a2c = build_simple_a2c_from_config(config['network'],
                                                   obs_space=obs_space,
                                                   action_space=action_space,
@@ -151,6 +147,13 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
         
         network = SimpleSequentialNet(simple_a2c)
         
+        
+    elif network_type == 'sequential_wrapper':
+        
+        simple_a2c = build_simple_a2c_from_config(config['network'],
+                                                  obs_space=obs_space,
+                                                  action_space=action_space)
+        network = SequentialNetWrapper(simple_a2c)
     else:
         raise 'network_type not supported'
 

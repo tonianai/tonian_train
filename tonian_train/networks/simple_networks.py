@@ -214,7 +214,7 @@ class A2CSimpleNet(A2CBaseNet):
 def build_simple_a2c_from_config(config: Dict,
                                  obs_space: MultiSpace,
                                  action_space: gym.spaces.Space,
-                                 sequence_length: int) -> A2CBaseNet:
+                                 sequence_length: int = -1) -> A2CBaseNet:
     """build the A2C Shared Net Log Std
 
     Args:
@@ -231,14 +231,17 @@ def build_simple_a2c_from_config(config: Dict,
     shared_net = None
     
     # We have to expand the obs space, because we have a sequences of observations and this mdoule is not aware of that 
-    space_dict = {}
-    for key, space in obs_space:
-        shape = list(space.shape)
-        shape[0] = shape[0] * (sequence_length +1)
-        shape = tuple(shape)  
-        space_dict[key] = gym.spaces.Box(low= -1, high= 1, shape = shape)
-        
-    expanded_sequnced_obs_space = MultiSpace(space_dict)
+    if sequence_length == -1:
+        expanded_sequnced_obs_space = obs_space
+    else:
+        space_dict = {}
+        for key, space in obs_space:
+            shape = list(space.shape)
+            shape[0] = shape[0] * (sequence_length +1)
+            shape = tuple(shape)  
+            space_dict[key] = gym.spaces.Box(low= -1, high= 1, shape = shape)
+            
+        expanded_sequnced_obs_space = MultiSpace(space_dict)
 
     if "shared_net" in config:
         shared_net = MultiSpaceNetworkConfiguration(

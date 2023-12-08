@@ -307,7 +307,7 @@ class SequentialPPO:
     def train(self, max_steps:Optional[int] = None):
         
         self.init_tensors()
-        self.obs = self.env.reset()
+        self.obs = self.policy.normalize_obs(self.env.reset())
         
         total_time = 0
         
@@ -489,6 +489,8 @@ class SequentialPPO:
             step_time_start = time.time()
             
             self.obs, rewards, self.dones, infos, reward_constituents = self.env_step(actions)
+            
+            self.obs = self.policy.normalize_obs(self.obs)
             
             step_time_end = time.time()
 

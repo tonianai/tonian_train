@@ -217,8 +217,7 @@ class WandbLogger(BaseLogger):
                  project_name: str = "tonian") -> None:
         super().__init__()
         self.identifier = identifier
-        self.project_name = project_name
-        print("Wandb Logger initialized")
+        self.project_name = project_name 
     
     def log(self, key: str, value: Union[int, float], step: int):
         assert self.run is not None, "the log_config must be called before the log function on the WandbLogger"

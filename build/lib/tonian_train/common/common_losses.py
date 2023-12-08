@@ -1,5 +1,7 @@
 from torch import nn
 import torch
+import torch.nn.functional as F
+from typing import Dict, Optional
 
 def critic_loss(value_preds_batch, values, curr_e_clip, return_batch, clip_value):
     if clip_value:
@@ -25,3 +27,33 @@ def actor_loss(old_action_log_probs_batch, action_log_probs, advantage, is_ppo, 
         a_loss = (action_log_probs * advantage)
     
     return a_loss
+
+
+def calc_dynamics_loss(obs_prediction: Dict[str, torch.Tensor], next_obs: Dict[str, torch.Tensor]):
+    """
+    Calculate the loss between the predicted observation and the actual next observation for each component in the dictionaries.
+    The function then returns the mean of these losses.
+
+    Args:
+    obs_prediction (Dict[str, torch.Tensor]): The predicted observation as a dictionary of tensors.
+    next_obs (Dict[str, torch.Tensor]): The actual next observation as a dictionary of tensors.
+
+    Returns:
+    torch.Tensor: The mean loss across all components.
+    """
+    
+    if obs_prediction is None or next_obs is None:
+        return 0 
+    losses = []
+    for key in obs_prediction:
+        if key in next_obs:
+            loss = F.mse_loss(obs_prediction[key], next_obs[key])
+            losses.append(loss)
+        else:
+            print(f"Warning: Key '{key}' found in obs_prediction but not in next_obs")
+
+    if not losses:
+        raise ValueError("No corresponding keys found in obs_prediction and next_obs")
+
+    total_loss = torch.mean(torch.stack(losses))
+    return total_loss
