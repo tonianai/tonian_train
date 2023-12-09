@@ -662,3 +662,31 @@ class MultiSpaceNetworkConfiguration(DictConfigurationType):
         return MultispaceNet(network_layers)
         
         
+        
+class ResidualDynamicsNet(nn.Module):
+    
+    def __init__(self, input_size: int, output_space: MultiSpace) -> None:
+        """Residual Dynamics Net is a network, 
+        that takes the output of the multispace net and the action as input and outputs the next state
+
+        Args:
+        """
+        super().__init__()
+        
+        self.input_size = input_size
+        
+        self.output_space = output_space
+        
+        self.residual_networks = nn.ModuleDict()
+        for space_name, space in output_space:
+            self.residual_networks[space_name] = nn.Linear(self.input_size, sum(space.shape))
+        
+        
+    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+        
+        output_dict = {}
+        for space_name, space in self.output_space:
+            output_dict[space_name] = self.residual_networks[space_name](x)
+            
+        return output_dict
+        

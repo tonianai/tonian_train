@@ -52,9 +52,9 @@ class SequentialPolicy(A2CBasePolicy):
         # This function must provide the correct masks and it must tile the padding for episodes, that just began
         
         with torch.no_grad():
-            src_obs = self._normalize_obs(src_obs)
+            src_obs = self.normalize_obs(src_obs)
             
-        mu, logstd, value = self.sequential_net.forward(src_obs, 
+        mu, logstd, value, next_state_pred = self.sequential_net.forward(src_obs, 
                                                          tgt_action_mu,
                                                          tgt_action_std, 
                                                          tgt_value,
@@ -75,7 +75,8 @@ class SequentialPolicy(A2CBasePolicy):
                     'values' : value,
                     'entropy' : entropy, 
                     'mus' : mu,
-                    'sigmas' : sigma
+                    'sigmas' : sigma,
+                    'next_state_pred' : next_state_pred
                 }                
             return result
         else:
@@ -87,7 +88,8 @@ class SequentialPolicy(A2CBasePolicy):
                     'values' : value,
                     'actions' : selected_action,
                     'mus' : mu,
-                    'sigmas' : sigma
+                    'sigmas' : sigma,
+                    'next_state_pred' : next_state_pred
                 }
             return result
                 
@@ -99,15 +101,17 @@ class SequentialPolicy(A2CBasePolicy):
     def get_tgt_mask(self, size) -> torch.tensor:
         return self.sequential_net.get_tgt_mask(size=size)
 
-    def _normalize_obs(self, 
-                       obs: Dict[str, torch.Tensor]) -> Tuple[Dict[str, torch.Tensor], Optional[Dict[str, torch.Tensor]]]:
+    def normalize_obs(self, 
+                      obs: Dict[str, torch.Tensor],
+                      override_training=False, training_value=False
+                       ) -> Tuple[Dict[str, torch.Tensor], Optional[Dict[str, torch.Tensor]]]:
         """Normalize The observations
 
         Args:
             obs (Dict[str, torch.Tensor]): Multispace observations
         """
         if self.obs_normalizer:
-            obs = self.obs_normalizer(obs)         
+            obs = self.obs_normalizer(obs,  override_training=override_training, training_value=training_value)         
         return obs
     
      
@@ -178,6 +182,8 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
 
 
     normalize_inputs = config.get('normalize_inputs', True)
+    
+    obs_normalizer = None
     
     if normalize_inputs:
         

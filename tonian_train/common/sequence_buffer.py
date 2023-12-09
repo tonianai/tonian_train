@@ -60,7 +60,7 @@ class SequenceBuffer():
         
         
         # the data in these tensors comes from the outside
-        self.external_tensor_names = ['dones', 'values', 'rewards', 'action', 'action_mu', 'action_std', 'neglogprobs', 'obs']
+        self.external_tensor_names = ['dones', 'values', 'rewards', 'action', 'action_mu', 'action_std', 'neglogprobs', 'obs', 'next_obs']
         
         # the data from these tensors is derived within the buffer
         self.derived_tensor_names = ['src_key_padding_mask', 'tgt_key_padding_mask', 'returns', 'advantages']
@@ -93,6 +93,12 @@ class SequenceBuffer():
         for key, obs_shape in self.obs_space.dict_shape.items():
             self.obs[key] = torch.zeros((self.n_envs, self.buffer_length) + obs_shape, dtype=torch.float32, device= self.store_device)
         
+        
+        self.next_obs = {}
+        for key, obs_shape in self.obs_space.dict_shape.items():
+            self.next_obs[key] = torch.zeros((self.n_envs, self.buffer_length) + obs_shape, dtype=torch.float32, device= self.store_device)
+        
+        
         # when the padding masks are true, the values will be disgarded
         self.src_key_padding_mask = torch.ones((self.n_envs, self.buffer_length), device= self.store_device, dtype=torch.bool)
         self.tgt_key_padding_mask = torch.ones((self.n_envs, self.buffer_length), device= self.store_device, dtype=torch.bool)
@@ -105,6 +111,7 @@ class SequenceBuffer():
     def add(
         self, 
         obs: Dict[str, torch.Tensor],
+        next_obs: Dict[str, torch.Tensor],
         action: torch.Tensor,
         action_mu: torch.Tensor,
         action_std: torch.Tensor,
@@ -129,6 +136,7 @@ class SequenceBuffer():
         # The tensord fill upd from 
         for key in self.obs:   
             self.obs[key] =  torch.roll(self.obs[key], shifts=(-1), dims=(1)) 
+            self.next_obs[key] = torch.roll(self.next_obs[key], shifts=(-1), dims=(1))
         
         self.action = torch.roll(self.action, shifts=(-1), dims=(1))
         self.action_mu = torch.roll(self.action_mu, shifts=(-1), dims=(1))
@@ -160,7 +168,8 @@ class SequenceBuffer():
         
         for key in self.obs:   
             self.obs[key][:, -1, :] = obs[key].clone().detach().to(self.store_device)
-             
+            self.next_obs[key][:, -1, :] = next_obs[key].clone().detach().to(self.store_device)
+               
             
         self.action[:, -1, :] = action.clone().detach().to(self.store_device)
         self.action_mu[:, -1, :] = action_mu.clone().detach().to(self.store_device)

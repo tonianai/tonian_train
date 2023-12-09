@@ -18,6 +18,7 @@ policy:
     sequence_length: 3 # the amount of steps the agent can look back 
     normalize_input: True
  
+    has_dynamics: True
     network:
         network_type: "simple_sequential"   
         is_std_fixed: false
@@ -77,6 +78,8 @@ algo:
 
   bounds_loss_coef: 0.0001
 
+  dynamics_coef: 0.1
+  has_dynamics_loss: True
 
   start_model:
     name: 'cartpole'
