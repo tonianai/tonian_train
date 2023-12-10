@@ -84,6 +84,7 @@ policy:
 
   network:
     network_type: "sequential_wrapper"
+    has_dynamics: True
     actor_net:
       - name: actor_linear_obs_net
         input: 
@@ -128,11 +129,13 @@ algo:
     shift_value: 0
 
   value_bootstrap: True
-  critic_coef: 4
+  critic_coef: 2
   entropy_coef: 0
 
   bounds_loss_coef: 0.0001
 
+  dynamics_coef: 0.1
+  has_dynamics_loss: True
 
 
 

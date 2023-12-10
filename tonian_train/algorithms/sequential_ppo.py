@@ -399,10 +399,10 @@ class SequentialPPO:
             for i in range(len(dataset)):
                 data = dataset[i]
                 
-                a_loss, c_loss, d_loss, entropy, kl, last_lr, lr_mul, cmu, actor_sigma, b_loss = self.calc_gradients(data)    
+                a_loss, c_loss,  entropy, d_loss, kl, last_lr, lr_mul, cmu, actor_sigma, b_loss = self.calc_gradients(data)    
                 a_losses.append(a_loss)
                 c_losses.append(c_loss)
-                d_losses.append(d_loss)
+                d_losses.append(d_loss) 
                 ep_kls.append(kl)
                 entropies.append(entropy)
                 actor_sigmas.append(actor_sigma)
@@ -672,6 +672,7 @@ class SequentialPPO:
             
             old_mu_batch = input_dict['action_mu'][: , -1]
             old_sigma_batch = input_dict['action_std'][: , -1]
+             
             
             if self.has_dynamics_loss:   
                 next_obs = {key: value[:, -1] for key, value in input_dict['next_obs'].items()} # only the most recent observation is used for the next state prediction
@@ -680,7 +681,8 @@ class SequentialPPO:
                     next_obs = self.policy.normalize_obs(next_obs, override_training=True, training_value=False )
                 dynamics_loss = calc_dynamics_loss( predicted_obs, next_obs)
                 dynamics_loss = dynamics_loss.unsqueeze(1)
-                dynamics_loss = torch.mean(dynamics_loss)
+                dynamics_loss = torch.mean(dynamics_loss) 
+            
             else:
                 dynamics_loss = torch.zeros(1, device=self.device)
 
@@ -699,9 +701,14 @@ class SequentialPPO:
             b_loss = torch.mean(b_loss)
             c_loss = torch.mean(c_loss)
             entropy = torch.mean(entropy_loss)
+             
+            c_loss = c_loss * self.critic_coef * 0.5
+            entropy = entropy * self.entropy_coef
+            b_loss = b_loss * self.bounds_loss_coef
+            d_loss = dynamics_loss * self.dynamics_coef 
+             
             
-            loss = a_loss + 0.5 * c_loss * self.critic_coef - entropy * self.entropy_coef + b_loss * self.bounds_loss_coef + dynamics_loss * self.dynamics_coef
-            
+            loss = a_loss + c_loss - entropy + b_loss + d_loss 
             
             for param in self.policy.parameters():
                 param.grad = None
@@ -717,8 +724,9 @@ class SequentialPPO:
         
         with torch.no_grad():
             kl_dist = policy_kl(mu.detach(), sigma.detach(), old_mu_batch, old_sigma_batch, True)
+         
         
-        return (a_loss, c_loss, entropy, dynamics_loss,\
+        return (a_loss, c_loss, entropy, d_loss,\
             kl_dist, self.last_lr, lr_mul, \
             mu.detach(), sigma.detach(), b_loss)
         
