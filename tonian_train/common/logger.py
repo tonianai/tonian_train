@@ -159,26 +159,50 @@ class CsvFileLogger(BaseLogger):
         
         self.identifier = identifier
         
-        self.file_path = os.path.join(folder, 'last_logs.csv')
+        self.file_path = os.path.join(folder, 'all_logs.csv')
         self.params = {}
+        self.params['step'] = []
+    
         
-    def log(self, key: str, value: Union[int, float], step: int):
+        self.written_lines = 0
+        self.has_head_written = False
         
-        self.params[key] = value
-        self.params['step'] = step
+    def log(self, key: str, value: Union[int, float, torch.Tensor], step: int):
+        if isinstance(value, torch.Tensor):
+            value = float(value)
+        if self.params.get(key, None) is None:
+            self.params[key] = [value]
+            if len(self.params['step']) == 0:
+                self.params['step'] = [step]
+        else:
+            self.params[key].append(value)
+            if len(self.params['step']) < len(self.params[key]):
+                self.params['step'].append(step)
         
     def log_config(self, config: Dict):
         return super().log_config(config)
         
     def update_saved(self):
     
-        with open(self.file_path, 'w', encoding='UTF8', newline='') as f:
+        with open(self.file_path, 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
+            if self.written_lines == 0 and not self.has_head_written:
+                writer.writerow(self.params.keys())
+                self.has_head_written = True
+                
             
-            writer.writerow(self.params.keys())
-             
-            writer.writerow(self.params.values())
+            write_lines_until = len(self.params['step'])
             
+            for i in range(self.written_lines, write_lines_until):
+                try:
+                        writer.writerow([self.params[key][i] for key in self.params.keys()])
+                except IndexError:
+                    print("Index Error")     
+                    
+            self.written_lines = 0
+        self.params = {}
+        self.params['step'] = []
+                
             
 
                 
