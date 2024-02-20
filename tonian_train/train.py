@@ -51,7 +51,7 @@ def train(config_path: str,
     config = join_configs(config, config_overrides)
     
     
-    task = task_factory(config['task'], headless)
+    task = task_factory(config['task'], headless, seed = seed)
      
      
     policy = build_a2c_sequential_policy(config['policy'], 

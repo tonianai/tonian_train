@@ -201,8 +201,7 @@ class CsvFileLogger(BaseLogger):
                     
             self.written_lines = 0
         self.params = {}
-        self.params['step'] = []
-                
+        self.params['step'] = []                
             
 
                 
