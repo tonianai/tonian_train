@@ -53,7 +53,7 @@ def set_random_seed(seed: int, using_cuda: bool = False) -> None:
     # seed the RNG for all devices (both CPU and CUDA)
     torch.manual_seed(seed)
     
-    #torch.use_deterministic_algorithms(True)
+    torch.use_deterministic_algorithms(True)
 
     if using_cuda:
         # Deterministic operations for CuDNN, it may impact performances
