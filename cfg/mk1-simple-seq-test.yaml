@@ -14,7 +14,7 @@ task:
 
 
 policy:
-    sequence_length: 1 # the amount of steps the agent can look back 
+    sequence_length: 8 # the amount of steps the agent can look back 
     normalize_input: True
 
 
@@ -46,8 +46,6 @@ policy:
                   - after_layer_index: 1
                     prob: 0.3 
   
-
-
 algo:
   name: "PPO"
   grad_norm: 1.0
