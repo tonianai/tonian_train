@@ -42,46 +42,38 @@ class EmbeddingSequentialNet(SequentialNet):
         """_summary_
                                                         
                                                         
-               Observations:                              Actions & Values:                                         
+               Observations:                                                         
                                                         
-               [...,obs(t-2),obs(t=1),obs(t=0)]           [...,action_mean(t-1), action_mean(t=0]
-                                                          [...,action_std(t-1), action_std(t=0]
-                                                          [...,value(t-1), value(t=0] 
-                                                          
-                                                          
+               [...,obs(t-2),obs(t=1),obs(t=0)]           
+                                                       
                               
-                               |                                       |   
-                               |                                       |                           
-                              \|/                                     \|/      
+                               |                                   
+                               |                                                            
+                              \|/                                    
                               
-                    |------------------|                      |------------------|     
-                    | Input Embeddings |                      | Output Embedding |  <- <MLP>            
-                    |------------------|                      |------------------|            
-                               |                                       |                           
-                              \|/           Organized Latent Space    \|/            
+                    |------------------|                  
+                    | Input Embeddings |                                
+                    |------------------|                                
+                               |                                                         
+                              \|/            
+                              
+                [..., org_latent(t-2)
+                org_latent(t=1),
+                org_latent(t=0)]         
              
-                                    |------------------------------|
-                                    |     Simpe forward            |
-                                    |------------------------------|
-
-    
-                                                 |
-                                    _____________|__________  
-                                    |                        |
-                                    |                        |
-                                    |                        |
-                                    \|/                      \|/
-                            
-                            |---------------|         |---------------|        
-                            |   Actor Head  |         |  Critic Head  |
-                            |---------------|         |---------------|
-                            
-                                    |                        |
-                                    |                        |
-                                   \|/                      \|/
-                                    
-                                Actions (mu & std)        States
-                                    
+                                                        |---------------------|
+                                                    --> |   res_dynamics_net  | -> next_state (opt)
+                                                    |   |---------------------|
+                                                    |
+                                                    | 
+                                |------------|         |--------------------|
+                 org_latent ->  |  a2csimple | -->  -- | residual_actor_net | -> action_dist -> action
+                                |------------|         |--------------------|
+                                                    |
+                                                    |  |--------------------|
+                                                    |->| residual_critic_net| -> value
+                                                        |--------------------|
+                                                    
 
         Args:
             action_space (gym.spaces.Space): _description_

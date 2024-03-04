@@ -15,6 +15,7 @@ from tonian_train.common.common_losses import critic_loss, actor_loss, calc_dyna
 from tonian_train.common.utils import join_configs
 from tonian_train.common.sequence_buffer import SequenceBuffer, SequenceDataset
 from tonian_train.common.torch_utils import tensor_dict_clone
+from tonian_train.common.obs_saver import ObservationSaver
 
 import torch.nn as nn
 import torch, gym, os, yaml, time
@@ -72,6 +73,8 @@ class SequentialPPO:
         self.name = config['name']
         self.verbose = verbose
         self.logger = logger
+        self.save_obs = False
+        self.obs_saver = None
         
         if isinstance(logger, TensorboardLogger) and hasattr(env, 'set_tensorboard_logger'):
             env.set_tensorboard_logger(logger)
@@ -308,9 +311,14 @@ class SequentialPPO:
             self.logger.log('sim/'+ key, val, step=self.num_timesteps)
         
     
-    def train(self, max_steps:Optional[int] = None):
+    def train(self, max_steps:Optional[int] = None, save_obs: bool = False):
         
         self.init_tensors()
+        self.save_obs = save_obs
+        if self.save_obs:
+            self.obs_saver = ObservationSaver("saved_obs")
+            self.obs_saver.clear_base_path()
+        
         self.obs = self.env.reset()
         
         total_time = 0
@@ -488,8 +496,8 @@ class SequentialPPO:
             action_sigmas = res['sigmas']
             neglogprobs = res['neglogprobs']
             
-            
-            
+            if self.save_obs and self.obs_saver:
+                self.obs_saver.maybe_save_obs(last_obs)
              
             step_time_start = time.time()
             

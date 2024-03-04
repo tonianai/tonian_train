@@ -25,7 +25,8 @@ def train(config_path: str,
           model_out_if_better: Optional[bool] = None,
           verbose: bool = True,
           max_steps: Optional[int] = None,
-          project_name: str = "training_alg"):
+          project_name: str = "training_alg",
+          save_obs: bool = False):
     """Train the given config
 
     Args:
@@ -135,4 +136,4 @@ def train(config_path: str,
 
     algo = SequentialPPO(task, config['algo'], 'cuda:0', logger, policy, verbose, model_out_name, reward_to_beat)
 
-    algo.train(max_steps)
+    algo.train(max_steps, save_obs = save_obs)

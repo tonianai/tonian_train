@@ -21,7 +21,8 @@ from tonian_train.networks.sequential.base_seq_nn import SequentialNet, InputEmb
 class SimpleSequentialNet(SequentialNet):
     
     def __init__(self, 
-                 simple_net: A2CSimpleNet  ) -> None:
+                 simple_net: A2CSimpleNet,
+                 obs_embedding = None) -> None:
         """_summary_
                                                         
                                                         
@@ -61,12 +62,8 @@ class SimpleSequentialNet(SequentialNet):
                                     
 
         Args:
-            action_space (gym.spaces.Space): _description_
-            action_activation (ActivationFn, optional): _description_. Defaults to nn.Identity().
-            is_std_fixed (bool, optional): _description_. Defaults to False.
-            std_activation (ActivationFn, optional): _description_. Defaults to nn.Identity().
-            value_activation (ActivationFn, optional): _description_. Defaults to nn.Identity().
-            value_size (int, optional): _description_. Defaults to 1.
+            simple_net: A2CSimpleNet: This network is the main network that will be used to process the observations and produce the actions and values. It is not inherently sequential, but it will be used in a sequential manner
+            
         """
         super().__init__()
     
@@ -98,9 +95,13 @@ class SimpleSequentialNet(SequentialNet):
          
         multiplicative_src_mask = -1* (src_pad_mask.to(torch.uint8) -1) 
         
-        # mask the src and the tgt
+        # mask the src for observations that do not belong to this sequence
         for key in src_obs.keys():
-            src_obs[key] = torch.flatten(tensor_mul_along_dim(src_obs[key], multiplicative_src_mask), 1)
+            src_obs[key] = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask)
+ 
+        # flatten the src
+        for key in src_obs.keys():
+            src_obs[key] = torch.flatten(src_obs[key], start_dim=1)
  
         return self.simple_net(src_obs)
     
