@@ -14,8 +14,8 @@ from tonian_train.common.spaces import MultiSpace
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 
 
-from tonian_train.networks.network_elements import *
-from tonian_train.networks.network_elements import ActivationFn, MultiSpace, MultispaceNet, Optional, gym, nn
+from tonian_train.networks.elements.network_elements import *
+from tonian_train.networks.elements.network_elements import ActivationFn, MultiSpace, MultispaceNet, Optional, gym, nn
 
 
 class A2CBaseNet(nn.Module):

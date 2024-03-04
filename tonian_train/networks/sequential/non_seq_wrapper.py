@@ -1,7 +1,7 @@
 from typing import Dict,  Optional
-from tonian_train.networks.network_elements import *
+from tonian_train.networks.elements.network_elements import *
 from tonian_train.networks.sequential.base_seq_nn import SequentialNet
-from tonian_train.networks.simple_networks import A2CSimpleNet
+from tonian_train.networks.elements.simple_networks import A2CSimpleNet
 
 
 class SequentialNetWrapper(SequentialNet):
