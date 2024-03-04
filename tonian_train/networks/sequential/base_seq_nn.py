@@ -7,7 +7,7 @@ import torch, gym, os, math
 import torch.nn as nn
 import numpy as np
   
-from tonian_train.networks.network_elements import * 
+from tonian_train.networks.elements.network_elements import * 
  
 
 class InputEmbedding(nn.Module):
