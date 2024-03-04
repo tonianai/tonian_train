@@ -1,6 +1,7 @@
 from typing import Dict, List
 import torch
 import os, random, shutil
+from torch.utils.data import Dataset 
 
 class ObservationSaver:
     
@@ -78,3 +79,51 @@ class ObservationSaver:
         for key in list(self.observations.keys()):
             if self.observations[key]:
                 self._save_and_clear_observations(key)
+
+
+
+class ObservationDataset(Dataset):
+    def __init__(self, base_path: str):
+        """
+        Initializes the dataset by listing all the observation files in the base path.
+
+        Parameters:
+        - base_path: The directory containing saved observation files.
+        """
+        self.base_path = base_path
+        self.files = [os.path.join(base_path, f) for f in os.listdir(base_path) if os.path.isfile(os.path.join(base_path, f))]
+        self.indexes = self._prepare_index()
+
+    def _prepare_index(self):
+        """
+        Prepares an index mapping each sample to a specific file and position within that file.
+        This allows for efficient random access to samples.
+        """
+        indexes = []
+        for file_path in self.files:
+            data = torch.load(file_path)
+            for i in range(data.size(0)):
+                indexes.append((file_path, i))
+        return indexes
+
+    def __len__(self):
+        """
+        Returns the total number of observations in the dataset.
+        """
+        return len(self.indexes)
+
+    def __getitem__(self, idx):
+        """
+        Retrieves an observation by its index.
+
+        Parameters:
+        - idx: The index of the observation to retrieve.
+
+        Returns:
+        - The observation as a torch.Tensor.
+        """
+        file_path, item_idx = self.indexes[idx]
+        # Load the file containing the desired observation
+        data = torch.load(file_path)
+        # Return the specific observation
+        return data[item_idx]
