@@ -17,7 +17,7 @@ import os, yaml
 from typing import Optional
  
 
-def task_from_config(config: Dict, headless: bool = False) -> VecTask:
+def task_from_config(config: Dict, headless: bool = False, seed: int = 0) -> VecTask:
     
     name_to_task_map=  { 
      "00_cartpole": Cartpole,

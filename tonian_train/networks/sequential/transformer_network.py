@@ -222,6 +222,7 @@ class TransformerNetLogStd(SequentialNet):
             std = self.std_activation(self.action_std(result))
         
         
+        
         return mu, mu*0 + std, value 
           
 
