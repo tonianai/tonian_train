@@ -497,7 +497,9 @@ class SequentialPPO:
             neglogprobs = res['neglogprobs']
             
             if self.save_obs and self.obs_saver:
-                self.obs_saver.maybe_save_obs(last_obs)
+                with torch.no_grad():
+                    normalized_obs = self.policy.normalize_obs(last_obs)
+                self.obs_saver.maybe_save_obs(normalized_obs)
              
             step_time_start = time.time()
             

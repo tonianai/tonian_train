@@ -5,7 +5,9 @@ from tonian_train.networks.elements.encoder_networks import ObsEncoder, ObsDecod
 
 import os
 
-def train_embeddings(config, obs_space, obs_path, num_epochs=10):
+import datetime
+
+def train_embeddings(config, obs_space, obs_path, test_path = None,  num_epochs=10):
     """_summary_
 
     Args:
@@ -42,11 +44,11 @@ def train_embeddings(config, obs_space, obs_path, num_epochs=10):
 
     dataset = ObservationDataset(base_path=obs_path, device=device)
 
-    optimizer = torch.optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=1e-3)
+    optimizer = torch.optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=5e-5)
     loss_fn = torch.nn.MSELoss()
     
     obs_keys = list(obs_space.spaces.keys())
-
+    start_time = datetime.datetime.now() 
     for epoch in range(num_epochs):
         for obs_batch in dataset:
             optimizer.zero_grad()
@@ -63,8 +65,22 @@ def train_embeddings(config, obs_space, obs_path, num_epochs=10):
                 
             loss.backward()
             optimizer.step()
-
-        print(f'Epoch {epoch}, Loss: {loss.item()}')
+            
+            
+        end_time = datetime.datetime.now()  
+        duration = end_time - start_time  
+        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item():.4f}, Duration: {duration}')
+        
+    if test_path is not None:
+        test_dataset = ObservationDataset(base_path=test_path, device=device)
+        
+        for obs_batch in test_dataset:
+            encoded = encoder(obs_batch)
+            decoded = decoder(encoded)
+            
+            for key in obs_keys:
+                loss = loss_fn(decoded[key], obs_batch[key])
+                print(f'Test Loss for {key}: {loss.item():.4f}')
         
     encoder_path = config['encoder']['model_path']    
     decoder_path = config['decoder']['model_path']
