@@ -52,14 +52,21 @@ def set_random_seed(seed: int, using_cuda: bool = False) -> None:
     np.random.seed(seed)
     # seed the RNG for all devices (both CPU and CUDA)
     torch.manual_seed(seed)
-    
-    #torch.use_deterministic_algorithms(True)
 
     if using_cuda:
-        # Deterministic operations for CuDNN, it may impact performances
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        # Deterministic operations for CuDNN, it may impact performances 
         torch.cuda.manual_seed_all(seed)
+    
+    if False:
+        # refer to https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        torch.use_deterministic_algorithms(True)
+    
+    else:
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cudnn.deterministic = False 
 
 
 

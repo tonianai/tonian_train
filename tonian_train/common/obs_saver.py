@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 class ObservationSaver:
     
-    def __init__(self, base_path: str, batch_size: int = 100, save_probability: float = 0.01):
+    def __init__(self, base_path: str, batch_size: int = 10, save_probability: float = 0.01):
         """
         Initializes the observation saver.
 
@@ -16,6 +16,7 @@ class ObservationSaver:
         """
         self.base_path = base_path
         self.batch_size = batch_size
+        self.current_batch = 0
         self.save_probability = save_probability
         self.observations: Dict[str, List[torch.Tensor]] = {}
         # Ensure the base path exists
@@ -35,28 +36,53 @@ class ObservationSaver:
             if key not in self.observations:
                 self.observations[key] = []
             self.observations[key].append(tensor)
+            
+        self.current_batch += 1
+        
+        if self.current_batch >= self.batch_size:
+            self._save_and_clear_observations()
 
-            # Check if we have accumulated enough observations for this key
-            if len(self.observations[key]) >= self.batch_size:
-                self._save_and_clear_observations(key)
-
-    def _save_and_clear_observations(self, key: str) -> None:
+    def _save_and_clear_observations(self) -> None:
         """
         Saves the accumulated observations for a given key to a file without overriding existing files
         and clears the buffer.
 
         Parameters:
         - key: The key for which to save the observations.
-        """
-        existing_files = [f for f in os.listdir(self.base_path) if os.path.isfile(os.path.join(self.base_path, f)) and key in f]
-        file_index = len(existing_files)
-        file_path = os.path.join(self.base_path, f"{key}_{file_index}.pt")
+        """ 
+        if not self.observations:  # Check if there are any observations to save
+            return
+        
+        # Determine the next files_index by finding the number of existing directories
+        files_index = 0
+        while os.path.exists(os.path.join(self.base_path, str(files_index))):
+            files_index += 1
 
-        batch_tensor = torch.stack(self.observations[key])
-        torch.save(batch_tensor, file_path)
+        # Create a new directory for this batch
+        batch_dir = os.path.join(self.base_path, str(files_index))
+        os.makedirs(batch_dir, exist_ok=True)
 
-        # Clear the accumulated observations for this key
-        self.observations[key] = []
+        # Loop through each key in observations and save the corresponding tensors
+        for key, tensors in self.observations.items():
+            # Concatenate tensors if you have more than one tensor per key, otherwise just save the single tensor
+            if len(tensors) > 1:
+                tensor_to_save = torch.cat(tensors, dim=0)
+            else:
+                tensor_to_save = tensors[0]
+
+            # Define the save path
+            save_path = os.path.join(batch_dir, f"{key}.pth")
+
+            # Save the tensor
+            torch.save(tensor_to_save, save_path)
+
+        # Clear the observations now that they've been saved
+        self.observations.clear()
+        
+        # Reset the current batch count
+        self.current_batch = 0
+
+        
 
     def clear_base_path(self) -> None:
         """
@@ -81,49 +107,55 @@ class ObservationSaver:
                 self._save_and_clear_observations(key)
 
 
-
 class ObservationDataset(Dataset):
-    def __init__(self, base_path: str):
+    def __init__(self, base_path: str, device: str = 'cuda:0'):
         """
-        Initializes the dataset by listing all the observation files in the base path.
+        Initializes the dataset by listing all the observation folders in the base path.
+        Each folder represents a batch of observations saved by the ObservationSaver.
 
         Parameters:
-        - base_path: The directory containing saved observation files.
+        - base_path: The directory containing saved observation folders.
         """
         self.base_path = base_path
-        self.files = [os.path.join(base_path, f) for f in os.listdir(base_path) if os.path.isfile(os.path.join(base_path, f))]
-        self.indexes = self._prepare_index()
-
-    def _prepare_index(self):
+        self.device = device
+        # List all directories in base_path, each directory corresponds to a batch
+        self.batch_folders = [os.path.join(base_path, d) for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
+        # Sort directories to ensure ordered access
+        self.batch_folders.sort(key=lambda x: int(os.path.basename(x)))
+        
+    def get_keys(self):
         """
-        Prepares an index mapping each sample to a specific file and position within that file.
-        This allows for efficient random access to samples.
+        Returns the keys of the first batch in the dataset.
         """
-        indexes = []
-        for file_path in self.files:
-            data = torch.load(file_path)
-            for i in range(data.size(0)):
-                indexes.append((file_path, i))
-        return indexes
+        # Path to the folder for the current index
+        folder_path = self.batch_folders[0]
+        # Initialize an empty dict to hold observations for this batch
+        keys = []
+        # Iterate over each file in the folder, assuming each file corresponds to a different observation key
+        for file_name in os.listdir(folder_path):
+            # Extract the key from the file name (remove the .pth extension)
+            key = file_name.rsplit('.', 1)[0]
+            keys.append(key)
+        return keys
 
     def __len__(self):
-        """
-        Returns the total number of observations in the dataset.
-        """
-        return len(self.indexes)
-
+        # Return the number of batches available
+        return len(self.batch_folders)
+    
     def __getitem__(self, idx):
-        """
-        Retrieves an observation by its index.
-
-        Parameters:
-        - idx: The index of the observation to retrieve.
-
-        Returns:
-        - The observation as a torch.Tensor.
-        """
-        file_path, item_idx = self.indexes[idx]
-        # Load the file containing the desired observation
-        data = torch.load(file_path)
-        # Return the specific observation
-        return data[item_idx]
+        # Path to the folder for the current index
+        folder_path = self.batch_folders[idx]
+        # Initialize an empty dict to hold observations for this batch
+        observations = {}
+        # Iterate over each file in the folder, assuming each file corresponds to a different observation key
+        for file_name in os.listdir(folder_path):
+            # Construct the full file path
+            file_path = os.path.join(folder_path, file_name)
+            # Extract the key from the file name (remove the .pth extension)
+            key = file_name.rsplit('.', 1)[0]
+            # Load the tensor and add it to the observations dict
+            batch_tensor = torch.load(file_path) 
+            
+            observations[key] = batch_tensor.to(self.device)
+            
+        return observations

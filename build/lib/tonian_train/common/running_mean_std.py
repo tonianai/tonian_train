@@ -40,8 +40,8 @@ class RunningMeanStd(nn.Module):
         new_count = tot_count
         return new_mean, new_var, new_count
 
-    def forward(self, input, unnorm=False):
-        if self.training:
+    def forward(self, input, unnorm=False, override_training=False, training_value=False):
+        if (self.training and not override_training) or (override_training and training_value) : 
             mean = input.mean(self.axis) # along channel axis
             var = input.var(self.axis)
             self.running_mean, self.running_var, self.count = self._update_mean_var_count_from_moments(self.running_mean, self.running_var, self.count, 
@@ -71,7 +71,7 @@ class RunningMeanStdObs(nn.Module):
             k : RunningMeanStd(v, epsilon,is_sequence,  norm_only) for k,v in insize.items()
         })
     
-    def forward(self, input, unnorm=False):
+    def forward(self, input, unnorm=False,  override_training=False, training_value=False):
 
-        res = {k : self.running_mean_std[k](v, unnorm) for k,v in input.items()}
+        res = {k : self.running_mean_std[k](v, unnorm, override_training, training_value) for k,v in input.items()}
         return res
