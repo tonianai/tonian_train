@@ -37,8 +37,8 @@ def train_embeddings(config, obs_space, obs_path, num_epochs=10):
     device = 'cuda:0'
 
     # Assuming obs_space, config for encoder and decoder are defined
-    encoder = ObsEncoder(config=config['encoder'], d_model=128, obs_space=obs_space).to(device)
-    decoder = ObsDecoder(config=config['decoder'], d_model=128, obs_space=obs_space).to(device)
+    encoder = ObsEncoder(config=config['encoder'], obs_space=obs_space).to(device)
+    decoder = ObsDecoder(config=config['decoder'], d_model=encoder.d_model, obs_space=obs_space).to(device)
 
     dataset = ObservationDataset(base_path=obs_path, device=device)
 

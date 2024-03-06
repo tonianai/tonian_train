@@ -9,9 +9,9 @@ from tonian_train.networks.elements.network_elements import *
 class ObsEncoder(nn.Module):
     
     
-    def __init__(self, config: Dict, 
-                       d_model: int, 
-                       obs_space: MultiSpace) -> None:
+    def __init__(self, config: Dict,  
+                       obs_space: MultiSpace,
+                       sequence_length: Optional[int] = None) -> None:
 
         """
         The goal of this network is to order the Observations in a ordered latent space, ready for self attention 
@@ -41,8 +41,9 @@ class ObsEncoder(nn.Module):
         
         self.network: MultispaceNet = MultiSpaceNetworkConfiguration(config['network']).build(obs_space)
         
-        self.d_model = d_model
-        self.out_nn: nn.Linear = nn.Linear(self.network.out_size(), d_model )
+        self.d_model = int(config['d_model'])
+        self.sequence_length = sequence_length
+        self.out_nn: nn.Linear = nn.Linear(self.network.out_size(), self.d_model)
         
     def forward(self, obs: Dict[str, torch.Tensor], sequential: bool = False):
         """_summary_
@@ -71,6 +72,25 @@ class ObsEncoder(nn.Module):
         # restructuring, so that the output is (batch_size, sequence_length, ) + output_dim
         return self.out_nn(unstructured_result).reshape((batch_size, self.sequence_length + 1, self.d_model) )
     
+    
+    def get_output_space(self) -> MultiSpace:
+        return MultiSpace({'embedding':  gym.spaces.Box(low= -1, high= 1, shape = (self.d_model, ))})
+    
+    def load_pretrained_weights(self, path: str):
+        """
+        Loads pre-trained weights into the encoder from a given path.
+
+        Args:
+            path (str): The path to the saved model weights.
+        """
+        self.load_state_dict(torch.load(path))
+
+    def freeze_parameters(self):
+        """
+        Freezes the encoder's parameters to prevent them from being updated during training.
+        """
+        for param in self.parameters():
+            param.requires_grad = False
     
 
 class ObsDecoder(nn.Module):

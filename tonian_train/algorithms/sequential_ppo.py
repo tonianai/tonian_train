@@ -687,6 +687,7 @@ class SequentialPPO:
                 predicted_obs = res_dict['next_state_pred']
                 with torch.no_grad():
                     next_obs = self.policy.normalize_obs(next_obs, override_training=True, training_value=False )
+                    
                 dynamics_loss = calc_dynamics_loss( predicted_obs, next_obs)
                 dynamics_loss = dynamics_loss.unsqueeze(1)
                 dynamics_loss = torch.mean(dynamics_loss) 

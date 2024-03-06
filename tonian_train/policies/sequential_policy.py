@@ -9,7 +9,8 @@ from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy
 from tonian_train.networks import  A2CSimpleNet, SequentialNet
-
+from tonian_train.networks.elements.encoder_networks import ObsEncoder
+from tonian_train.networks.sequential.simple_sequential_net import build_simple_sequential_net
 
 import torch, gym, os
 import torch.nn as nn
@@ -132,6 +133,12 @@ class SequentialPolicy(A2CBasePolicy):
         if self.obs_normalizer:
             torch.save(self.obs_normalizer.state_dict(), os.path.join(path, 'obs_norm.pth'))
             
+    def observation_embedding(self, obs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        pass
+        #return self.sequential_net.obs_embedding(obs)
+    
+        
+            
 
 
 def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_space:gym.spaces.Space):
@@ -141,41 +148,15 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
     sequence_length = config['sequence_length']
     network_type = config['network']['network_type']
     
-    if network_type == 'transformer':
-        network = build_transformer_a2c_from_config(config['network'],
-                                                    seq_len= sequence_length, 
-                                                    value_size= 1, 
-                                                    obs_space = obs_space,
-                                                    action_space= action_space)
-    elif network_type == 'simple_embedding':
-        network = build_embedding_sequential_nn_from_config(config['network'],
-                                                    seq_len= sequence_length, 
-                                                    value_size= 1, 
-                                                    obs_space = obs_space,
-                                                    action_space= action_space)
-        
-    elif network_type == 'sequential_wrapper':
+    if network_type == 'sequential_wrapper':
         simple_a2c = build_simple_a2c_from_config(config['network'],
                                                   obs_space=obs_space,
                                                   action_space=action_space)
         network = SequentialNetWrapper(simple_a2c)
+        
     elif network_type == 'simple_sequential':
         
-        space_dict = {}
-        for key, space in obs_space:
-            shape = list(space.shape)
-            shape[0] = shape[0] * (sequence_length +1)
-            shape = tuple(shape)  
-            space_dict[key] = gym.spaces.Box(low= -1, high= 1, shape = shape)
-            
-        expanded_sequnced_obs_space = MultiSpace(space_dict)
-        
-        
-        simple_a2c = build_simple_a2c_from_config(config['network'],
-                                                  obs_space=expanded_sequnced_obs_space,
-                                                  action_space=action_space)
-        
-        network = SimpleSequentialNet(simple_a2c)
+        network = build_simple_sequential_net(config, obs_space, action_space)
         
     else:
         raise 'network_type not supported'

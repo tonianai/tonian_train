@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 class ObservationSaver:
     
-    def __init__(self, base_path: str, batch_size: int = 10, save_probability: float = 0.01):
+    def __init__(self, base_path: str, batch_size: int = 50, save_probability: float = 0.01):
         """
         Initializes the observation saver.
 

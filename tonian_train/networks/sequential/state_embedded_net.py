@@ -11,7 +11,7 @@ from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.torch_utils import tensor_mul_along_dim
 
 from tonian_train.networks.elements.network_elements import *
-from tonian_train.networks.elements.simple_networks import A2CSimpleNet
+from tonian_train.networks.elements.a2c_networks import A2CSimpleNet
 
 from tonian_train.networks.sequential.base_seq_nn import SequentialNet, InputEmbedding, OutputEmbedding
 
