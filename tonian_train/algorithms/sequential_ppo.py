@@ -764,7 +764,9 @@ class SequentialPPO:
         
         if self.normalize_value:
             torch.save(self.value_mean_std.state_dict(), os.path.join(run_save_dir, 'value_mean_std.pth'))
-     
+            if self.save_obs:
+                    torch.save(self.value_mean_std.state_dict(), os.path.join('obs_normalizer', 'value_mean_std.pth'))
+    
         
         if self.model_out_name :
             if best_model and self.reward_to_beat_for_out and self.most_avg_reward_received < self.reward_to_beat_for_out:
@@ -778,8 +780,8 @@ class SequentialPPO:
             self.policy.save(save_dir)
            
             if self.normalize_value:
-                torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))
-    
+                torch.save(self.value_mean_std.state_dict(), os.path.join(save_dir, 'value_mean_std.pth'))  
+              
     def load(self, path: str):
         """Load the model from the file system
 
