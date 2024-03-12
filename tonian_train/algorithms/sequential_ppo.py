@@ -764,8 +764,9 @@ class SequentialPPO:
         
         if self.normalize_value:
             torch.save(self.value_mean_std.state_dict(), os.path.join(run_save_dir, 'value_mean_std.pth'))
-            if self.save_obs:
-                    torch.save(self.value_mean_std.state_dict(), os.path.join('obs_normalizer', 'value_mean_std.pth'))
+            
+        if self.save_obs and self.policy.obs_normalizer:
+            torch.save(self.policy.obs_normalizer.state_dict(), os.path.join('obs_normalizer', 'obs_normalizer.pth'))
     
         
         if self.model_out_name :

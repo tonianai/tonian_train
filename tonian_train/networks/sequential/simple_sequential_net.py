@@ -124,13 +124,15 @@ def build_simple_sequential_net(config: Dict[str, Any], obs_space: MultiSpace, a
     network_config = config['network']
     
     has_embedding = 'encoder' in network_config
-    
+
+    obs_embedding = None
     if has_embedding:
         obs_embedding = ObsEncoder(network_config['encoder'], obs_space, sequence_length=sequence_length)
-        obs_embedding.load_pretrained_weights(network_config['encoder']['model_path'])
-        obs_embedding.freeze_parameters()
+        if 'model_path' in network_config['encoder']:
+            obs_embedding.load_pretrained_weights(network_config['encoder']['model_path'])
+            obs_embedding.freeze_parameters()
         obs_space = obs_embedding.get_output_space()
-        
+            
     
     a2c_net = build_simple_a2c_from_config(network_config, obs_space, action_space, sequence_length)
     

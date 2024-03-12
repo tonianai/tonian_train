@@ -170,6 +170,10 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
         
         obs_normalizer = RunningMeanStdObs(obs_space.dict_shape, is_sequence=True)
         
+        if config.get('obs_normailzer_path', None):
+            obs_normalizer.load_state_dict(torch.load(config['obs_normailzer_path']))
+                                           
+        
     return SequentialPolicy( sequential_net= network,
                              sequence_length= sequence_length,
                              obs_normalizer= obs_normalizer
