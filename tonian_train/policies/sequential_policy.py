@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Union, Tuple, Any, Optional, List
 
 from tonian_train.common.spaces import MultiSpace
-from tonian_train.networks import build_transformer_a2c_from_config, build_embedding_sequential_nn_from_config, SequentialNetWrapper,build_simple_a2c_from_config, SimpleSequentialNet
+from tonian_train.networks import  SequentialNetWrapper,build_simple_a2c_from_config
 from tonian_train.common.aliases import ActivationFn, InitializerFn
 from tonian_train.common.running_mean_std import RunningMeanStdObs
 from tonian_train.policies.base_policy import A2CBasePolicy
