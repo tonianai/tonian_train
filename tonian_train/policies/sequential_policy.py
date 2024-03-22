@@ -11,6 +11,7 @@ from tonian_train.policies.base_policy import A2CBasePolicy
 from tonian_train.networks import  A2CSimpleNet, SequentialNet
 from tonian_train.networks.elements.encoder_networks import ObsEncoder
 from tonian_train.networks.sequential.simple_sequential_net import build_simple_sequential_net
+from tonian_train.networks.sequential.self_attention_net import build_self_attention_net
 
 import torch, gym, os
 import torch.nn as nn
@@ -157,7 +158,10 @@ def build_a2c_sequential_policy(config: Dict, obs_space: MultiSpace, action_spac
     elif network_type == 'simple_sequential':
         
         network = build_simple_sequential_net(config, obs_space, action_space)
-        
+    
+    elif network_type == 'self_attention':
+        network = build_self_attention_net(config, obs_space, action_space)    
+    
     else:
         raise 'network_type not supported'
 

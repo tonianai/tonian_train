@@ -594,7 +594,10 @@ class SequentialPPO:
         self.sequence_buffer.block_write()
         
         
-        step_reward = torch.sum(rewards) / (self.num_envs * self.horizon_length)
+        step_reward = torch.mean(rewards)
+        if 'objective_rewards' in infos:
+            objective_reward = torch.mean(infos['objective_rewards'])
+            self.logger.log("run/objective_step_reward", objective_reward, self.num_timesteps)
         
         self.logger.log("run/step_reward", step_reward, self.num_timesteps)
         
@@ -632,6 +635,8 @@ class SequentialPPO:
                 # log the reward constituents
                 for key, value in sum_reward_consituents.items():
                     self.logger.log(f"run_reward_{key}", value / self.horizon_length, self.num_timesteps )
+            
+
             
         
         

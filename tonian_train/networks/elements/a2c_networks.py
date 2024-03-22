@@ -131,7 +131,7 @@ class A2CSimpleNet(A2CBaseNet):
 
             
             if self.has_residual_dynamics:
-                self.residual_dynamics_net = ResidualDynamicsNet( actor_net.out_size(), self.obs_space)
+                self.residual_dynamics_net = ResidualDynamicsNet( shared_net.out_size(), self.obs_space)
                 
                 
         if self.has_critic_net:
@@ -187,7 +187,7 @@ class A2CSimpleNet(A2CBaseNet):
             c_out = self.critic_net(c_out)
             c_out = c_out.flatten(1)  # the batch must be preserved
 
-        value = self.value_activation(self.residual_critic_net(a_out))
+        value = self.value_activation(self.residual_critic_net(c_out))
 
         if self.is_continuous:
             mu = self.action_mu_activation(self.residual_actor_net(a_out))
