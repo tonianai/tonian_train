@@ -102,9 +102,17 @@ class SimpleSequentialNet(SequentialNet):
             # src obs['embedding'] shape (batch_size, src_seq_length, d_model)
         multiplicative_src_mask = -1* (src_pad_mask.to(torch.uint8) -1) 
         
+        # just as a test set the src to zero except for the last observation
+        #multiplicative_src_mask = multiplicative_src_mask = torch.zeros_like(multiplicative_src_mask)
+        # multiplicative_src_mask[:, -1] = 1
+        
         # mask the src for observations that do not belong to this sequence
         for key in src_obs.keys():
             src_obs[key] = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask)
+            temp = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask).clone() 
+            src_obs[key] = (torch.rand_like(src_obs[key]) - 0.5) * 6 * 0
+            src_obs[key][:, -1] = temp[:, -1]
+            
  
         # flatten the src
         for key in src_obs.keys():
