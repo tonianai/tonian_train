@@ -109,13 +109,17 @@ class SimpleSequentialNet(SequentialNet):
         # mask the src for observations that do not belong to this sequence
         for key in src_obs.keys():
             src_obs[key] = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask)
-            temp = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask).clone() 
-            src_obs[key] = (torch.rand_like(src_obs[key]) - 0.5) * 6 * 0
-            src_obs[key][:, -1] = temp[:, -1]
+            
+            #temp = tensor_mul_along_dim(src_obs[key], multiplicative_src_mask).clone() 
+            #src_obs[key] = (torch.rand_like(src_obs[key]) - 0.5) * 6 * 0
+            #src_obs[key][:, -1] = temp[:, -1]
             
  
         # flatten the src
         for key in src_obs.keys():
+            # remove the first sequence dimension
+            src_obs[key] = src_obs[key][:, 1:, :]
+            
             src_obs[key] = torch.flatten(src_obs[key], start_dim=1)
  
         return self.simple_net(src_obs)

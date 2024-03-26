@@ -237,7 +237,7 @@ def build_simple_a2c_from_config(config: Dict,
         space_dict = {}
         for key, space in obs_space:
             shape = list(space.shape)
-            shape[0] = shape[0] * (sequence_length +1)
+            shape[0] = shape[0] * (sequence_length)
             shape = tuple(shape)  
             space_dict[key] = gym.spaces.Box(low= -1, high= 1, shape = shape)
             

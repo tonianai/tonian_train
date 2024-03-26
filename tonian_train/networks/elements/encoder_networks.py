@@ -64,13 +64,13 @@ class ObsEncoder(nn.Module):
             batch_size = obs_tensor.shape[0]
             
             # TODO: THe error could be here
-            assert obs_tensor.shape[1] == self.sequence_length +1 , "The second dim of data sequence tensor must be equal to the sequence length +1"   
+            assert obs_tensor.shape[1] == self.sequence_length , "The second dim of data sequence tensor must be equal to the sequence length +1"   
             unstructured_obs_dict[key] = obs_tensor.view((obs_tensor.shape[0] * obs_tensor.shape[1], ) + obs_tensor.shape[2::])
             
         unstructured_result = self.network(unstructured_obs_dict) # (batch_size * sequence_length, ) + output_dim
         
         # restructuring, so that the output is (batch_size, sequence_length, ) + output_dim
-        return self.out_nn(unstructured_result).reshape((batch_size, self.sequence_length + 1, self.d_model) )
+        return self.out_nn(unstructured_result).reshape((batch_size, self.sequence_length , self.d_model) )
     
     
     def get_output_space(self) -> MultiSpace:

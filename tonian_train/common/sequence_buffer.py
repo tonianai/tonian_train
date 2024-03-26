@@ -220,9 +220,11 @@ class SequenceBuffer():
         Returns:
             Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]: Dict containing relevant info 
         """
+        
+        # TODO maybe add - 1
         obs_dict = {}
         for key in self.obs.keys():
-            res = self.obs[key][:, -(self.sequence_length)::, :]  
+            res = self.obs[key][:, -(self.sequence_length )::, :]  
             obs_dict[key] = torch.concat((res, torch.unsqueeze(obs[key], 1)), dim= 1)
             
         sequence_action_mu = self.action_mu[:, -(self.sequence_length)::,:]
