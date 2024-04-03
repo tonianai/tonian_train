@@ -4,6 +4,7 @@ from tonian_train.common.obs_saver import ObservationDataset
 from tonian_train.networks.elements.encoder_networks import ObsEncoder, ObsDecoder
 
 import os
+import matplotlib.pyplot as plt
 
 import datetime
 
@@ -47,9 +48,11 @@ def train_embeddings(config, obs_space, obs_path, test_path = None,  num_epochs=
     optimizer = torch.optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=5e-5)
     loss_fn = torch.nn.MSELoss()
     
+    training_loss_values = []
     obs_keys = list(obs_space.spaces.keys())
     start_time = datetime.datetime.now() 
     for epoch in range(num_epochs):
+        epoch_losses = []
         for obs_batch in dataset:
             optimizer.zero_grad()
             
@@ -63,13 +66,18 @@ def train_embeddings(config, obs_space, obs_path, test_path = None,  num_epochs=
             for key in obs_keys:
                 loss += loss_fn(decoded[key], obs_batch[key])
                 
-            loss.backward()
+            loss.backward()  
             optimizer.step()
-            
-            
-        end_time = datetime.datetime.now()  
-        duration = end_time - start_time  
-        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item():.4f}, Duration: {duration}')
+            epoch_losses.append(loss.item())
+
+        # Average loss for the epoch
+        avg_epoch_loss = sum(epoch_losses) / len(epoch_losses)
+        training_loss_values.append(avg_epoch_loss)
+
+        end_time = datetime.datetime.now()
+        duration = end_time - start_time
+        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {avg_epoch_loss:.4f}, Duration: {duration}')
+
         
     if test_path is not None:
         test_dataset = ObservationDataset(base_path=test_path, device=device)
@@ -97,3 +105,12 @@ def train_embeddings(config, obs_space, obs_path, test_path = None,  num_epochs=
     # Save models
     torch.save(encoder.state_dict(), encoder_path)
     torch.save(decoder.state_dict(), decoder_path)
+    
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(training_loss_values, label='Embedding Training Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Testing Loss Over Epochs')
+    plt.legend()
+    plt.show()
