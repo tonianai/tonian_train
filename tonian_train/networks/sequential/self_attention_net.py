@@ -63,6 +63,8 @@ class SelfAttentionNet(SequentialNet):
                  value_activation: ActivationFn = nn.Identity(),
                  value_size: int = 1
                  ) -> None:
+        super().__init__()
+        
         self.embedding = embedding
         self.pos_encoder = PositionalEncoding(d_model)
         
@@ -88,8 +90,7 @@ class SelfAttentionNet(SequentialNet):
         else:
             self.action_std = torch.nn.Linear(
                 d_model, self.num_actions)
-        
-        super().__init__()
+         
         
         
     def forward(self, src_obs: Dict[str, torch.Tensor], 
@@ -100,7 +101,7 @@ class SelfAttentionNet(SequentialNet):
                 src_pad_mask=None,
                 tgt_pad_mask=None):
         
-        src = self.embedding(src_obs)
+        src = self.embedding(src_obs, True)
         src = self.pos_encoder(src)
         
         latent = self.transformer_encoder(src, mask=src_pad_mask)
