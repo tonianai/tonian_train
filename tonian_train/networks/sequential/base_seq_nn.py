@@ -189,3 +189,8 @@ class SequentialNet(ABC, nn.Module):
         #  [0.,   0.,   0.,   0.,   0.]]
         
         return mask
+
+
+    def save(self, path):
+        
+        pass

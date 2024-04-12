@@ -74,6 +74,8 @@ class SequentialNetWrapper(SequentialNet):
 
         return self.simple_net(obs)
         
+    def save(self, path):
+        torch.save(self.simple_net.state_dict(), os.path.join(path, 'network.pth'))
 
 
 

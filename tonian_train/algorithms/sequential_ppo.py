@@ -772,7 +772,7 @@ class SequentialPPO:
             
         if self.save_obs and self.policy.obs_normalizer:
             torch.save(self.policy.obs_normalizer.state_dict(), os.path.join('obs_normalizer', 'obs_normalizer.pth'))
-    
+         
         
         if self.model_out_name :
             if best_model and self.reward_to_beat_for_out and self.most_avg_reward_received < self.reward_to_beat_for_out:

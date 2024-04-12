@@ -122,17 +122,19 @@ class SequentialPolicy(A2CBasePolicy):
         return False
     
     def load(self, path):
-        self.a2c_net.load_state_dict(torch.load(os.path.join(path, 'network.pth' )), strict=False)
+        self.sequential_net.load_state_dict(torch.load(os.path.join(path, 'network.pth' )), strict=False)
         
         if self.obs_normalizer:
             self.obs_normalizer.load_state_dict(torch.load(os.path.join(path, 'obs_norm.pth')))
              
 
-    def save(self, path): 
-        torch.save(self.a2c_net.state_dict() ,os.path.join(path, 'network.pth'))   
+    def save(self, path):    
+        
+        self.sequential_net.save(path)
         
         if self.obs_normalizer:
             torch.save(self.obs_normalizer.state_dict(), os.path.join(path, 'obs_norm.pth'))
+            
             
     def observation_embedding(self, obs: Dict[str, torch.Tensor]) -> torch.Tensor:
         pass

@@ -125,7 +125,13 @@ class SimpleSequentialNet(SequentialNet):
         return self.simple_net(src_obs)
     
          
-    
+       
+    def save(self, path):
+        torch.save(self.simple_net.state_dict(), os.path.join(path, 'network.pth'))
+        # save the embedding net if it exists 
+        if self.obs_embedding:
+            torch.save(self.obs_embedding.state_dict(), os.path.join(path, 'embedding.pth'))
+            
 
 
 

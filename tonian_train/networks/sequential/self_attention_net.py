@@ -117,6 +117,15 @@ class SelfAttentionNet(SequentialNet):
         
         return mu, mu*0 + std, value, None
     
+    def has_encoder(self) -> bool:
+        return True
+    
+       
+    def save(self, path):
+        torch.save(self.state_dict(), os.path.join(path, 'network.pth'))
+
+
+    
 def build_self_attention_net(config: Dict, 
                              obs_space: MultiSpace, 
                              action_space: gym.Space) -> SelfAttentionNet:
