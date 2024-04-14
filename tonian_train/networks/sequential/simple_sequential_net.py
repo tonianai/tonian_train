@@ -148,7 +148,10 @@ def build_simple_sequential_net(config: Dict[str, Any], obs_space: MultiSpace, a
         obs_embedding = ObsEncoder(network_config['encoder'], obs_space, sequence_length=sequence_length)
         if 'model_path' in network_config['encoder']:
             obs_embedding.load_pretrained_weights(network_config['encoder']['model_path'])
-            obs_embedding.freeze_parameters()
+            
+            if network_config.get('freeze_encoder', False):        
+                obs_embedding.freeze_parameters()
+                
         obs_space = obs_embedding.get_output_space()
             
     

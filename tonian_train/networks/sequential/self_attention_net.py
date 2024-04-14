@@ -23,26 +23,27 @@ import torch.nn.functional as F
 
 class PositionalEncoding(nn.Module):
     # implementation motivated by pytorch.or tutorials transformer_tutorial.html
-
-    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
+    
+    def __init__(self, d_model: int, dropout: float = 0.03, max_len: int = 5000, learnable=True):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
+        self.scale = nn.Parameter(torch.ones(1) * 0.1, requires_grad=learnable)  # Scale parameter, learnable if needed
 
         position = torch.arange(max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
         pe = torch.zeros(max_len, 1, d_model)
         pe[:, 0, 0::2] = torch.sin(position * div_term)
         pe[:, 0, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
         self.register_buffer('pe', pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Arguments:
-            x: Tensor, shape ``[ batch_size, seq_len, embedding_dim]``
+            x: Tensor, shape ``[seq_len , batch_size, embedding_dim]``
         """
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
+        x = x +  self.scale * self.pe[:x.size(0)]
+        #x = self.dropout(x) 
+        return x
     
     
 
@@ -67,10 +68,7 @@ class SelfAttentionNet(SequentialNet):
         
         self.embedding = embedding
         self.pos_encoder = PositionalEncoding(d_model)
-        
-        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=num_heads)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_encoder_layers)
-        
+         
         # Define heads for action mean, action standard deviation, value, and optional next state prediction
         self.action_mu_head = nn.Linear(d_model, action_space.shape[0])
         self.value_head = nn.Linear(d_model, value_size)
@@ -79,7 +77,11 @@ class SelfAttentionNet(SequentialNet):
         self.value_activation = value_activation
         self.std_activation = std_activation 
         self.action_activation = action_activation
-        
+         
+        self.encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(d_model=d_model, nhead=num_heads),
+            num_layers=num_encoder_layers
+        )
         
         self.has_residual_dynamics = False
         
@@ -102,9 +104,17 @@ class SelfAttentionNet(SequentialNet):
                 tgt_pad_mask=None):
         
         src = self.embedding(src_obs, True)
+        src = src.permute(1, 0, 2)
+        # src shape: (sequence_length, batch_size, d_model)
+        
         src = self.pos_encoder(src)
         
-        latent = self.transformer_encoder(src, mask=src_pad_mask)
+        latent = self.encoder(src, src_key_padding_mask=src_pad_mask)
+        latent = src
+        
+        # Selecting only the last element of the sequence
+        latent = latent[-1, :, :]  # New shape: (batch_size, d_model)
+ 
          
         mu = self.action_mu_head(latent)
     
@@ -149,7 +159,9 @@ def build_self_attention_net(config: Dict,
         obs_embedding = ObsEncoder(network_config['encoder'], obs_space, sequence_length=sequence_length)
         if 'model_path' in network_config['encoder']:
             obs_embedding.load_pretrained_weights(network_config['encoder']['model_path'])
-            obs_embedding.freeze_parameters()
+            
+            if network_config.get('freeze_encoder', False):        
+                obs_embedding.freeze_parameters()
         obs_space = obs_embedding.get_output_space()
     
     d_model = network_config['d_model']
